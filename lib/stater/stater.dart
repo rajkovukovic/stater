@@ -3,18 +3,18 @@ library stater;
 import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseFirestore;
 import 'package:flutter/material.dart';
 
-import 'adapters/adapter.dart';
+import 'adapter.dart';
 import 'collection_reference.dart';
 
 @immutable
-class StateMachine<ID extends Object?, T extends Object?> {
-  const StateMachine(Adapter<ID, T> adapter) : _adapter = adapter;
+class StateMachine {
+  const StateMachine(Adapter adapter) : _adapter = adapter;
 
-  final Adapter<ID, T> _adapter;
+  final Adapter _adapter;
 
   Adapter get adapter => _adapter;
 
-  CollectionReference<ID, T> collection(String collectionPath) {
+  CollectionReference collection(String collectionPath) {
     // return _adapter.collection(collectionPath);
     throw 'not implemented';
   }

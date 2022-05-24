@@ -2,14 +2,20 @@ import 'package:stater/stater/adapter_delegate.dart';
 import 'package:stater/stater/collection_reference.dart';
 import 'package:stater/stater/converters.dart';
 
-abstract class Adapter<ID extends Object?, T extends Object?> {
-  AdapterDelegate<ID, T> get delegate;
+class Adapter {
+  final AdapterDelegate delegate;
 
-  CollectionReference<ID, T> collection(
+  const Adapter(this.delegate);
+
+  CollectionReference<ID, T> collection<ID extends Object?, T extends Object?>(
     String path, {
     required FromStorage<ID, T> fromStorage,
     required ToStorage<T> toStorage,
-  });
-
-  Adapter<ID, T> cloneWithDelegate(AdapterDelegate<ID, T> delegate);
+  }) {
+    return CollectionReference(
+        delegate: delegate,
+        collectionPath: path,
+        fromStorage: fromStorage,
+        toStorage: toStorage);
+  }
 }

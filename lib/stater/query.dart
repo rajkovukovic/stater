@@ -10,7 +10,7 @@ class Query<ID extends Object?, T extends Object?> {
     required this.toStorage,
   });
 
-  final AdapterDelegate<ID, T> delegate;
+  final AdapterDelegate delegate;
   final Map<String, dynamic> parameters;
   final FromStorage<ID, T> fromStorage;
   final ToStorage<T> toStorage;

@@ -7,7 +7,7 @@ import 'document_snapshot.dart';
 class DocumentReference<ID extends Object?, T extends Object?> {
   const DocumentReference(this._delegate, this.collectionPath, this.id);
 
-  final AdapterDelegate<ID, T> _delegate;
+  final AdapterDelegate _delegate;
 
   final String collectionPath;
 

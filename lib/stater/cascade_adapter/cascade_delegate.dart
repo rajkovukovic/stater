@@ -9,9 +9,8 @@ import 'package:stater/stater/transaction/transaction.dart';
 bool ignoreAdapterWithCacheAddDocument = false;
 bool _warnedAboutAdapterWithCacheAddDocument = false;
 
-class CascadeDelegate<ID extends Object?, T extends Object?>
-    implements AdapterDelegate<ID, T> {
-  final List<AdapterDelegate<ID, T>> _delegates;
+class CascadeDelegate implements AdapterDelegate {
+  final List<AdapterDelegate> _delegates;
   final List<Transaction> _transactionQueue = [];
   final List<Function()> _listeners = [];
 
@@ -30,8 +29,9 @@ class CascadeDelegate<ID extends Object?, T extends Object?>
 
   /// creates a new document
   @override
-  Future<DocumentSnapshot<ID, T>> addDocument(
-      String collectionPath, T doc) async {
+  Future<DocumentSnapshot<ID, T>>
+      addDocument<ID extends Object?, T extends Object?>(
+          String collectionPath, T doc) async {
     if (!ignoreAdapterWithCacheAddDocument &&
         !_warnedAboutAdapterWithCacheAddDocument) {
       // ignore: avoid_print
@@ -47,21 +47,24 @@ class CascadeDelegate<ID extends Object?, T extends Object?>
 
   /// deletes the document
   @override
-  Future<void> deleteDocument(String collectionPath, ID docId) async {
+  Future<void> deleteDocument<ID extends Object?>(
+      String collectionPath, ID documentId) async {
     _addTransaction(Transaction([
       DocumentChange(
           collectionPath: collectionPath,
           changeType: DocumentChangeType.delete,
-          param: docId)
+          param: documentId)
     ]));
   }
 
   /// Reads the document
   @override
-  Future<DocumentSnapshot<ID, T>> getDocument(String collectionPath, ID docId) {
+  Future<DocumentSnapshot<ID, T>>
+      getDocument<ID extends Object?, T extends Object?>(
+          String collectionPath, ID documentId) {
     Future<DocumentSnapshot<ID, T>> delegateFuture(int delegateIndex) {
       return _delegates[delegateIndex]
-          .getDocument(collectionPath, docId)
+          .getDocument<ID, T>(collectionPath, documentId)
           .catchError((error) {
         if (delegateIndex + 1 < _delegates.length) {
           return delegateFuture(delegateIndex + 1);
@@ -76,9 +79,12 @@ class CascadeDelegate<ID extends Object?, T extends Object?>
 
   /// Reads the document
   @override
-  Future<QuerySnapshot<ID, T>> getQuery(Query query) {
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
+      Query query) {
     Future<QuerySnapshot<ID, T>> delegateFuture(int delegateIndex) {
-      return _delegates[delegateIndex].getQuery(query).catchError((error) {
+      return _delegates[delegateIndex]
+          .getQuery<ID, T>(query)
+          .catchError((error) {
         if (delegateIndex + 1 < _delegates.length) {
           return delegateFuture(delegateIndex + 1);
         }
@@ -92,28 +98,32 @@ class CascadeDelegate<ID extends Object?, T extends Object?>
 
   /// Notifies of document updates at this location.
   @override
-  Stream<DocumentSnapshot<ID, T>> documentSnapshots(
-      String collectionPath, ID docId) {
-    return MergeStream(_delegates
-        .map((delegate) => delegate.documentSnapshots(collectionPath, docId)));
+  Stream<DocumentSnapshot<ID, T>>
+      documentSnapshots<ID extends Object?, T extends Object?>(
+          String collectionPath, ID documentId) {
+    return MergeStream(_delegates.map(
+        (delegate) => delegate.documentSnapshots(collectionPath, documentId)));
   }
 
   /// Notifies of document updates at this location.
   @override
-  Stream<QuerySnapshot<ID, T>> querySnapshots(Query query) {
+  Stream<QuerySnapshot<ID, T>>
+      querySnapshots<ID extends Object?, T extends Object?>(
+          Query<ID, T> query) {
     return MergeStream(
-        _delegates.map((delegate) => delegate.querySnapshots(query)));
+        _delegates.map((delegate) => delegate.querySnapshots<ID, T>(query)));
   }
 
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
   @override
-  Future<void> set(String collectionPath, ID docId, T data) async {
+  Future<void> set<ID extends Object?, T extends Object?>(
+      String collectionPath, ID documentId, T data) async {
     _addTransaction(Transaction([
       DocumentChange(
           collectionPath: collectionPath,
           changeType: DocumentChangeType.set,
-          param: [docId, data])
+          param: [documentId, data])
     ]));
   }
 
@@ -122,13 +132,13 @@ class CascadeDelegate<ID extends Object?, T extends Object?>
   ///
   /// If no document exists yet, the update will fail.
   @override
-  Future<void> update(
-      String collectionPath, ID docId, Map<String, Object?> data) async {
+  Future<void> update<ID extends Object?>(
+      String collectionPath, ID documentId, Map<String, Object?> data) async {
     _addTransaction(Transaction([
       DocumentChange(
           collectionPath: collectionPath,
           changeType: DocumentChangeType.update,
-          param: [docId, data])
+          param: [documentId, data])
     ]));
   }
 }
