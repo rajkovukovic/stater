@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:stater/custom/get_storage_adapter.dart';
+import 'package:stater/custom/rest_adapter.dart';
+import 'package:stater/stater/collection_reference.dart';
+import 'package:stater/stater/document_snapshot.dart';
 
-import '../state_machine/adapters/get_storage_adapter/get_storage_adapter.dart';
-import '../state_machine/adapters/rest_adapter/rest_adapter.dart';
-import '../state_machine/collection_reference.dart';
-import '../state_machine/document_snapshot.dart';
-import '../state_machine/stater.dart';
 import 'tutorial_card.dart';
 import 'tutorial_screen.dart';
 
@@ -16,25 +15,27 @@ class TutorialsScreen extends StatefulWidget {
 }
 
 class _TutorialsScreenState extends State<TutorialsScreen> {
-  final restMachine = StateMachine(RestAdapter<String, Map<String, dynamic>>(
-      'http://100.81.80.104:6868/api'));
+  final restMachine = RestAdapter('https://jsonplaceholder.typicode.com');
 
-  final getStorageMachine =
-      StateMachine(GetStorageAdapter<String, Map<String, dynamic>>('DB'));
+  final getStorageMachine = GetStorageAdapter('DB');
 
-  bool isRest = true;
+  bool isRest = false;
 
-  late CollectionReference<String, Map<String, dynamic>> collectionRef =
-      (isRest ? restMachine : getStorageMachine).collection('tutorials');
+  late CollectionReference<String, Map<String, dynamic>> collectionRef;
 
-  late Stream<List<DocumentSnapshot<String, Map<String, dynamic>>>> documents =
-      collectionRef.snapshots();
+  late Stream<List<DocumentSnapshot<String, Map<String, dynamic>>>> documents;
+
+  @override
+  void initState() {
+    super.initState();
+    _setUpStreams();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tutorials'),
+        title: const Text('Users'),
         actions: [
           IconButton(
               onPressed: _toggleStateMachine,
@@ -60,8 +61,7 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
           if (snapshots.isEmpty) {
             return Center(
               child: ElevatedButton(
-                  onPressed: _createNew,
-                  child: const Text('Create One')),
+                  onPressed: _createNew, child: const Text('Create One')),
             );
           }
 
@@ -80,10 +80,15 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
     );
   }
 
+  void _setUpStreams() {
+    collectionRef =
+        (isRest ? restMachine : getStorageMachine).collection('users');
+
+    documents = collectionRef.snapshots().map((snapshot) => snapshot.docs);
+  }
+
   void _reload() {
-    setState(() {
-      documents = collectionRef.snapshots();
-    });
+    setState(() => _setUpStreams());
   }
 
   void _delayedReload() {
@@ -111,10 +116,7 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
   _toggleStateMachine() {
     setState(() {
       isRest = !isRest;
-      print('isRest: $isRest');
-      collectionRef =
-          (isRest ? restMachine : getStorageMachine).collection('tutorials');
-      documents = collectionRef.snapshots();
+      _setUpStreams();
     });
   }
 }

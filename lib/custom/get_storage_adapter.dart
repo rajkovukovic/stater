@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:stater/stater/adapter.dart';
 import 'package:stater/stater/adapter_delegate.dart';
@@ -26,14 +27,8 @@ class GetStorageDelegate implements AdapterDelegate {
   Future<void> deleteDocument<ID extends Object?>(
       String collectionPath, ID documentId) async {
     final storage = GetStorage(storagePrefix);
-    final stored = storage.read(collectionPath);
 
-    final existing = stored == null
-        ? <String, Object?>{}
-        : Map<String, Object?>.from(stored);
-
-    existing.remove(documentId);
-    return storage.write(collectionPath, existing);
+    return storage.remove(documentId.toString());
   }
 
   @override
@@ -49,24 +44,31 @@ class GetStorageDelegate implements AdapterDelegate {
       getDocument<ID extends Object?, T extends Object?>(
           String collectionPath, ID documentId) async {
     final storage = getStorage(collectionPath);
-    final stored = storage.read(collectionPath);
+    final data = storage.read(documentId.toString());
 
-    final existing =
-        stored == null ? <String, T>{} : Map<String, T>.from(stored);
-
-    final snapshot = existing[documentId];
     return Future.value(DocumentSnapshot(
       documentId,
-      snapshot,
+      data,
       DocumentReference(collectionPath, documentId, this),
     ));
   }
 
   @override
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-      Query<ID, T> query) {
-    // TODO: make sure updates are emmited to the stream
-    throw UnimplementedError('GetStorageDelegate.getQuery is not implemented');
+      Query<ID, T> query) async {
+    // TODO: GetStorageDelegate.getQuery is missing filtering and sorting data by the query
+    final collectionPath = query.parameters['collectionPath'];
+    final storage = getStorage(collectionPath);
+    final keys = List<String>.from(storage.getKeys());
+    final docs = (storage.getValues() as Iterable<dynamic>)
+        .mapIndexed((index, doc) => DocumentSnapshot<ID, T>(
+              keys[index] as ID,
+              doc,
+              DocumentReference(collectionPath, keys[index] as ID, this),
+            ))
+        .toList();
+
+    return QuerySnapshot(docs);
   }
 
   @override
@@ -80,20 +82,15 @@ class GetStorageDelegate implements AdapterDelegate {
   Future<void> set<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data) async {
     final storage = getStorage(collectionPath);
-    final stored = storage.read(collectionPath);
 
-    final existing =
-        stored == null ? <String, T>{} : Map<String, T>.from(stored);
-
-    existing[documentId.toString()] = data;
-    storage.write(collectionPath, existing);
+    storage.write(documentId.toString(), data);
   }
 
   @override
   Future<void> update<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data) async {
     final storage = getStorage(collectionPath);
-    final stored = storage.read(collectionPath);
+    final stored = storage.read(documentId.toString());
 
     final existing = stored == null
         ? <String, Object?>{}
@@ -107,7 +104,7 @@ class GetStorageDelegate implements AdapterDelegate {
       existing[documentId.toString()] = oldValue;
     }
 
-    return storage.write(collectionPath, existing);
+    return storage.write(documentId.toString(), existing);
   }
 }
 

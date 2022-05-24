@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
-import '../state_machine/collection_reference.dart';
-import '../state_machine/document_snapshot.dart';
+import 'package:stater/stater/collection_reference.dart';
+import 'package:stater/stater/document_snapshot.dart';
 
 class TutorialScreen extends StatefulWidget {
   TutorialScreen({
@@ -21,10 +20,10 @@ class TutorialScreen extends StatefulWidget {
   final Function? onDispose;
 
   @override
-  State<TutorialScreen> createState() => _TutorialScreenState();
+  State<TutorialScreen> createState() => _ItemScreenState();
 }
 
-class _TutorialScreenState extends State<TutorialScreen> {
+class _ItemScreenState extends State<TutorialScreen> {
   late final _titleController =
       TextEditingController(text: widget.data?['title']);
   late final _descriptionController =

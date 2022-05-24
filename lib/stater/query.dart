@@ -6,14 +6,14 @@ class Query<ID extends Object?, T extends Object?> {
   Query({
     required this.delegate,
     required this.parameters,
-    required this.fromStorage,
-    required this.toStorage,
+    this.fromStorage,
+    this.toStorage,
   });
 
   final AdapterDelegate delegate;
   final Map<String, dynamic> parameters;
-  final FromStorage<ID, T> fromStorage;
-  final ToStorage<T> toStorage;
+  final FromStorage<ID, T>? fromStorage;
+  final ToStorage<T>? toStorage;
 
   // Query<ID, T> _mapQuery(Query<Map<String, dynamic>> newOriginalQuery) {
   //   return Query<T>(

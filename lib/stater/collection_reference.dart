@@ -9,8 +9,8 @@ class CollectionReference<ID extends Object?, T extends Object?>
   CollectionReference({
     required AdapterDelegate delegate,
     required String collectionPath,
-    required FromStorage<ID, T> fromStorage,
-    required ToStorage<T> toStorage,
+    FromStorage<ID, T>? fromStorage,
+    ToStorage<T>? toStorage,
   }) : super(
             delegate: delegate,
             parameters: {'collectionPath': collectionPath},
