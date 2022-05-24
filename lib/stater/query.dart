@@ -1,18 +1,19 @@
+import 'package:stater/stater/adapter_delegate.dart';
 import 'package:stater/stater/converters.dart';
 import 'package:stater/stater/query_snapshot.dart';
 
-abstract class Query<ID extends Object?, T extends Object?> {
-  Query(
-    this._parameters,
-    this.fromStorage,
-    this.toStorage,
-  );
+class Query<ID extends Object?, T extends Object?> {
+  Query({
+    required this.delegate,
+    required this.parameters,
+    required this.fromStorage,
+    required this.toStorage,
+  });
 
-  final Map<String, dynamic> _parameters;
+  final AdapterDelegate<ID, T> delegate;
+  final Map<String, dynamic> parameters;
   final FromStorage<ID, T> fromStorage;
   final ToStorage<T> toStorage;
-
-  Map<String, dynamic> get parameters => _parameters;
 
   // Query<ID, T> _mapQuery(Query<Map<String, dynamic>> newOriginalQuery) {
   //   return Query<T>(
@@ -22,9 +23,9 @@ abstract class Query<ID extends Object?, T extends Object?> {
   //   );
   // }
 
-  Future<QuerySnapshot<ID, T>> get();
+  Future<QuerySnapshot<ID, T>> get() => delegate.getQuery(this);
 
-  Stream<QuerySnapshot<ID, T>> snapshots();
+  Stream<QuerySnapshot<ID, T>> snapshots() => delegate.querySnapshots(this);
 
   // @override
   // Query<T> endAt(List<Object?> values) {

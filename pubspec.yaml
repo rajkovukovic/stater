@@ -1,5 +1,5 @@
 name: stater
-description: A new Flutter project.
+description: library for state management with Firebase like API with support for caching server data locally
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -15,7 +15,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # In iOS, build-name is used as CFBundleShortVersionString while build-number used as CFBundleVersion.
 # Read more about iOS versioning at
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
-version: 1.0.0+1
+version: 0.1.0-alpha.1+1
 
 environment:
   sdk: ">=2.17.0 <3.0.0"
@@ -41,6 +41,7 @@ dependencies:
   firebase_core: ^1.17.0
   cloud_firestore: ^3.1.16
   http: ^0.13.4
+  rxdart: ^0.27.3
 
 dev_dependencies:
   flutter_test:

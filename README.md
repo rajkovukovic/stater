@@ -1,6 +1,6 @@
 # stater
 
-A new Flutter project.
+library for state management with Firebase like API with support for caching server data locally
 
 ## Getting Started
 

@@ -20,7 +20,7 @@ class StateMachine<ID extends Object?, T extends Object?> {
   }
 }
 
-final a = FirebaseFirestore.instance.collection('chatters').doc('bla');
+final a = FirebaseFirestore.instance.collection('chatters').doc('bla').get();
 
 // final restAdapter = RestAdapter('http://100.81.80.104:6868/api');
 // final localStorageAdapter = LocalStorageAdapter('DB');
