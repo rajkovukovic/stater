@@ -1,0 +1,14 @@
+{
+	"editor.codeActionsOnSave": {
+		"source.fixAll": true,
+		"source.organizeImports": true,
+	},
+	"explorer.fileNesting.enabled": true,
+	"explorer.fileNesting.expand": false,
+	"explorer.fileNesting.patterns": {
+		"pubspec.yaml": ".gitignore, .packages, .metadata, pubspec.lock, analysis_options.yaml, jira.iml, .flutter-plugins, .flutter-plugins-dependencies, *.iml, keystore"
+	},
+	"cSpell.words": [
+		"firestore"
+	]
+}
