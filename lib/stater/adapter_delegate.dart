@@ -6,7 +6,7 @@ abstract class AdapterDelegate {
   /// creates a new document
   Future<DocumentSnapshot<ID, T>>
       addDocument<ID extends Object?, T extends Object?>(
-          String collectionPath, T doc);
+          String collectionPath, T data);
 
   /// deletes the document
   Future<void> deleteDocument<ID extends Object?>(
@@ -19,7 +19,7 @@ abstract class AdapterDelegate {
 
   /// Reads the document
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-      Query query);
+      Query<ID, T> query);
 
   /// Notifies of document updates at this location.
   Stream<DocumentSnapshot<ID, T>>

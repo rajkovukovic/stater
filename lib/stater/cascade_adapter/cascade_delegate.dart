@@ -80,7 +80,7 @@ class CascadeDelegate implements AdapterDelegate {
   /// Reads the document
   @override
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-      Query query) {
+      Query<ID, T> query) {
     Future<QuerySnapshot<ID, T>> delegateFuture(int delegateIndex) {
       return _delegates[delegateIndex]
           .getQuery<ID, T>(query)
