@@ -35,7 +35,8 @@ class GetStorageDelegate implements AdapterDelegate {
       addDocument<ID extends Object?, T extends Object?>(
           String collectionPath, T data) {
     final documentId = const Uuid().v4() as ID;
-    return set(collectionPath, documentId, data).then((_) => DocumentSnapshot(
+    return setDocument(collectionPath, documentId, data)
+        .then((_) => DocumentSnapshot(
           documentId,
           data,
           DocumentReference(collectionPath, documentId, this),
@@ -129,7 +130,7 @@ class GetStorageDelegate implements AdapterDelegate {
   }
 
   @override
-  Future<void> set<ID extends Object?, T extends Object?>(
+  Future<void> setDocument<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data) async {
     final storage = await getStorage(collectionPath);
 
@@ -137,7 +138,7 @@ class GetStorageDelegate implements AdapterDelegate {
   }
 
   @override
-  Future<void> update<ID extends Object?>(
+  Future<void> updateDocument<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data) async {
     final storage = await getStorage(collectionPath);
     final existing =

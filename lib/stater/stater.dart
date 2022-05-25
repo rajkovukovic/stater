@@ -1,32 +1,36 @@
 library stater;
 
 import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseFirestore;
-import 'package:flutter/material.dart';
+import 'package:stater/custom/get_storage_adapter.dart';
+import 'package:stater/custom/rest_adapter.dart';
+import 'package:stater/stater/cascade_adapter/cascade_adapter.dart';
+import 'package:stater/stater/query.dart';
 
-import 'adapter.dart';
-import 'collection_reference.dart';
-
-@immutable
-class StateMachine {
-  const StateMachine(Adapter adapter) : _adapter = adapter;
-
-  final Adapter _adapter;
-
-  Adapter get adapter => _adapter;
-
-  CollectionReference collection(String collectionPath) {
-    // return _adapter.collection(collectionPath);
-    throw 'not implemented';
+bool doesTutorialMatchQuery(Object? element, Query query) {
+  if (query.compareOperations.isEmpty) {
+    return true;
+  } else if (query.compareOperations.length == 1 &&
+      query.compareOperations.first.compareOperator ==
+          CompareOperator.isEqualTo &&
+      query.compareOperations.first.field == 'published' &&
+      element is Map) {
+    return (element['published'] ?? false) ==
+        query.compareOperations.first.valueToCompareTo;
+  } else {
+    throw 'Can only query a map by "published" field for equality';
   }
 }
 
-final a = FirebaseFirestore.instance.collection('chatters').doc('bla');
+final restDelegate = RestDelegate('http://localhost:6868/api');
 
-// final restAdapter = RestAdapter('http://100.81.80.104:6868/api');
-// final localStorageAdapter = LocalStorageAdapter('DB');
+final getStorageDelegate = GetStorageDelegate(
+  storagePrefix: 'DB',
+  doesMatchQuery: doesTutorialMatchQuery,
+);
 
-// class StateManager {
-//   static get preferences => localStorageAdapter.collection('preferences');
-//   static get users =>
-//       restAdapter.collection('users').withConverter(fromDB, toDB);
-// }
+final stater = CascadeAdapter([
+  restDelegate,
+  getStorageDelegate,
+]);
+
+final _a = FirebaseFirestore.instance.collection('chatters').doc('bla');

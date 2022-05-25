@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:stater/custom/get_storage_adapter.dart';
-import 'package:stater/custom/rest_adapter.dart';
+import 'package:stater/stater/adapter.dart';
 import 'package:stater/stater/collection_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
@@ -8,22 +7,22 @@ import 'package:stater/stater/query.dart';
 import 'tutorial_card.dart';
 import 'tutorial_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+class CascadeStorageScreen extends StatefulWidget {
+  const CascadeStorageScreen({Key? key, required this.adapter})
+      : super(key: key);
+
+  final Adapter adapter;
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<CascadeStorageScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final restMachine = RestAdapter('http://localhost:6868/api');
-
-  final getStorageMachine = GetStorageAdapter(
-    storagePrefix: 'DB',
-    doesMatchQuery: doesTutorialMatchQuery,
-  );
-
-  bool isRest = false;
+class _HomeScreenState extends State<CascadeStorageScreen> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _setUpStreams();
+  }
 
   bool? filterByPublished;
 
@@ -51,9 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
           falseLabel: 'Not Published Tutorials',
         ),
         actions: [
-          IconButton(
-              onPressed: _toggleStateMachine,
-              icon: Icon(isRest ? Icons.network_wifi : Icons.computer)),
           IconButton(
               onPressed: _reload, icon: const Icon(Icons.replay_outlined)),
           IconButton(onPressed: _createNew, icon: const Icon(Icons.add))
@@ -95,8 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _setUpStreams() {
-    collectionReference =
-        (isRest ? restMachine : getStorageMachine).collection('tutorials');
+    collectionReference = widget.adapter.collection('tutorials');
 
     if (filterByPublished != null) {
       query = collectionReference.where(
@@ -143,13 +138,6 @@ class _HomeScreenState extends State<HomeScreen> {
             TutorialScreen(snapshot: snapshot, onDispose: _delayedReload),
       ),
     );
-  }
-
-  _toggleStateMachine() {
-    setState(() {
-      isRest = !isRest;
-      _setUpStreams();
-    });
   }
 }
 

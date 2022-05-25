@@ -34,12 +34,12 @@ class DocumentReference<ID extends Object?, T extends Object?> {
 
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
-  Future<void> set(T data) => _delegate.set(collectionPath, id, data);
+  Future<void> set(T data) => _delegate.setDocument(collectionPath, id, data);
 
   /// Updates data on the document. Data will be merged with any existing
   /// document data.
   ///
   /// If no document exists yet, the update will fail.
   Future<void> update(Map<String, Object?> data) =>
-      _delegate.update(collectionPath, id, data);
+      _delegate.updateDocument(collectionPath, id, data);
 }

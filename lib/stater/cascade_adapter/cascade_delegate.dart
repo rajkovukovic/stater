@@ -6,7 +6,7 @@ import 'package:stater/stater/query_snapshot.dart';
 import 'package:stater/stater/transaction/document_change.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 
-bool ignoreAdapterWithCacheAddDocument = false;
+bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutAdapterWithCacheAddDocument = false;
 
 class CascadeDelegate implements AdapterDelegate {
@@ -32,16 +32,23 @@ class CascadeDelegate implements AdapterDelegate {
   Future<DocumentSnapshot<ID, T>>
       addDocument<ID extends Object?, T extends Object?>(
           String collectionPath, T doc) async {
-    if (!ignoreAdapterWithCacheAddDocument &&
+    if (!ignoreCascadeDelegateAddDocumentWarning &&
         !_warnedAboutAdapterWithCacheAddDocument) {
       // ignore: avoid_print
       print(
-          'Calling collection.add method is not recommended when using CascadeAdapter, because this transactions will stay in queue until the primary adapter commits it successfully ');
+          'Calling collection.add method is not recommended when using CascadeAdapter '
+          'because this transactions will stay in the transactions queue until the primary adapter commits it successfully. '
+          'You may want to use collection.doc(generateNewUniqueId()).set method instead.\n'
+          'To disable this message set variable "ignoreCascadeDelegateAddDocumentWarning" to true');
       _warnedAboutAdapterWithCacheAddDocument = true;
     }
-    return _delegates.first.addDocument(collectionPath, doc).then((snapshot) {
-      throw 'When first delegate in CascadeAdapter creates a document successfully, CascadeDelegate should be notified to avoid creating duplicate documents';
-      // return snapshot;
+    return _delegates.first
+        .addDocument<ID, T>(collectionPath, doc)
+        .then((snapshot) {
+      _delegates.sublist(1).forEach((delegate) {
+        delegate.setDocument(collectionPath, snapshot.id, doc);
+      });
+      return snapshot;
     });
   }
 
@@ -110,14 +117,14 @@ class CascadeDelegate implements AdapterDelegate {
   Stream<QuerySnapshot<ID, T>>
       querySnapshots<ID extends Object?, T extends Object?>(
           Query<ID, T> query) {
-    return MergeStream(
-        _delegates.map((delegate) => delegate.querySnapshots<ID, T>(query)));
+    return MergeStream(_delegates.map((delegate) =>
+        delegate.querySnapshots<ID, T>(query).handleError((_) => true)));
   }
 
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
   @override
-  Future<void> set<ID extends Object?, T extends Object?>(
+  Future<void> setDocument<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data) async {
     _addTransaction(Transaction([
       DocumentChange(
@@ -132,7 +139,7 @@ class CascadeDelegate implements AdapterDelegate {
   ///
   /// If no document exists yet, the update will fail.
   @override
-  Future<void> update<ID extends Object?>(
+  Future<void> updateDocument<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data) async {
     _addTransaction(Transaction([
       DocumentChange(

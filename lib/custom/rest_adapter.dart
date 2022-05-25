@@ -17,9 +17,15 @@ class RestDelegate implements AdapterDelegate {
   Future<DocumentSnapshot<ID, T>>
       addDocument<ID extends Object?, T extends Object?>(
           String collectionPath, T data) {
-    return Dio()
-        .post('$endpoint/$collectionPath', data: data)
-        .then((response) => response.data);
+    return Dio().post('$endpoint/$collectionPath', data: data).then((response) {
+      final data = response.data;
+      final id = data['id'] ?? '';
+      return DocumentSnapshot(
+        id,
+        data,
+        DocumentReference(collectionPath, id, this),
+      );
+    });
   }
 
   @override
@@ -89,7 +95,7 @@ class RestDelegate implements AdapterDelegate {
   }
 
   @override
-  Future<void> set<ID extends Object?, T extends Object?>(
+  Future<void> setDocument<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data) async {
     return Dio()
         .put('$endpoint/$collectionPath/$documentId', data: data)
@@ -97,7 +103,7 @@ class RestDelegate implements AdapterDelegate {
   }
 
   @override
-  Future<void> update<ID extends Object?>(
+  Future<void> updateDocument<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data) async {
     return Dio()
         .patch('$endpoint/$collectionPath/$documentId', data: data)

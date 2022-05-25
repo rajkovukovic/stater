@@ -32,13 +32,13 @@ abstract class AdapterDelegate {
 
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
-  Future<void> set<ID extends Object?, T extends Object?>(
+  Future<void> setDocument<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data);
 
   /// Updates data on the document. Data will be merged with any existing
   /// document data.
   ///
   /// If no document exists yet, the update will fail.
-  Future<void> update<ID extends Object?>(
+  Future<void> updateDocument<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data);
 }
