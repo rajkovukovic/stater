@@ -1,21 +1,22 @@
 import 'package:stater/stater/adapter_delegate.dart';
 import 'package:stater/stater/converters.dart';
+import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query_snapshot.dart';
 
 class Query<ID extends Object?, T extends Object?> {
   Query({
     required this.delegate,
-    required this.parameters,
+    required this.collectionPath,
     this.fromStorage,
     this.toStorage,
+    this.compareOperations = const [],
   });
 
   final AdapterDelegate delegate;
-  final Map<String, dynamic> parameters;
+  final String collectionPath;
   final FromStorage<ID, T>? fromStorage;
   final ToStorage<T>? toStorage;
-
-  String get collectionPath => parameters['collectionPath'] as String;
+  late final List<CompareOperation> compareOperations;
 
   // Query<ID, T> _mapQuery(Query<Map<String, dynamic>> newOriginalQuery) {
   //   return Query<T>(
@@ -84,38 +85,23 @@ class Query<ID extends Object?, T extends Object?> {
   //   return _mapQuery(_originalQuery.startAtDocument(documentSnapshot));
   // }
 
-  // @override
-  // Query<T> where(
-  //   Object field, {
-  //   Object? isEqualTo,
-  //   Object? isNotEqualTo,
-  //   Object? isLessThan,
-  //   Object? isLessThanOrEqualTo,
-  //   Object? isGreaterThan,
-  //   Object? isGreaterThanOrEqualTo,
-  //   Object? arrayContains,
-  //   List<Object?>? arrayContainsAny,
-  //   List<Object?>? whereIn,
-  //   List<Object?>? whereNotIn,
-  //   bool? isNull,
-  // }) {
-  //   return _mapQuery(
-  //     _originalQuery.where(
-  //       field,
-  //       isEqualTo: isEqualTo,
-  //       isNotEqualTo: isNotEqualTo,
-  //       isLessThan: isLessThan,
-  //       isLessThanOrEqualTo: isLessThanOrEqualTo,
-  //       isGreaterThan: isGreaterThan,
-  //       isGreaterThanOrEqualTo: isGreaterThanOrEqualTo,
-  //       arrayContains: arrayContains,
-  //       arrayContainsAny: arrayContainsAny,
-  //       whereIn: whereIn,
-  //       whereNotIn: whereNotIn,
-  //       isNull: isNull,
-  //     ),
-  //   );
-  // }
+  Query<ID, T> whereOperation(CompareOperation compareOperation) {
+    return Query(
+        collectionPath: collectionPath,
+        delegate: delegate,
+        fromStorage: fromStorage,
+        toStorage: toStorage,
+        compareOperations: [...compareOperations, compareOperation]);
+  }
+
+  Query<ID, T> where(
+    Object field,
+    CompareOperator compareOperator,
+    Object? valueToCompareTo,
+  ) {
+    return whereOperation(
+        CompareOperation(field, compareOperator, valueToCompareTo));
+  }
 
   // @override
   // bool operator ==(Object other) {
@@ -130,3 +116,27 @@ class Query<ID extends Object?, T extends Object?> {
   // int get hashCode =>
   //     hashValues(runtimeType, _fromStorage, _toStorage, _originalQuery);
 }
+
+enum CompareOperator {
+  isEqualTo,
+  isNotEqualTo,
+  isLessThan,
+  isLessThanOrEqualTo,
+  isGreaterThan,
+  isGreaterThanOrEqualTo,
+}
+
+class CompareOperation {
+  final Object field;
+  final CompareOperator compareOperator;
+  final Object? valueToCompareTo;
+
+  const CompareOperation(
+      this.field, this.compareOperator, this.valueToCompareTo);
+}
+
+typedef QueryMatcher<T extends Object?> = bool Function(T element, Query query);
+
+typedef QueryCompareGenerator<ID extends Object?, T extends Object?> = int
+        Function(DocumentSnapshot<ID, T> a, DocumentSnapshot<ID, T> b)?
+    Function(Query query);

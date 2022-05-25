@@ -49,12 +49,19 @@ class RestDelegate implements AdapterDelegate {
   @override
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
       Query<ID, T> query) async {
-    final queryParameters = {...query.parameters}..remove('collectionPath');
+    final queryParameters = <String, dynamic>{};
 
-    final collectionPath = query.parameters['collectionPath'];
+    for (var operation in query.compareOperations) {
+      if (operation.compareOperator != CompareOperator.isEqualTo) {
+        throw 'RestDelegate can work only with CompareOperator.isEqualTo';
+      }
+
+      queryParameters[operation.field.toString()] = operation.valueToCompareTo;
+    }
 
     return Dio()
-        .get('$endpoint/$collectionPath', queryParameters: queryParameters)
+        .get('$endpoint/${query.collectionPath}',
+            queryParameters: queryParameters)
         .then(
           (response) => QuerySnapshot(
             (response.data as Iterable)
@@ -63,7 +70,7 @@ class RestDelegate implements AdapterDelegate {
                     element?['id'] as ID ?? '' as ID,
                     element,
                     DocumentReference(
-                      collectionPath,
+                      query.collectionPath,
                       element?['id'] as ID ?? '' as ID,
                       this,
                     ),

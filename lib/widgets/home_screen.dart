@@ -3,25 +3,31 @@ import 'package:stater/custom/get_storage_adapter.dart';
 import 'package:stater/custom/rest_adapter.dart';
 import 'package:stater/stater/collection_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
+import 'package:stater/stater/query.dart';
 
 import 'tutorial_card.dart';
 import 'tutorial_screen.dart';
 
-class TutorialsScreen extends StatefulWidget {
-  const TutorialsScreen({Key? key}) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key);
 
   @override
-  State<TutorialsScreen> createState() => _TutorialsScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _TutorialsScreenState extends State<TutorialsScreen> {
+class _HomeScreenState extends State<HomeScreen> {
   final restMachine = RestAdapter('http://localhost:6868/api');
 
-  final getStorageMachine = GetStorageAdapter('DB');
+  final getStorageMachine = GetStorageAdapter(
+      storagePrefix: 'DB', doesMatchQuery: doesTutorialMatchQuery);
 
   bool isRest = false;
 
-  late CollectionReference<String, Map<String, dynamic>> collectionRef;
+  bool? filterByPublished;
+
+  late CollectionReference<String, Map<String, dynamic>> collectionReference;
+
+  late Query<String, Map<String, dynamic>> query;
 
   late Stream<List<DocumentSnapshot<String, Map<String, dynamic>>>> documents;
 
@@ -35,7 +41,13 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tutorials'),
+        title: TriStateSelector(
+          onChanged: _handleFilterChanged,
+          value: filterByPublished,
+          nullLabel: 'All Tutorials',
+          trueLabel: 'Published Tutorials',
+          falseLabel: 'Not Published Tutorials',
+        ),
         actions: [
           IconButton(
               onPressed: _toggleStateMachine,
@@ -81,10 +93,24 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
   }
 
   void _setUpStreams() {
-    collectionRef =
+    collectionReference =
         (isRest ? restMachine : getStorageMachine).collection('tutorials');
 
-    documents = collectionRef.snapshots().map((snapshot) => snapshot.docs);
+    if (filterByPublished != null) {
+      query = collectionReference.where(
+          'published', CompareOperator.isEqualTo, filterByPublished);
+    } else {
+      query = collectionReference;
+    }
+
+    documents = query.snapshots().map((snapshot) => snapshot.docs);
+  }
+
+  _handleFilterChanged(bool? value) {
+    setState(() {
+      filterByPublished = value;
+      _setUpStreams();
+    });
   }
 
   void _reload() {
@@ -99,9 +125,13 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TutorialScreen(
-            collectionRef: collectionRef, onDispose: _delayedReload),
+            onCreate: _handleCreateNew, onDispose: _delayedReload),
       ),
     );
+  }
+
+  Future _handleCreateNew(Map<String, dynamic> data) {
+    return collectionReference.add(data);
   }
 
   void _editExisting(DocumentSnapshot<String, Map<String, dynamic>> snapshot) {
@@ -118,5 +148,50 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
       isRest = !isRest;
       _setUpStreams();
     });
+  }
+}
+
+class TriStateSelector extends StatelessWidget {
+  final bool? value;
+  final void Function(bool?)? onChanged;
+  final String? nullLabel;
+  final String? trueLabel;
+  final String? falseLabel;
+
+  const TriStateSelector({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.nullLabel,
+    this.trueLabel,
+    this.falseLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButton<bool?>(
+      value: value,
+      onChanged: onChanged,
+      items: [
+        DropdownMenuItem(value: null, child: Text(nullLabel ?? 'null')),
+        DropdownMenuItem(value: true, child: Text(trueLabel ?? 'true')),
+        DropdownMenuItem(value: false, child: Text(falseLabel ?? 'false')),
+      ],
+    );
+  }
+}
+
+bool doesTutorialMatchQuery(Object? element, Query query) {
+  if (query.compareOperations.isEmpty) {
+    return true;
+  } else if (query.compareOperations.length == 1 &&
+      query.compareOperations.first.compareOperator ==
+          CompareOperator.isEqualTo &&
+      query.compareOperations.first.field == 'published' &&
+      element is Map) {
+    return (element['published'] ?? false) ==
+        query.compareOperations.first.valueToCompareTo;
+  } else {
+    throw 'Can only query a map by "published" field for equality';
   }
 }

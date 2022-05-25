@@ -11,9 +11,15 @@ import 'package:stater/stater/query_snapshot.dart';
 import 'package:uuid/uuid.dart';
 
 class GetStorageDelegate implements AdapterDelegate {
-  GetStorageDelegate(this.storagePrefix);
+  GetStorageDelegate({
+    required this.storagePrefix,
+    this.doesMatchQuery,
+    this.generateCompareFromQuery,
+  });
 
   final String storagePrefix;
+  final QueryMatcher? doesMatchQuery;
+  final QueryCompareGenerator? generateCompareFromQuery;
 
   Future<GetStorage> getStorage(String collectionPath) async {
     final storageName = storagePrefix.isEmpty
@@ -92,19 +98,26 @@ class GetStorageDelegate implements AdapterDelegate {
   @override
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
       Query<ID, T> query) async {
-    // TODO: GetStorageDelegate.getQuery is missing filtering and sorting data by the query
     final collectionPath = query.collectionPath;
     final storage = await getStorage(collectionPath);
     final keys = List<String>.from(storage.getKeys());
-    final docs = (storage.getValues() as Iterable<dynamic>)
+    var docs = (storage.getValues() as Iterable<dynamic>)
         .mapIndexed((index, doc) => DocumentSnapshot<ID, T>(
               keys[index] as ID,
               doc,
               DocumentReference(collectionPath, keys[index] as ID, this),
-            ))
-        .toList();
+            ));
 
-    return QuerySnapshot(docs);
+    if (doesMatchQuery != null) {
+      docs = docs.where((element) => doesMatchQuery!(element.data(), query));
+
+      if (docs.length > 1 && generateCompareFromQuery != null) {
+        final compareFn = generateCompareFromQuery!(query);
+        docs = docs.sorted(compareFn!);
+      }
+    }
+
+    return QuerySnapshot(docs.toList());
   }
 
   @override
@@ -140,6 +153,15 @@ class GetStorageDelegate implements AdapterDelegate {
 }
 
 class GetStorageAdapter extends Adapter {
-  GetStorageAdapter(String storagePrefix)
-      : super(GetStorageDelegate(storagePrefix));
+  GetStorageAdapter({
+    String storagePrefix = '',
+    QueryMatcher? doesMatchQuery,
+    QueryCompareGenerator? generateCompareFromQuery,
+  }) : super(
+          GetStorageDelegate(
+            storagePrefix: storagePrefix,
+            doesMatchQuery: doesMatchQuery,
+            generateCompareFromQuery: generateCompareFromQuery,
+          ),
+        );
 }

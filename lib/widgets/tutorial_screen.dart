@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:stater/stater/collection_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 
 class TutorialScreen extends StatefulWidget {
   TutorialScreen({
     Key? key,
-    this.collectionRef,
+    this.onCreate,
     this.snapshot,
     this.onDispose,
   })  : data = snapshot?.data(),
         super(key: key) {
-    assert(data != null ? true : collectionRef != null,
-        'When snapshot is null, collectionRef must be provided');
+    assert(data != null ? true : onCreate != null,
+        'When snapshot is null, onCreate must be provided');
   }
 
-  final CollectionReference<String, Map<String, dynamic>>? collectionRef;
+  final Function(Map<String, dynamic>)? onCreate;
   final DocumentSnapshot<String, Map<String, dynamic>>? snapshot;
   final Map<String, dynamic>? data;
   final Function? onDispose;
@@ -103,7 +102,7 @@ class _ItemScreenState extends State<TutorialScreen> {
     // create new document
     if (widget.data == null) {
       if (title.isNotEmpty) {
-        widget.collectionRef!.add({
+        widget.onCreate!({
           'title': title,
           'description': description,
           'published': _published,

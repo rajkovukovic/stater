@@ -14,12 +14,12 @@ class CollectionReference<ID extends Object?, T extends Object?>
     ToStorage<T>? toStorage,
   }) : super(
             delegate: delegate,
-            parameters: {'collectionPath': collectionPath},
+            collectionPath: collectionPath,
             fromStorage: fromStorage,
             toStorage: toStorage);
 
   Future<DocumentSnapshot<ID, T>> add(T doc) =>
-      delegate.addDocument(parameters['collectionPath'], doc);
+      delegate.addDocument(collectionPath, doc);
 
   DocumentReference<ID, T> doc(ID documentId) {
     return DocumentReference<ID, T>(collectionPath, documentId, delegate);
