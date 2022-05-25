@@ -10,7 +10,7 @@ import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
 import 'package:uuid/uuid.dart';
 
-class GetStorageDelegate implements AdapterDelegate {
+class GetStorageDelegate extends AdapterDelegate {
   GetStorageDelegate({
     required this.storagePrefix,
     this.doesMatchQuery,

@@ -3,7 +3,7 @@ import 'package:stater/stater/adapter_delegate.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
-import 'package:stater/stater/transaction/document_change.dart';
+import 'package:stater/stater/transaction/operation.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 
 bool ignoreCascadeDelegateAddDocumentWarning = false;
@@ -11,13 +11,13 @@ bool _warnedAboutAdapterWithCacheAddDocument = false;
 
 class CascadeDelegate implements AdapterDelegate {
   final List<AdapterDelegate> _delegates;
-  final List<Transaction> _transactionQueue = [];
   final List<Function()> _listeners = [];
+  List<Transaction> _transactionQueue = List.unmodifiable(const []);
 
   CascadeDelegate(this._delegates);
 
   void _addTransaction(Transaction transaction) {
-    _transactionQueue.add(transaction);
+    _transactionQueue = List.unmodifiable([..._transactionQueue, transaction]);
     _notifyListeners();
   }
 
@@ -35,11 +35,13 @@ class CascadeDelegate implements AdapterDelegate {
     if (!ignoreCascadeDelegateAddDocumentWarning &&
         !_warnedAboutAdapterWithCacheAddDocument) {
       // ignore: avoid_print
-      print(
-          'Calling collection.add method is not recommended when using CascadeAdapter '
-          'because this transactions will stay in the transactions queue until the primary adapter commits it successfully. '
-          'You may want to use collection.doc(generateNewUniqueId()).set method instead.\n'
-          'To disable this message set variable "ignoreCascadeDelegateAddDocumentWarning" to true');
+      print('Calling collection.add method is not recommended when using '
+          'CascadeAdapter because this transactions will be discarded '
+          'if it fails on the first try on the primary Storage.\n'
+          'You may want to use collection.doc(generateNewUniqueId()).set '
+          'method instead.\n'
+          'To disable this message set variable '
+          '"ignoreCascadeDelegateAddDocumentWarning" to true');
       _warnedAboutAdapterWithCacheAddDocument = true;
     }
     return _delegates.first
@@ -57,10 +59,8 @@ class CascadeDelegate implements AdapterDelegate {
   Future<void> deleteDocument<ID extends Object?>(
       String collectionPath, ID documentId) async {
     _addTransaction(Transaction([
-      DocumentChange(
-          collectionPath: collectionPath,
-          changeType: DocumentChangeType.delete,
-          param: documentId)
+      OperationDelete(
+          collectionPath: collectionPath, documentId: documentId.toString())
     ]));
   }
 
@@ -76,6 +76,12 @@ class CascadeDelegate implements AdapterDelegate {
         if (delegateIndex + 1 < _delegates.length) {
           return delegateFuture(delegateIndex + 1);
         }
+      }).then((response) {
+        // TODO: use _transactionQueue instead of direct writting?
+        _delegates.sublist(delegateIndex + 1).forEach((delegate) {
+          delegate.setDocument(collectionPath, documentId, response.data());
+        });
+        return response;
       });
     }
 
@@ -95,6 +101,14 @@ class CascadeDelegate implements AdapterDelegate {
         if (delegateIndex + 1 < _delegates.length) {
           return delegateFuture(delegateIndex + 1);
         }
+      }).then((response) {
+        // TODO: use _transactionQueue instead of direct writting?
+        _delegates.sublist(delegateIndex + 1).forEach((delegate) {
+          for (var doc in response.docs) {
+            delegate.setDocument(query.collectionPath, doc.id, doc.data());
+          }
+        });
+        return response;
       });
     }
 
@@ -103,16 +117,18 @@ class CascadeDelegate implements AdapterDelegate {
     return delegateFuture(0);
   }
 
-  /// Notifies of document updates at this location.
+  /// Notifies of document updates at path defined by
+  /// collectionPath and documentId
   @override
   Stream<DocumentSnapshot<ID, T>>
       documentSnapshots<ID extends Object?, T extends Object?>(
           String collectionPath, ID documentId) {
-    return MergeStream(_delegates.map(
-        (delegate) => delegate.documentSnapshots(collectionPath, documentId)));
+    return MergeStream(_delegates.map((delegate) => delegate
+        .documentSnapshots<ID, T>(collectionPath, documentId)
+        .handleError((_) => true)));
   }
 
-  /// Notifies of document updates at this location.
+  /// Notifies of document updates matching the query
   @override
   Stream<QuerySnapshot<ID, T>>
       querySnapshots<ID extends Object?, T extends Object?>(
@@ -127,10 +143,10 @@ class CascadeDelegate implements AdapterDelegate {
   Future<void> setDocument<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data) async {
     _addTransaction(Transaction([
-      DocumentChange(
+      OperationSet(
           collectionPath: collectionPath,
-          changeType: DocumentChangeType.set,
-          param: [documentId, data])
+          documentId: documentId.toString(),
+          data: data as dynamic)
     ]));
   }
 
@@ -142,10 +158,10 @@ class CascadeDelegate implements AdapterDelegate {
   Future<void> updateDocument<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data) async {
     _addTransaction(Transaction([
-      DocumentChange(
+      OperationUpdate(
           collectionPath: collectionPath,
-          changeType: DocumentChangeType.update,
-          param: [documentId, data])
+          documentId: documentId.toString(),
+          data: data as dynamic)
     ]));
   }
 }

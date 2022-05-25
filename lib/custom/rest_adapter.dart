@@ -8,7 +8,7 @@ import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
 
-class RestDelegate implements AdapterDelegate {
+class RestDelegate extends AdapterDelegate {
   RestDelegate(this.endpoint);
 
   final String endpoint;
