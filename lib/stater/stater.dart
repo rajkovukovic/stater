@@ -20,7 +20,7 @@ class StateMachine {
   }
 }
 
-final a = FirebaseFirestore.instance.collection('chatters').doc('bla').get();
+final a = FirebaseFirestore.instance.collection('chatters').doc('bla');
 
 // final restAdapter = RestAdapter('http://100.81.80.104:6868/api');
 // final localStorageAdapter = LocalStorageAdapter('DB');

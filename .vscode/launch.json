@@ -7,18 +7,21 @@
 		{
 			"name": "stater",
 			"request": "launch",
+			"args": ["--web-port=8081"],
 			"type": "dart"
 		},
 		{
 			"name": "stater (profile mode)",
 			"request": "launch",
 			"type": "dart",
+			"args": ["--web-port=8081"],
 			"flutterMode": "profile"
 		},
 		{
 			"name": "stater (release mode)",
 			"request": "launch",
 			"type": "dart",
+			"args": ["--web-port=8081"],
 			"flutterMode": "release"
 		}
 	]

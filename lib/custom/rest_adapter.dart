@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:stater/stater/adapter.dart';
 import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/document_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
@@ -45,13 +48,30 @@ class RestDelegate implements AdapterDelegate {
 
   @override
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-      Query<ID, T> query) {
+      Query<ID, T> query) async {
     final queryParameters = {...query.parameters}..remove('collectionPath');
 
+    final collectionPath = query.parameters['collectionPath'];
+
     return Dio()
-        .get('$endpoint/${query.parameters['collectionPath']}',
-            queryParameters: queryParameters)
-        .then((response) => response.data);
+        .get('$endpoint/$collectionPath', queryParameters: queryParameters)
+        .then(
+          (response) => QuerySnapshot(
+            (response.data as Iterable)
+                .map(
+                  (element) => DocumentSnapshot<ID, T>(
+                    element?['id'] as ID ?? '' as ID,
+                    element,
+                    DocumentReference(
+                      collectionPath,
+                      element?['id'] as ID ?? '' as ID,
+                      this,
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        );
   }
 
   @override

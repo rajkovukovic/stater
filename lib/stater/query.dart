@@ -15,6 +15,8 @@ class Query<ID extends Object?, T extends Object?> {
   final FromStorage<ID, T>? fromStorage;
   final ToStorage<T>? toStorage;
 
+  String get collectionPath => parameters['collectionPath'] as String;
+
   // Query<ID, T> _mapQuery(Query<Map<String, dynamic>> newOriginalQuery) {
   //   return Query<T>(
   //     newOriginalQuery,

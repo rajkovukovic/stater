@@ -15,7 +15,7 @@ class TutorialsScreen extends StatefulWidget {
 }
 
 class _TutorialsScreenState extends State<TutorialsScreen> {
-  final restMachine = RestAdapter('https://jsonplaceholder.typicode.com');
+  final restMachine = RestAdapter('http://localhost:6868/api');
 
   final getStorageMachine = GetStorageAdapter('DB');
 
@@ -35,7 +35,7 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Users'),
+        title: const Text('Tutorials'),
         actions: [
           IconButton(
               onPressed: _toggleStateMachine,
@@ -82,7 +82,7 @@ class _TutorialsScreenState extends State<TutorialsScreen> {
 
   void _setUpStreams() {
     collectionRef =
-        (isRest ? restMachine : getStorageMachine).collection('users');
+        (isRest ? restMachine : getStorageMachine).collection('tutorials');
 
     documents = collectionRef.snapshots().map((snapshot) => snapshot.docs);
   }

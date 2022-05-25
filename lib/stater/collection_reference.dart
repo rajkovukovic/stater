@@ -1,4 +1,5 @@
 import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/document_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 
 import 'converters.dart';
@@ -20,8 +21,7 @@ class CollectionReference<ID extends Object?, T extends Object?>
   Future<DocumentSnapshot<ID, T>> add(T doc) =>
       delegate.addDocument(parameters['collectionPath'], doc);
 
-  Future<DocumentSnapshot<ID, T>> doc(ID documentId) {
-    return delegate.getDocument<ID, T>(
-        parameters['collectionPath'], documentId);
+  DocumentReference<ID, T> doc(ID documentId) {
+    return DocumentReference<ID, T>(collectionPath, documentId, delegate);
   }
 }

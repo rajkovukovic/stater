@@ -92,7 +92,7 @@ class _ItemScreenState extends State<TutorialScreen> {
   }
 
   void _handleBackButton() {
-    _saveChanges();
+    // _saveChanges();
     Navigator.of(context).pop();
   }
 
@@ -120,7 +120,7 @@ class _ItemScreenState extends State<TutorialScreen> {
       if (prevTitle != title ||
           prevDescription != description ||
           prevPublished != _published) {
-        widget.snapshot!.reference.update({
+        widget.snapshot!.reference.set({
           'title': title,
           'description': description,
           'published': _published,
