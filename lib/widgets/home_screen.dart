@@ -16,11 +16,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final restMachine = RestAdapter('http://localhost:6868/api');
+  final restMachine = RestAdapter(
+    RestDelegate(
+      id: 'rest-server-mongodb',
+      endpoint: 'http://localhost:6868/api',
+    ),
+  );
 
   final getStorageMachine = GetStorageAdapter(
-    storagePrefix: 'DB',
-    doesMatchQuery: doesTutorialMatchQuery,
+    GetStorageDelegate(
+      id: 'get-storage',
+      storagePrefix: 'DB',
+      doesMatchQuery: doesTutorialMatchQuery,
+    ),
   );
 
   bool isRest = false;

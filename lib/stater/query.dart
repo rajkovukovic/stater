@@ -4,7 +4,7 @@ import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query_snapshot.dart';
 
 class Query<ID extends Object?, T extends Object?> {
-  Query({
+  const Query({
     required this.delegate,
     required this.collectionPath,
     this.fromStorage,
@@ -16,7 +16,7 @@ class Query<ID extends Object?, T extends Object?> {
   final String collectionPath;
   final FromStorage<ID, T>? fromStorage;
   final ToStorage<T>? toStorage;
-  late final List<CompareOperation> compareOperations;
+  final List<CompareOperation> compareOperations;
 
   // Query<ID, T> _mapQuery(Query<Map<String, dynamic>> newOriginalQuery) {
   //   return Query<T>(

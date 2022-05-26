@@ -10,13 +10,16 @@ import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
 import 'package:uuid/uuid.dart';
 
-class GetStorageDelegate extends AdapterDelegate {
+class GetStorageDelegate extends AdapterDelegateWithId {
   GetStorageDelegate({
+    required this.id,
     required this.storagePrefix,
     this.doesMatchQuery,
     this.generateCompareFromQuery,
   });
 
+  @override
+  final String id;
   final String storagePrefix;
   final QueryMatcher? doesMatchQuery;
   final QueryCompareGenerator? generateCompareFromQuery;
@@ -37,10 +40,10 @@ class GetStorageDelegate extends AdapterDelegate {
     final documentId = const Uuid().v4() as ID;
     return setDocument(collectionPath, documentId, data)
         .then((_) => DocumentSnapshot(
-          documentId,
-          data,
-          DocumentReference(collectionPath, documentId, this),
-        ));
+              documentId,
+              data,
+              DocumentReference(collectionPath, documentId, this),
+            ));
   }
 
   @override
@@ -154,15 +157,5 @@ class GetStorageDelegate extends AdapterDelegate {
 }
 
 class GetStorageAdapter extends Adapter {
-  GetStorageAdapter({
-    String storagePrefix = '',
-    QueryMatcher? doesMatchQuery,
-    QueryCompareGenerator? generateCompareFromQuery,
-  }) : super(
-          GetStorageDelegate(
-            storagePrefix: storagePrefix,
-            doesMatchQuery: doesMatchQuery,
-            generateCompareFromQuery: generateCompareFromQuery,
-          ),
-        );
+  GetStorageAdapter(GetStorageDelegate delegate) : super(delegate);
 }

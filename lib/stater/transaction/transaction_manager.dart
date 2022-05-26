@@ -1,26 +1,61 @@
+import 'package:meta/meta.dart';
 import 'package:stater/stater/transaction/operation.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 
+abstract class TransactionManagerUpdate {}
+
+class TransactionManagerUpdateAdd extends TransactionManagerUpdate {
+  final Iterable<Transaction> added;
+
+  TransactionManagerUpdateAdd(this.added);
+}
+
+class TransactionManagerUpdateRemove extends TransactionManagerUpdate {
+  final Iterable<Transaction> removed;
+
+  TransactionManagerUpdateRemove(this.removed);
+}
+
 class TransactionManager {
-  final List<Function()> _listeners = [];
-  List<Transaction> _transactionQueue = List.unmodifiable(const []);
+  @protected
+  final List<Function(TransactionManagerUpdate)> listeners = [];
+
+  @protected
+  List<Transaction> transactionQueue = List.unmodifiable(const []);
+
+  void dispose() {
+    listeners.clear();
+  }
 
   void addTransaction(Transaction transaction) {
-    _transactionQueue = List.unmodifiable([..._transactionQueue, transaction]);
-    _notifyListeners();
+    transactionQueue = List.unmodifiable([...transactionQueue, transaction]);
+    _notifyListeners(TransactionManagerUpdateAdd([transaction]));
   }
 
   void addTransactions(Iterable<Transaction> transactions) {
-    _transactionQueue =
-        List.unmodifiable([..._transactionQueue, ...transactions]);
-    _notifyListeners();
+    transactionQueue =
+        List.unmodifiable([...transactionQueue, ...transactions]);
+    _notifyListeners(TransactionManagerUpdateAdd(transactions));
   }
 
   void removeTransactionsById(Iterable<String> ids) {
     final idSet = ids.toSet();
-    _transactionQueue = List.unmodifiable(_transactionQueue
-        .where((transaction) => !idSet.contains(transaction.id)));
-    _notifyListeners();
+
+    final removed = <Transaction>[];
+
+    final nextQueue =
+        List<Transaction>.unmodifiable(transactionQueue.where((transaction) {
+      if (idSet.contains(transaction.id)) {
+        removed.add(transaction);
+        return false;
+      }
+      return true;
+    }));
+
+    if (removed.isNotEmpty) {
+      transactionQueue = nextQueue;
+      _notifyListeners(TransactionManagerUpdateRemove(removed));
+    }
   }
 
   Map<String, dynamic>? applyTransactionsToEntity<ID extends Object?,
@@ -28,7 +63,7 @@ class TransactionManager {
       String collectionPath, ID documentId, T doc) {
     Map<String, dynamic>? nextDoc = doc;
 
-    for (var transaction in _transactionQueue) {
+    for (var transaction in transactionQueue) {
       for (var operation in transaction.operations) {
         if (operation is OperationWithDocumentId &&
             operation.collectionPath == collectionPath &&
@@ -64,9 +99,9 @@ class TransactionManager {
     throw 'applyTransactionsToEntities is not implemented';
   }
 
-  void _notifyListeners() {
-    for (var listener in _listeners) {
-      listener.call();
+  void _notifyListeners(TransactionManagerUpdate update) {
+    for (var listener in listeners) {
+      listener.call(update);
     }
   }
 }

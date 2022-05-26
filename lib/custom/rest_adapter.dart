@@ -8,8 +8,11 @@ import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
 
-class RestDelegate extends AdapterDelegate {
-  RestDelegate(this.endpoint);
+class RestDelegate extends AdapterDelegateWithId {
+  RestDelegate({required this.endpoint, required this.id});
+
+  @override
+  final String id;
 
   final String endpoint;
 
@@ -112,5 +115,5 @@ class RestDelegate extends AdapterDelegate {
 }
 
 class RestAdapter extends Adapter {
-  RestAdapter(String endpoint) : super(RestDelegate(endpoint));
+  RestAdapter(RestDelegate delegate) : super(delegate);
 }

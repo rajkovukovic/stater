@@ -5,27 +5,16 @@ import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
 import 'package:stater/stater/transaction/operation.dart';
 import 'package:stater/stater/transaction/transaction.dart';
+import 'package:stater/stater/transaction/transaction_manager.dart';
 
 bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutAdapterWithCacheAddDocument = false;
 
 class CascadeDelegate implements AdapterDelegate {
-  final List<AdapterDelegate> _delegates;
-  final List<Function()> _listeners = [];
-  List<Transaction> _transactionQueue = List.unmodifiable(const []);
+  final List<AdapterDelegateWithId> _delegates;
+  final _transactionManager = TransactionManager();
 
   CascadeDelegate(this._delegates);
-
-  void _addTransaction(Transaction transaction) {
-    _transactionQueue = List.unmodifiable([..._transactionQueue, transaction]);
-    _notifyListeners();
-  }
-
-  void _notifyListeners() {
-    for (var listener in _listeners) {
-      listener.call();
-    }
-  }
 
   /// creates a new document
   @override
@@ -58,7 +47,7 @@ class CascadeDelegate implements AdapterDelegate {
   @override
   Future<void> deleteDocument<ID extends Object?>(
       String collectionPath, ID documentId) async {
-    _addTransaction(Transaction([
+    _transactionManager.addTransaction(Transaction([
       OperationDelete(
           collectionPath: collectionPath, documentId: documentId.toString())
     ]));
@@ -142,7 +131,7 @@ class CascadeDelegate implements AdapterDelegate {
   @override
   Future<void> setDocument<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data) async {
-    _addTransaction(Transaction([
+    _transactionManager.addTransaction(Transaction([
       OperationSet(
           collectionPath: collectionPath,
           documentId: documentId.toString(),
@@ -157,7 +146,7 @@ class CascadeDelegate implements AdapterDelegate {
   @override
   Future<void> updateDocument<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data) async {
-    _addTransaction(Transaction([
+    _transactionManager.addTransaction(Transaction([
       OperationUpdate(
           collectionPath: collectionPath,
           documentId: documentId.toString(),

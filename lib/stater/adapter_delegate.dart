@@ -42,3 +42,7 @@ abstract class AdapterDelegate {
   Future<void> updateDocument<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data);
 }
+
+abstract class AdapterDelegateWithId extends AdapterDelegate {
+  String get id;
+}

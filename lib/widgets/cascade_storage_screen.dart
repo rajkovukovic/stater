@@ -18,12 +18,6 @@ class CascadeStorageScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<CascadeStorageScreen> {
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _setUpStreams();
-  }
-
   bool? filterByPublished;
 
   late CollectionReference<String, Map<String, dynamic>> collectionReference;
@@ -33,8 +27,8 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
   late Stream<List<DocumentSnapshot<String, Map<String, dynamic>>>> documents;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     _setUpStreams();
   }
 

@@ -21,16 +21,20 @@ bool doesTutorialMatchQuery(Object? element, Query query) {
   }
 }
 
-final restDelegate = RestDelegate('http://localhost:6868/api');
+final restDelegate = RestDelegate(
+  id: 'rest-server-mongodb',
+  endpoint: 'http://localhost:6868/api',
+);
 
 final getStorageDelegate = GetStorageDelegate(
+  id: 'get-storage',
   storagePrefix: 'DB',
   doesMatchQuery: doesTutorialMatchQuery,
 );
 
 final stater = CascadeAdapter([
   restDelegate,
-  getStorageDelegate,
+  // getStorageDelegate,
 ]);
 
 final _a = FirebaseFirestore.instance.collection('chatters').doc('bla');
