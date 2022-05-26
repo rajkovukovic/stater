@@ -2,23 +2,23 @@ import 'package:meta/meta.dart';
 import 'package:stater/stater/transaction/operation.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 
-class TransactionManager {
+class TransactionManager<T extends Transaction> {
   @protected
-  final List<Function(TransactionManagerUpdate)> listeners = [];
+  final List<Function(TransactionManagerUpdate<T>)> listeners = [];
 
   @protected
-  List<Transaction> transactionQueue = List.unmodifiable(const []);
+  List<T> transactionQueue = List.unmodifiable(const []);
 
   void dispose() {
     listeners.clear();
   }
 
-  void addTransaction(Transaction transaction) {
+  void addTransaction(T transaction) {
     transactionQueue = List.unmodifiable([...transactionQueue, transaction]);
     _notifyListeners(TransactionManagerUpdateAdd([transaction]));
   }
 
-  void addTransactions(Iterable<Transaction> transactions) {
+  void addTransactions(Iterable<T> transactions) {
     transactionQueue =
         List.unmodifiable([...transactionQueue, ...transactions]);
     _notifyListeners(TransactionManagerUpdateAdd(transactions));
@@ -27,10 +27,10 @@ class TransactionManager {
   void removeTransactionsById(Iterable<String> ids) {
     final idSet = ids.toSet();
 
-    final removed = <Transaction>[];
+    final removed = <T>[];
 
     final nextQueue =
-        List<Transaction>.unmodifiable(transactionQueue.where((transaction) {
+        List<T>.unmodifiable(transactionQueue.where((transaction) {
       if (idSet.contains(transaction.id)) {
         removed.add(transaction);
         return false;
@@ -85,23 +85,25 @@ class TransactionManager {
     throw 'TransactionManager.applyTransactionsToEntities is not implemented';
   }
 
-  void _notifyListeners(TransactionManagerUpdate update) {
+  void _notifyListeners(TransactionManagerUpdate<T> update) {
     for (var listener in listeners) {
       listener.call(update);
     }
   }
 }
 
-abstract class TransactionManagerUpdate {}
+abstract class TransactionManagerUpdate<T> {}
 
-class TransactionManagerUpdateAdd extends TransactionManagerUpdate {
-  final Iterable<Transaction> added;
+class TransactionManagerUpdateAdd<T extends Transaction>
+    extends TransactionManagerUpdate<T> {
+  final Iterable<T> added;
 
   TransactionManagerUpdateAdd(this.added);
 }
 
-class TransactionManagerUpdateRemove extends TransactionManagerUpdate {
-  final Iterable<Transaction> removed;
+class TransactionManagerUpdateRemove<T extends Transaction>
+    extends TransactionManagerUpdate<T> {
+  final Iterable<T> removed;
 
   TransactionManagerUpdateRemove(this.removed);
 }

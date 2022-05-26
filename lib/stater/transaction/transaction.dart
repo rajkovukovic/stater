@@ -8,7 +8,8 @@ class Transaction {
   final List<Operation> operations;
   final String id;
 
-  Transaction(this.operations, {String? id}) : id = id ?? const Uuid().v4();
+  Transaction({String? id, required this.operations})
+      : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toMap() {
     return {
@@ -18,7 +19,8 @@ class Transaction {
 
   factory Transaction.fromMap(Map<String, dynamic> map) {
     return Transaction(
-      List<Operation>.from(map['operations']?.map((x) => Operation.fromMap(x))),
+      operations: List<Operation>.from(
+          map['operations']?.map((x) => Operation.fromMap(x))),
     );
   }
 

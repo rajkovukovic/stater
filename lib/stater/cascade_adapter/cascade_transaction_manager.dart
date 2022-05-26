@@ -2,11 +2,12 @@
 
 import 'package:collection/collection.dart';
 import 'package:stater/stater/adapter_delegate.dart';
-import 'package:stater/stater/transaction/transaction.dart';
+import 'package:stater/stater/cascade_adapter/exclusive_transaction.dart';
 import 'package:stater/stater/transaction/transaction_manager.dart';
 import 'package:stater/stater/transaction/transaction_processor.dart';
 
-class CascadeTransactionManager extends TransactionManager {
+class CascadeTransactionManager<T extends ExclusiveTransaction>
+    extends TransactionManager<T> {
   final List<AdapterDelegateWithId> _delegates;
   late final Map<AdapterDelegateWithId, TransactionProcessor> _processorMap;
 
@@ -22,9 +23,15 @@ class CascadeTransactionManager extends TransactionManager {
         .map((entry) => '${entry.value}x "${entry.key}"')
         .join(', ');
 
-    assert(_delegates.isNotEmpty, 'list of delegates can not be empty');
     assert(
-        idDuplicates.isEmpty, 'delegate ids must be unique. Got $idDuplicates');
+        _delegates.isNotEmpty,
+        'CascadeTransactionManager.constructor: '
+        'list of delegates can not be empty');
+
+    assert(
+        idDuplicates.isEmpty,
+        'CascadeTransactionManager.constructor: '
+        'delegate ids must be unique. Got $idDuplicates');
 
     _processorMap = Map.fromEntries(
       _delegates.map(
@@ -40,9 +47,9 @@ class CascadeTransactionManager extends TransactionManager {
 
   TransactionProcessor get primaryProcessor => _processorMap[_delegates.first]!;
 
-  Transaction? _findNextUncompletedTransaction(
+  T? _findNextUncompletedTransaction(
     TransactionProcessor processor, {
-    Transaction? mustBeBeforeTransaction,
+    T? mustBeBeforeTransaction,
   }) {
     for (var transaction in transactionQueue) {
       if (mustBeBeforeTransaction == transaction) break;
@@ -65,12 +72,12 @@ class CascadeTransactionManager extends TransactionManager {
     }
   }
 
-  /// iterates list of processors and gives a transaction to any free one
+  /// iterates over list of processors and feeds a transaction to a free one
   ///
   /// with limitation that non-primary processors can not process a transaction
-  /// if it not been completed successfully by the primary processor
+  /// if it has not been completed successfully by the primary processor
   void _employProcessors() {
-    Transaction? primaryProcessorTransaction;
+    T? primaryProcessorTransaction;
 
     _delegates.forEachIndexed((index, delegate) {
       final isPrimaryProcessor = index == 0;
@@ -95,11 +102,11 @@ class CascadeTransactionManager extends TransactionManager {
     });
   }
 
-  void _handleTransactionAdd(Iterable<Transaction> added) {
+  void _handleTransactionAdd(Iterable<T> added) {
     _employProcessors();
   }
 
-  void _handleTransactionRemove(Iterable<Transaction> removed) {
+  void _handleTransactionRemove(Iterable<T> removed) {
     bool transactionCancelingHappened = false;
 
     _processorMap.forEach((_, processor) {
@@ -119,13 +126,14 @@ class CascadeTransactionManager extends TransactionManager {
     }
   }
 
-  void _handleTransactionListChange(TransactionManagerUpdate update) {
-    if (update is TransactionManagerUpdateRemove) {
+  void _handleTransactionListChange(TransactionManagerUpdate<T> update) {
+    if (update is TransactionManagerUpdateRemove<T>) {
       _handleTransactionRemove(update.removed);
-    } else if (update is TransactionManagerUpdateAdd) {
+    } else if (update is TransactionManagerUpdateAdd<T>) {
       _handleTransactionAdd(update.added);
     } else {
-      throw 'Unsupported type of TransactionManagerUpdate => ${update.runtimeType}';
+      throw 'Unsupported type of TransactionManagerUpdate '
+          '"${update.runtimeType}"';
     }
   }
 

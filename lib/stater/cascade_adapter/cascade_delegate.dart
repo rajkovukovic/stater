@@ -1,19 +1,20 @@
 import 'package:rxdart/rxdart.dart';
 import 'package:stater/stater/adapter_delegate.dart';
 import 'package:stater/stater/cascade_adapter/cascade_transaction_manager.dart';
+import 'package:stater/stater/cascade_adapter/exclusive_transaction.dart';
 import 'package:stater/stater/document_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
 import 'package:stater/stater/transaction/operation.dart';
-import 'package:stater/stater/transaction/transaction.dart';
 
 bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutAdapterWithCacheAddDocument = false;
 
 class CascadeDelegate extends AdapterDelegate {
   final List<AdapterDelegateWithId> _delegates;
-  late final CascadeTransactionManager _transactionManager;
+  late final CascadeTransactionManager<ExclusiveTransaction>
+      _transactionManager;
 
   CascadeDelegate(this._delegates)
       : _transactionManager = CascadeTransactionManager(_delegates);
@@ -49,7 +50,7 @@ class CascadeDelegate extends AdapterDelegate {
   @override
   Future<void> deleteDocument<ID extends Object?>(
       String collectionPath, ID documentId) async {
-    _transactionManager.addTransaction(Transaction([
+    _transactionManager.addTransaction(ExclusiveTransaction(operations: [
       OperationDelete(
           collectionPath: collectionPath, documentId: documentId.toString())
     ]));
@@ -136,7 +137,7 @@ class CascadeDelegate extends AdapterDelegate {
   @override
   Future<void> setDocument<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data) async {
-    _transactionManager.addTransaction(Transaction([
+    _transactionManager.addTransaction(ExclusiveTransaction(operations: [
       OperationSet(
           collectionPath: collectionPath,
           documentId: documentId.toString(),
@@ -151,7 +152,7 @@ class CascadeDelegate extends AdapterDelegate {
   @override
   Future<void> updateDocument<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data) async {
-    _transactionManager.addTransaction(Transaction([
+    _transactionManager.addTransaction(ExclusiveTransaction(operations: [
       OperationUpdate(
           collectionPath: collectionPath,
           documentId: documentId.toString(),
