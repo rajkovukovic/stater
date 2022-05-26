@@ -33,5 +33,5 @@ final getStorageDelegate = GetStorageDelegate(
 
 final stater = CascadeAdapter([
   restDelegate,
-  // getStorageDelegate,
+  getStorageDelegate,
 ]);

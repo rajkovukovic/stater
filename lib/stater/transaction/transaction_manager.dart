@@ -2,20 +2,6 @@ import 'package:meta/meta.dart';
 import 'package:stater/stater/transaction/operation.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 
-abstract class TransactionManagerUpdate {}
-
-class TransactionManagerUpdateAdd extends TransactionManagerUpdate {
-  final Iterable<Transaction> added;
-
-  TransactionManagerUpdateAdd(this.added);
-}
-
-class TransactionManagerUpdateRemove extends TransactionManagerUpdate {
-  final Iterable<Transaction> removed;
-
-  TransactionManagerUpdateRemove(this.removed);
-}
-
 class TransactionManager {
   @protected
   final List<Function(TransactionManagerUpdate)> listeners = [];
@@ -83,7 +69,7 @@ class TransactionManager {
               }
               break;
             default:
-              throw 'Switch case of "${operation.changeType}" '
+              throw 'applyTransactionsToEntity: switch case of "${operation.changeType}" '
                   'is not implemented';
           }
         }
@@ -96,7 +82,7 @@ class TransactionManager {
   Map<String, dynamic>? applyTransactionsToEntities<ID extends Object?,
           T extends Map<String, dynamic>>(
       String collectionPath, ID documentId, T doc) {
-    throw 'applyTransactionsToEntities is not implemented';
+    throw 'TransactionManager.applyTransactionsToEntities is not implemented';
   }
 
   void _notifyListeners(TransactionManagerUpdate update) {
@@ -104,4 +90,18 @@ class TransactionManager {
       listener.call(update);
     }
   }
+}
+
+abstract class TransactionManagerUpdate {}
+
+class TransactionManagerUpdateAdd extends TransactionManagerUpdate {
+  final Iterable<Transaction> added;
+
+  TransactionManagerUpdateAdd(this.added);
+}
+
+class TransactionManagerUpdateRemove extends TransactionManagerUpdate {
+  final Iterable<Transaction> removed;
+
+  TransactionManagerUpdateRemove(this.removed);
 }

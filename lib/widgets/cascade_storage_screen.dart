@@ -86,8 +86,6 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
 
   void _setUpStreams() {
     collectionReference = widget.adapter.collection('tutorials');
-    final doc = collectionReference.doc('documentId');
-    doc.delete();
 
     if (filterByPublished != null) {
       query = collectionReference.where(

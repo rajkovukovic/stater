@@ -1,16 +1,14 @@
 // ignore_for_file: avoid_print
 
-import 'dart:async';
-
+import 'package:collection/collection.dart';
 import 'package:stater/stater/adapter_delegate.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 import 'package:stater/stater/transaction/transaction_manager.dart';
-
-// const _retrySequencesInMilliseconds = [1000, 2000, 5000];
+import 'package:stater/stater/transaction/transaction_processor.dart';
 
 class CascadeTransactionManager extends TransactionManager {
   final List<AdapterDelegateWithId> _delegates;
-  late final Map<String, _TransactionProcessor> _processorMap;
+  late final Map<AdapterDelegateWithId, TransactionProcessor> _processorMap;
 
   CascadeTransactionManager(this._delegates) {
     final idDuplicates = _delegates
@@ -24,15 +22,15 @@ class CascadeTransactionManager extends TransactionManager {
         .map((entry) => '${entry.value}x "${entry.key}"')
         .join(', ');
 
+    assert(_delegates.isNotEmpty, 'list of delegates can not be empty');
     assert(
         idDuplicates.isEmpty, 'delegate ids must be unique. Got $idDuplicates');
 
     _processorMap = Map.fromEntries(
       _delegates.map(
         (delegate) => MapEntry(
-          delegate.id,
-          _TransactionProcessor(
-              delegate: delegate, completedTransactionIds: {}),
+          delegate,
+          TransactionProcessor(delegate: delegate, completedTransactionIds: {}),
         ),
       ),
     );
@@ -40,30 +38,65 @@ class CascadeTransactionManager extends TransactionManager {
     listeners.add(_handleTransactionListChange);
   }
 
+  TransactionProcessor get primaryProcessor => _processorMap[_delegates.first]!;
+
   Transaction? _findNextUncompletedTransaction(
-      Set<String> completedTransactionIds) {
+    TransactionProcessor processor, {
+    Transaction? mustBeBeforeTransaction,
+  }) {
     for (var transaction in transactionQueue) {
-      if (!completedTransactionIds.contains(transaction.id)) {
+      if (mustBeBeforeTransaction == transaction) break;
+      if (!processor.completedTransactionIds.contains(transaction.id)) {
         return transaction;
       }
     }
     return null;
   }
 
-  void _feedNextTransactionToProcessor(_TransactionProcessor processor) {
-    final nextTransaction =
-        _findNextUncompletedTransaction(processor.completedTransactionIds);
-    if (nextTransaction != null) {
-      processor.performTransaction(nextTransaction);
+  /// removes transactions processed by every processor from transactionQueue
+  /// and removes ids of removedTransactions from every
+  /// processor.completedTransactionIds set
+  _cleanUpCompletedTransaction() {
+    while (transactionQueue.isNotEmpty &&
+        _processorMap.values.every((processor) => processor
+            .completedTransactionIds
+            .contains(transactionQueue.first.id))) {
+      transactionQueue = transactionQueue.sublist(1);
     }
   }
 
-  void _handleTransactionAdd(Iterable<Transaction> added) {
-    _processorMap.forEach((_, processor) {
+  /// iterates list of processors and gives a transaction to any free one
+  ///
+  /// with limitation that non-primary processors can not process a transaction
+  /// if it not been completed successfully by the primary processor
+  void _employProcessors() {
+    Transaction? primaryProcessorTransaction;
+
+    _delegates.forEachIndexed((index, delegate) {
+      final isPrimaryProcessor = index == 0;
+
+      final processor = _processorMap[delegate]!;
+
       if (!processor.isPerformingTransaction) {
-        _feedNextTransactionToProcessor(processor);
+        final transaction = _findNextUncompletedTransaction(
+          processor,
+          mustBeBeforeTransaction:
+              isPrimaryProcessor ? null : primaryProcessorTransaction,
+        );
+
+        if (transaction != null) {
+          processor.performTransaction(transaction, onSuccess: (_) {
+            processor.completedTransactionIds.add(transaction.id);
+            _cleanUpCompletedTransaction();
+            _employProcessors();
+          });
+        }
       }
     });
+  }
+
+  void _handleTransactionAdd(Iterable<Transaction> added) {
+    _employProcessors();
   }
 
   void _handleTransactionRemove(Iterable<Transaction> removed) {
@@ -79,10 +112,10 @@ class CascadeTransactionManager extends TransactionManager {
 
     // if there was a transaction canceling due to the transaction
     // being removed from the transaction queue
-    // call _handleTransactionAdd to feed every free TransactionProcessor
+    // call _handleTransactionAdd to feed every available TransactionProcessor
     // with next available transaction
     if (transactionCancelingHappened) {
-      _handleTransactionAdd([]);
+      _employProcessors();
     }
   }
 
@@ -100,74 +133,5 @@ class CascadeTransactionManager extends TransactionManager {
   void dispose() {
     _processorMap.forEach((_, processor) => processor.dispose());
     listeners.clear();
-  }
-}
-
-class _TransactionProcessor {
-  final AdapterDelegateWithId delegate;
-  final Set<String> completedTransactionIds;
-
-  Transaction? currentTransaction;
-  StreamSubscription? _currentTransactionSubscription;
-
-  _TransactionProcessor(
-      {required this.delegate, required this.completedTransactionIds});
-
-  bool get isPerformingTransaction => _currentTransactionSubscription != null;
-
-  void dispose() {
-    cancelCurrentTransaction();
-  }
-
-  void cancelCurrentTransaction() {
-    _currentTransactionSubscription?.cancel();
-    _currentTransactionSubscription = null;
-    currentTransaction = null;
-  }
-
-  Future _failAfter(int milliseconds, String message,
-      [bool printMessage = false]) {
-    return Future.delayed(Duration(milliseconds: milliseconds)).then((_) {
-      if (printMessage) print(message);
-      return Future.error(message);
-    });
-  }
-
-  Stream _performTransactionAsStream(Transaction transaction,
-      [bool shouldSucceed = false]) {
-    print('performing transaction...');
-    return Stream.fromFuture(shouldSucceed
-        ? Future.delayed(const Duration(milliseconds: 500)).then((_) => 'Yey')
-        : _failAfter(500, 'Server is down', true));
-  }
-
-  void _handleTransactionComplete(dynamic maybeTransaction) {
-    print('performTransaction:onData $maybeTransaction');
-    cancelCurrentTransaction();
-  }
-
-  void performTransaction(Transaction transaction) {
-    if (isPerformingTransaction) {
-      throw 'processor "${delegate.id}" is already performing a transaction';
-    }
-
-    currentTransaction = transaction;
-    int counter = 0;
-
-    // final stream = RetryStream(
-    //   () => _performTransactionAsStream(transaction, ++counter > 1)
-    //       .onErrorResume(
-    //           (_, __) => Stream.fromFuture(_failAfter(2000, 'retry timeout'))),
-    //   5,
-    // );
-
-    final stream = _performTransactionAsStream(transaction, true);
-
-    _currentTransactionSubscription =
-        Stream.fromFuture(Future.error(123)).listen(
-      _handleTransactionComplete,
-      onDone: () => print('performTransaction:onDone'),
-      onError: (error) => print('performTransaction:onError $error'),
-    );
   }
 }

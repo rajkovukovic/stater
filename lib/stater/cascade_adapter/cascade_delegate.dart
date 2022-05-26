@@ -11,7 +11,7 @@ import 'package:stater/stater/transaction/transaction.dart';
 bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutAdapterWithCacheAddDocument = false;
 
-class CascadeDelegate implements AdapterDelegate {
+class CascadeDelegate extends AdapterDelegate {
   final List<AdapterDelegateWithId> _delegates;
   late final CascadeTransactionManager _transactionManager;
 
