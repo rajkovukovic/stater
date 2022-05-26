@@ -1,20 +1,22 @@
 import 'package:rxdart/rxdart.dart';
 import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/cascade_adapter/cascade_transaction_manager.dart';
+import 'package:stater/stater/document_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
 import 'package:stater/stater/transaction/operation.dart';
 import 'package:stater/stater/transaction/transaction.dart';
-import 'package:stater/stater/transaction/transaction_manager.dart';
 
 bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutAdapterWithCacheAddDocument = false;
 
 class CascadeDelegate implements AdapterDelegate {
   final List<AdapterDelegateWithId> _delegates;
-  final _transactionManager = TransactionManager();
+  late final CascadeTransactionManager _transactionManager;
 
-  CascadeDelegate(this._delegates);
+  CascadeDelegate(this._delegates)
+      : _transactionManager = CascadeTransactionManager(_delegates);
 
   /// creates a new document
   @override
@@ -71,7 +73,7 @@ class CascadeDelegate implements AdapterDelegate {
           delegate.setDocument(collectionPath, documentId, response.data());
         });
         return response;
-      });
+      }).then(_copyDocumentSnapshotWithDelegate(collectionPath));
     }
 
     // try with first delegate, use next one in case of error
@@ -98,7 +100,7 @@ class CascadeDelegate implements AdapterDelegate {
           }
         });
         return response;
-      });
+      }).then(_copyQuerySnapshotWithDelegate(query.collectionPath));
     }
 
     // try with first delegate, use next one in case of error
@@ -112,9 +114,11 @@ class CascadeDelegate implements AdapterDelegate {
   Stream<DocumentSnapshot<ID, T>>
       documentSnapshots<ID extends Object?, T extends Object?>(
           String collectionPath, ID documentId) {
-    return MergeStream(_delegates.map((delegate) => delegate
-        .documentSnapshots<ID, T>(collectionPath, documentId)
-        .handleError((_) => true)));
+    return MergeStream(
+      _delegates.map((delegate) => delegate
+          .documentSnapshots<ID, T>(collectionPath, documentId)
+          .handleError((_) => true)),
+    ).map(_copyDocumentSnapshotWithDelegate(collectionPath));
   }
 
   /// Notifies of document updates matching the query
@@ -123,7 +127,8 @@ class CascadeDelegate implements AdapterDelegate {
       querySnapshots<ID extends Object?, T extends Object?>(
           Query<ID, T> query) {
     return MergeStream(_delegates.map((delegate) =>
-        delegate.querySnapshots<ID, T>(query).handleError((_) => true)));
+            delegate.querySnapshots<ID, T>(query).handleError((_) => true)))
+        .map(_copyQuerySnapshotWithDelegate(query.collectionPath));
   }
 
   /// Sets data on the document, overwriting any existing data. If the document
@@ -153,4 +158,21 @@ class CascadeDelegate implements AdapterDelegate {
           data: data as dynamic)
     ]));
   }
+
+  /// clones DocumentSnapshot and replaces it's delegate with "this"
+  DocumentSnapshot<ID, T> Function(DocumentSnapshot<ID, T>)
+      _copyDocumentSnapshotWithDelegate<ID extends Object?, T extends Object?>(
+              String collectionPath) =>
+          (documentSnapshot) => DocumentSnapshot(
+              documentSnapshot.id,
+              documentSnapshot.data(),
+              DocumentReference(collectionPath, documentSnapshot.id, this));
+
+  /// clones QuerySnapshot and replaces it's delegate with "this"
+  QuerySnapshot<ID, T> Function(QuerySnapshot<ID, T>)
+      _copyQuerySnapshotWithDelegate<ID extends Object?, T extends Object?>(
+              String collectionPath) =>
+          (querySnapshot) => QuerySnapshot(querySnapshot.docs
+              .map(_copyDocumentSnapshotWithDelegate(collectionPath))
+              .toList());
 }

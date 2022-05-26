@@ -1,6 +1,5 @@
 library stater;
 
-import 'package:cloud_firestore/cloud_firestore.dart' show FirebaseFirestore;
 import 'package:stater/custom/get_storage_adapter.dart';
 import 'package:stater/custom/rest_adapter.dart';
 import 'package:stater/stater/cascade_adapter/cascade_adapter.dart';
@@ -36,5 +35,3 @@ final stater = CascadeAdapter([
   restDelegate,
   // getStorageDelegate,
 ]);
-
-final _a = FirebaseFirestore.instance.collection('chatters').doc('bla');

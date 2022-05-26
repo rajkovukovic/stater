@@ -2,7 +2,6 @@
 
 import 'dart:async';
 
-import 'package:rxdart/rxdart.dart';
 import 'package:stater/stater/adapter_delegate.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 import 'package:stater/stater/transaction/transaction_manager.dart';
@@ -126,22 +125,24 @@ class _TransactionProcessor {
     currentTransaction = null;
   }
 
-  Future _failAfter(int milliseconds, String message) {
+  Future _failAfter(int milliseconds, String message,
+      [bool printMessage = false]) {
     return Future.delayed(Duration(milliseconds: milliseconds)).then((_) {
-      print(message);
+      if (printMessage) print(message);
       return Future.error(message);
     });
   }
 
   Stream _performTransactionAsStream(Transaction transaction,
-      [bool shouldFail = false]) {
+      [bool shouldSucceed = false]) {
     print('performing transaction...');
-    return Stream.fromFuture(shouldFail
-        ? _failAfter(500, 'Server is down')
-        : Future.delayed(const Duration(milliseconds: 500)));
+    return Stream.fromFuture(shouldSucceed
+        ? Future.delayed(const Duration(milliseconds: 500)).then((_) => 'Yey')
+        : _failAfter(500, 'Server is down', true));
   }
 
   void _handleTransactionComplete(dynamic maybeTransaction) {
+    print('performTransaction:onData $maybeTransaction');
     cancelCurrentTransaction();
   }
 
@@ -152,14 +153,21 @@ class _TransactionProcessor {
 
     currentTransaction = transaction;
     int counter = 0;
-    _currentTransactionSubscription = RetryStream(
-      () => _performTransactionAsStream(transaction, counter++ < 5)
-          .onErrorResume(
-              (_, __) => Stream.fromFuture(_failAfter(2000, 'retry timeout'))),
-    ).listen(
+
+    // final stream = RetryStream(
+    //   () => _performTransactionAsStream(transaction, ++counter > 1)
+    //       .onErrorResume(
+    //           (_, __) => Stream.fromFuture(_failAfter(2000, 'retry timeout'))),
+    //   5,
+    // );
+
+    final stream = _performTransactionAsStream(transaction, true);
+
+    _currentTransactionSubscription =
+        Stream.fromFuture(Future.error(123)).listen(
       _handleTransactionComplete,
-      onDone: () => print('performTransaction is Done'),
-      onError: (error) => print('performTransaction error $error'),
+      onDone: () => print('performTransaction:onDone'),
+      onError: (error) => print('performTransaction:onError $error'),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:stater/stater/adapter_delegate.dart';
 import 'package:stater/stater/collection_reference.dart';
 import 'package:stater/stater/converters.dart';
@@ -12,6 +13,7 @@ toStorageIdentity(Object? value) {
 }
 
 class Adapter {
+  @protected
   final AdapterDelegate delegate;
 
   Adapter(this.delegate);
