@@ -13,6 +13,8 @@ class TransactionManager<T extends Transaction> {
     listeners.clear();
   }
 
+  List<T> getTransactionQueue() => transactionQueue;
+
   void addTransaction(T transaction) {
     transactionQueue = List.unmodifiable([...transactionQueue, transaction]);
     _notifyListeners(TransactionManagerUpdateAdd([transaction]));
@@ -44,28 +46,34 @@ class TransactionManager<T extends Transaction> {
     }
   }
 
-  Map<String, dynamic>? applyTransactionsToEntity<ID extends Object?,
-          T extends Map<String, dynamic>>(
-      String collectionPath, ID documentId, T doc) {
-    Map<String, dynamic>? nextDoc = doc;
+  dynamic applyTransactionsToEntity<ID extends Object?>({
+    required String collectionPath,
+    required ID documentId,
+    required Map<String, dynamic>? data,
+    Iterable<T>? useThisTransactions,
+  }) {
+    Map<String, dynamic>? nextData = data;
 
-    for (var transaction in transactionQueue) {
+    for (var transaction in useThisTransactions ?? transactionQueue) {
       for (var operation in transaction.operations) {
         if (operation is OperationWithDocumentId &&
             operation.collectionPath == collectionPath &&
             operation.documentId == documentId) {
           switch (operation.changeType) {
             case OperationType.delete:
-              nextDoc = null;
+              nextData = null;
               break;
             case OperationType.set:
-              nextDoc = {...(operation as OperationSet).data};
+              nextData = {...(operation as OperationSet).data};
               break;
             case OperationType.update:
-              if (nextDoc == null) {
+              if (nextData == null) {
                 throw 'Trying to apply update operation to null document';
               } else {
-                nextDoc = {...nextDoc, ...(operation as OperationUpdate).data};
+                nextData = {
+                  ...nextData,
+                  ...(operation as OperationUpdate).data
+                };
               }
               break;
             default:
@@ -76,13 +84,7 @@ class TransactionManager<T extends Transaction> {
       }
     }
 
-    return nextDoc;
-  }
-
-  Map<String, dynamic>? applyTransactionsToEntities<ID extends Object?,
-          T extends Map<String, dynamic>>(
-      String collectionPath, ID documentId, T doc) {
-    throw 'TransactionManager.applyTransactionsToEntities is not implemented';
+    return nextData;
   }
 
   void _notifyListeners(TransactionManagerUpdate<T> update) {

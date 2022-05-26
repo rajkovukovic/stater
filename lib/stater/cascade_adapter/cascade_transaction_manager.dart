@@ -45,15 +45,15 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     listeners.add(_handleTransactionListChange);
   }
 
-  TransactionProcessor get primaryProcessor => _processorMap[_delegates.first]!;
-
   T? _findNextUncompletedTransaction(
     TransactionProcessor processor, {
     T? mustBeBeforeTransaction,
   }) {
     for (var transaction in transactionQueue) {
       if (mustBeBeforeTransaction == transaction) break;
-      if (!processor.completedTransactionIds.contains(transaction.id)) {
+
+      if (!transaction.excludeDelegateWithIds.contains(processor.delegate.id) &&
+          !processor.completedTransactionIds.contains(transaction.id)) {
         return transaction;
       }
     }
@@ -65,9 +65,11 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   /// processor.completedTransactionIds set
   _cleanUpCompletedTransaction() {
     while (transactionQueue.isNotEmpty &&
-        _processorMap.values.every((processor) => processor
-            .completedTransactionIds
-            .contains(transactionQueue.first.id))) {
+        _processorMap.values.every((processor) =>
+            transactionQueue.first.excludeDelegateWithIds
+                .contains(processor.delegate.id) ||
+            processor.completedTransactionIds
+                .contains(transactionQueue.first.id))) {
       transactionQueue = transactionQueue.sublist(1);
     }
   }
@@ -92,11 +94,14 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
         );
 
         if (transaction != null) {
-          processor.performTransaction(transaction, onSuccess: (_) {
-            processor.completedTransactionIds.add(transaction.id);
-            _cleanUpCompletedTransaction();
-            _employProcessors();
-          });
+          processor.performTransaction(
+            transaction,
+            onSuccess: (_) {
+              processor.completedTransactionIds.add(transaction.id);
+              _cleanUpCompletedTransaction();
+              _employProcessors();
+            },
+          );
         }
       }
     });
@@ -141,5 +146,9 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   void dispose() {
     _processorMap.forEach((_, processor) => processor.dispose());
     listeners.clear();
+  }
+
+  Set<String>? completedTransactionsIds(AdapterDelegateWithId delegate) {
+    return _processorMap[delegate]?.completedTransactionIds;
   }
 }
