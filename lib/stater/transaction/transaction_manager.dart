@@ -17,13 +17,25 @@ class TransactionManager<T extends Transaction> {
 
   void addTransaction(T transaction) {
     transactionQueue = List.unmodifiable([...transactionQueue, transaction]);
-    _notifyListeners(TransactionManagerUpdateAdd([transaction]));
+    notifyListeners(TransactionManagerUpdateAdd([transaction]));
   }
 
   void addTransactions(Iterable<T> transactions) {
     transactionQueue =
         List.unmodifiable([...transactionQueue, ...transactions]);
-    _notifyListeners(TransactionManagerUpdateAdd(transactions));
+    notifyListeners(TransactionManagerUpdateAdd(transactions));
+  }
+
+  void insertTransaction(int index, T transaction) {
+    transactionQueue = List.unmodifiable(
+        transactionQueue.sublist(0)..insert(index, transaction));
+    notifyListeners(TransactionManagerUpdateAdd([transaction]));
+  }
+
+  void insertTransactions(int index, Iterable<T> transactions) {
+    transactionQueue = List.unmodifiable(
+        transactionQueue.sublist(0)..insertAll(index, transactions));
+    notifyListeners(TransactionManagerUpdateAdd(transactions));
   }
 
   void removeTransactionsById(Iterable<String> ids) {
@@ -42,7 +54,7 @@ class TransactionManager<T extends Transaction> {
 
     if (removed.isNotEmpty) {
       transactionQueue = nextQueue;
-      _notifyListeners(TransactionManagerUpdateRemove(removed));
+      notifyListeners(TransactionManagerUpdateRemove(removed));
     }
   }
 
@@ -51,6 +63,7 @@ class TransactionManager<T extends Transaction> {
     required ID documentId,
     required Map<String, dynamic>? data,
     Iterable<T>? useThisTransactions,
+    bool skipCreateOperations = false,
   }) {
     Map<String, dynamic>? nextData = data;
 
@@ -60,6 +73,12 @@ class TransactionManager<T extends Transaction> {
             operation.collectionPath == collectionPath &&
             operation.documentId == documentId) {
           switch (operation.changeType) {
+            case OperationType.create:
+              if (!skipCreateOperations) {
+                throw 'applyTransactionsToEntity: do you want to use '
+                    '"skipCreateOperations: true" parameter';
+              }
+              break;
             case OperationType.delete:
               nextData = null;
               break;
@@ -87,7 +106,8 @@ class TransactionManager<T extends Transaction> {
     return nextData;
   }
 
-  void _notifyListeners(TransactionManagerUpdate<T> update) {
+  @protected
+  void notifyListeners(TransactionManagerUpdate<T> update) {
     for (var listener in listeners) {
       listener.call(update);
     }

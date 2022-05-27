@@ -8,43 +8,79 @@ import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
 import 'package:stater/stater/transaction/operation.dart';
+import 'package:stater/stater/transaction/transaction_storing_delegate.dart';
 
 bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutAdapterWithCacheAddDocument = false;
 
 class CascadeDelegate extends AdapterDelegate {
-  final List<AdapterDelegateWithId> _delegates;
+  late final List<AdapterDelegateWithId> _delegates;
   late final CascadeTransactionManager<ExclusiveTransaction>
       _transactionManager;
 
-  CascadeDelegate(this._delegates)
-      : _transactionManager = CascadeTransactionManager(_delegates);
+  CascadeDelegate({
+    required AdapterDelegateWithId primaryDelegate,
+    required List<AdapterDelegateWithId>? cachingDelegates,
+    required TransactionStoringDelegate transactionStoringDelegate,
+  }) {
+    _delegates = [
+      primaryDelegate,
+      if (cachingDelegates != null) ...cachingDelegates,
+    ];
+    _transactionManager = CascadeTransactionManager(
+      delegates: _delegates,
+      transactionStoringDelegate: transactionStoringDelegate,
+    );
+  }
 
   /// creates a new document
   @override
-  Future<DocumentSnapshot<ID, T>>
+  Future<DocumentSnapshot<ID, T>?>
       addDocument<ID extends Object?, T extends dynamic>(
-          String collectionPath, T doc) async {
-    if (!ignoreCascadeDelegateAddDocumentWarning &&
-        !_warnedAboutAdapterWithCacheAddDocument) {
-      // ignore: avoid_print
-      print('Calling collection.add method is not recommended when using '
-          'CascadeAdapter because this transactions will be discarded '
-          'if it fails on the first try on the primary Storage.\n'
-          'You may want to use collection.doc(generateNewUniqueId()).set '
-          'method instead.\n'
-          'To disable this message set variable '
-          '"ignoreCascadeDelegateAddDocumentWarning" to true');
-      _warnedAboutAdapterWithCacheAddDocument = true;
-    }
-    return _delegates.first
-        .addDocument<ID, T>(collectionPath, doc)
-        .then((snapshot) {
-      _delegates.sublist(1).forEach((delegate) {
-        delegate.setDocument(collectionPath, snapshot.id, doc);
+    String collectionPath,
+    T document, [
+    ID? documentId,
+  ]) async {
+    // we do not have an id generated on the UI, so it is not safe to make a
+    // transaction out of this request, because document that is going to be
+    // created won't have same id across all delegates which may cause
+    // relation issues (like non existing foreign key)
+    if (documentId == null) {
+      if (!ignoreCascadeDelegateAddDocumentWarning &&
+          !_warnedAboutAdapterWithCacheAddDocument) {
+        // ignore: avoid_print
+        print('Calling collection.add method is not recommended when using '
+            'CascadeAdapter because this transactions will be discarded '
+            'if it fails on the first try on the primary Storage.\n'
+            'You may want to use collection.doc(generateNewUniqueId()).set '
+            'method instead.\n'
+            'To disable this message set variable '
+            '"ignoreCascadeDelegateAddDocumentWarning" to true');
+        _warnedAboutAdapterWithCacheAddDocument = true;
+      }
+
+      return _delegates.first
+          .addDocument<ID, T>(collectionPath, document, documentId)
+          .then((snapshot) {
+        _delegates.sublist(1).forEach((delegate) {
+          delegate.setDocument(collectionPath, snapshot!.id, document);
+        });
+        return snapshot;
       });
-      return snapshot;
-    });
+    }
+    // we have id generated on the UI, so it is safe to make
+    // a transaction out of this request
+    else {
+      _transactionManager.addTransaction(
+        ExclusiveTransaction(operations: [
+          OperationCreate(
+              collectionPath: collectionPath,
+              documentId: documentId.toString(),
+              data: document as dynamic)
+        ]),
+      );
+      return null;
+    }
   }
 
   /// deletes the document
@@ -176,7 +212,8 @@ class CascadeDelegate extends AdapterDelegate {
   }) =>
           (documentSnapshot) {
             if (sourceDelegateIndex < _delegates.length - 1) {
-              _transactionManager.addTransaction(
+              _transactionManager.insertTransaction(
+                0,
                 ExclusiveTransaction(
                   excludeDelegateWithIds: _delegates
                       .sublist(0, sourceDelegateIndex + 1)
@@ -208,7 +245,8 @@ class CascadeDelegate extends AdapterDelegate {
   }) =>
           (querySnapshot) {
             if (sourceDelegateIndex < _delegates.length - 1) {
-              _transactionManager.addTransaction(
+              _transactionManager.insertTransaction(
+                0,
                 ExclusiveTransaction(
                   excludeDelegateWithIds: _delegates
                       .sublist(0, sourceDelegateIndex + 1)

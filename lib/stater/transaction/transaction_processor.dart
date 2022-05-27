@@ -14,8 +14,10 @@ class TransactionProcessor {
   Transaction? currentTransaction;
   StreamSubscription? _currentTransactionSubscription;
 
-  TransactionProcessor(
-      {required this.delegate, required this.completedTransactionIds});
+  TransactionProcessor({
+    required this.delegate,
+    required this.completedTransactionIds,
+  });
 
   bool get isPerformingTransaction => _currentTransactionSubscription != null;
 

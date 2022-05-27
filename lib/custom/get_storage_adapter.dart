@@ -36,13 +36,15 @@ class GetStorageDelegate extends AdapterDelegateWithId {
   @override
   Future<DocumentSnapshot<ID, T>>
       addDocument<ID extends Object?, T extends Object?>(
-          String collectionPath, T data) {
-    final documentId = const Uuid().v4() as ID;
+          String collectionPath, T data,
+          [ID? documentId]) {
+    final notNullDocumentId = documentId ?? const Uuid().v4() as ID;
+
     return setDocument(collectionPath, documentId, data)
         .then((_) => DocumentSnapshot(
-              documentId,
+              notNullDocumentId,
               data,
-              DocumentReference(collectionPath, documentId, this),
+              DocumentReference(collectionPath, notNullDocumentId, this),
             ));
   }
 

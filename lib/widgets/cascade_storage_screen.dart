@@ -125,7 +125,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
   }
 
   Future _handleCreateNew(Map<String, dynamic> data) {
-    return collectionReference.doc(const Uuid().v4()).set(data);
+    return collectionReference.add(data, const Uuid().v4());
   }
 
   void _editExisting(DocumentSnapshot<String, Map<String, dynamic>> snapshot) {

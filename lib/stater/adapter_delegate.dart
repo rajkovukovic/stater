@@ -6,9 +6,10 @@ import 'package:stater/stater/transaction/transaction.dart';
 
 abstract class AdapterDelegate {
   /// creates a new document
-  Future<DocumentSnapshot<ID, T>>
+  Future<DocumentSnapshot<ID, T>?>
       addDocument<ID extends Object?, T extends Object?>(
-          String collectionPath, T data);
+          String collectionPath, T data,
+          [ID? documentId]);
 
   /// deletes the document
   Future<void> deleteDocument<ID extends Object?>(

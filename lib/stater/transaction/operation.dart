@@ -37,6 +37,12 @@ abstract class Operation {
     switch (changeType) {
       case OperationType.create:
         return OperationCreate.fromMap(map);
+      case OperationType.delete:
+        return OperationDelete.fromMap(map);
+      case OperationType.set:
+        return OperationSet.fromMap(map);
+      case OperationType.update:
+        return OperationUpdate.fromMap(map);
       default:
         throw 'Operation.fromMap does not have implemented $changeType';
     }
@@ -46,9 +52,11 @@ abstract class Operation {
 }
 
 class OperationCreate extends Operation {
+  final String? documentId;
   Map<String, dynamic> data;
 
   OperationCreate({
+    this.documentId,
     required this.data,
     required super.collectionPath,
     super.timestamp,
@@ -59,6 +67,7 @@ class OperationCreate extends Operation {
 
   factory OperationCreate.fromMap(Map<String, dynamic> map) {
     return OperationCreate(
+      documentId: map['documentId'],
       collectionPath: map['collectionPath'],
       data: map['data'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
@@ -68,7 +77,8 @@ class OperationCreate extends Operation {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'changeType': changeType.toString(),
+      'documentId': documentId,
+      'changeType': changeType.name,
       'collectionPath': collectionPath,
       'data': data,
       'timestamp': timestamp.millisecondsSinceEpoch,
@@ -110,7 +120,7 @@ class OperationDelete extends OperationWithDocumentId {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'changeType': changeType.toString(),
+      'changeType': changeType.name,
       'collectionPath': collectionPath,
       'documentId': documentId,
       'timestamp': timestamp.millisecondsSinceEpoch,
@@ -146,7 +156,7 @@ class OperationSet extends OperationWithDocumentId {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'changeType': changeType.toString(),
+      'changeType': changeType.name,
       'collectionPath': collectionPath,
       'data': data,
       'documentId': documentId,
@@ -183,7 +193,7 @@ class OperationUpdate extends OperationWithDocumentId {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'changeType': changeType.toString(),
+      'changeType': changeType.name,
       'collectionPath': collectionPath,
       'data': data,
       'documentId': documentId,

@@ -4,6 +4,7 @@ import 'package:stater/custom/get_storage_adapter.dart';
 import 'package:stater/custom/rest_adapter.dart';
 import 'package:stater/stater/cascade_adapter/cascade_adapter.dart';
 import 'package:stater/stater/query.dart';
+import 'package:stater/stater/transaction/transaction_storing_delegate.dart';
 
 bool doesTutorialMatchQuery(Object? element, Query query) {
   if (query.compareOperations.isEmpty) {
@@ -31,7 +32,14 @@ final getStorageDelegate = GetStorageDelegate(
   doesMatchQuery: doesTutorialMatchQuery,
 );
 
-final stater = CascadeAdapter([
-  restDelegate,
-  getStorageDelegate,
-]);
+final stater = CascadeAdapter(
+    primaryDelegate: restDelegate,
+    cachingDelegates: [
+      getStorageDelegate,
+    ],
+    transactionStoringDelegate: TransactionStoringDelegate.fromDelegate(
+      delegate: getStorageDelegate,
+      collectionName: 'uncommitted',
+      transactionsKey: 'transactions',
+      transactionsStateKey: 'processedTransactions',
+    ));

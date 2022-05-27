@@ -18,8 +18,8 @@ class CollectionReference<ID extends Object?, T extends Object?>
             fromStorage: fromStorage,
             toStorage: toStorage);
 
-  Future<DocumentSnapshot<ID, T>> add(T doc) =>
-      delegate.addDocument(collectionPath, doc);
+  Future<DocumentSnapshot<ID, T>?> add(T document, [ID? documentId]) =>
+      delegate.addDocument(collectionPath, document, documentId);
 
   DocumentReference<ID, T> doc(ID documentId) {
     return DocumentReference<ID, T>(collectionPath, documentId, delegate);

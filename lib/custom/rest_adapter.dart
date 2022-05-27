@@ -12,6 +12,8 @@ class RestDelegate extends AdapterDelegateWithId {
   RestDelegate({required this.endpoint, required this.id});
 
   static const String idKey = '_id';
+  static final requestOptions =
+      Options(receiveTimeout: 5000, sendTimeout: 5000);
 
   @override
   final String id;
@@ -19,10 +21,20 @@ class RestDelegate extends AdapterDelegateWithId {
   final String endpoint;
 
   @override
-  Future<DocumentSnapshot<ID, T>>
+  Future<DocumentSnapshot<ID, T>?>
       addDocument<ID extends Object?, T extends Object?>(
-          String collectionPath, T data) {
-    return Dio().post('$endpoint/$collectionPath', data: data).then((response) {
+          String collectionPath, T data,
+          [ID? documentId]) {
+    if (documentId != null) {
+      data = <String, dynamic>{
+        if (data != null) ...(data as Map),
+        idKey: documentId,
+      } as T;
+    }
+
+    return Dio()
+        .post('$endpoint/$collectionPath', data: data, options: requestOptions)
+        .then((response) {
       final data = response.data;
       final id = data[idKey] ?? '';
       return DocumentSnapshot(
@@ -36,7 +48,8 @@ class RestDelegate extends AdapterDelegateWithId {
   @override
   Future<void> deleteDocument<ID extends Object?>(
       String collectionPath, ID documentId) {
-    return Dio().delete('$endpoint/$collectionPath/$documentId');
+    return Dio().delete('$endpoint/$collectionPath/$documentId',
+        options: requestOptions);
   }
 
   @override
@@ -53,7 +66,7 @@ class RestDelegate extends AdapterDelegateWithId {
       getDocument<ID extends Object?, T extends Object?>(
           String collectionPath, ID documentId) async {
     return Dio()
-        .get('$endpoint/$collectionPath/$documentId')
+        .get('$endpoint/$collectionPath/$documentId', options: requestOptions)
         .then((response) => response.data);
   }
 
@@ -72,7 +85,7 @@ class RestDelegate extends AdapterDelegateWithId {
 
     return Dio()
         .get('$endpoint/${query.collectionPath}',
-            queryParameters: queryParameters)
+            queryParameters: queryParameters, options: requestOptions)
         .then(
           (response) => QuerySnapshot(
             (response.data['data'] as Iterable)
@@ -102,26 +115,18 @@ class RestDelegate extends AdapterDelegateWithId {
   @override
   Future<void> setDocument<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data) async {
-    Future<dynamic> usePutMethod() {
-      return Dio()
-          .put('$endpoint/$collectionPath/$documentId', data: data)
-          .then((response) => response.data);
-    }
-
     return Dio()
-        .post('$endpoint/$collectionPath',
-            data: {...data as Map, idKey: documentId.toString()})
-        .then((response) => response.data)
-        .catchError((error) => error?.response?.statusCode == 409
-            ? usePutMethod()
-            : Future.error(error));
+        .put('$endpoint/$collectionPath/$documentId',
+            data: data, options: requestOptions)
+        .then((response) => response.data);
   }
 
   @override
   Future<void> updateDocument<ID extends Object?>(
       String collectionPath, ID documentId, Map<String, Object?> data) async {
     return Dio()
-        .patch('$endpoint/$collectionPath/$documentId', data: data)
+        .patch('$endpoint/$collectionPath/$documentId',
+            data: data, options: requestOptions)
         .then((response) => response.data);
   }
 }
