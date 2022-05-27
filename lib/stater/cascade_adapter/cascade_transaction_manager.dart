@@ -79,32 +79,38 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   /// with limitation that non-primary processors can not process a transaction
   /// if it has not been completed successfully by the primary processor
   void _employProcessors() {
-    T? primaryProcessorTransaction;
+    if (transactionQueue.isNotEmpty) {
+      T? primaryProcessorTransaction;
 
-    _delegates.forEachIndexed((index, delegate) {
-      final isPrimaryProcessor = index == 0;
+      _delegates.forEachIndexed((index, delegate) {
+        final isPrimaryProcessor = index == 0;
 
-      final processor = _processorMap[delegate]!;
+        final processor = _processorMap[delegate]!;
 
-      if (!processor.isPerformingTransaction) {
-        final transaction = _findNextUncompletedTransaction(
-          processor,
-          mustBeBeforeTransaction:
-              isPrimaryProcessor ? null : primaryProcessorTransaction,
-        );
-
-        if (transaction != null) {
-          processor.performTransaction(
-            transaction,
-            onSuccess: (_) {
-              processor.completedTransactionIds.add(transaction.id);
-              _cleanUpCompletedTransaction();
-              _employProcessors();
-            },
+        if (!processor.isPerformingTransaction) {
+          final transaction = _findNextUncompletedTransaction(
+            processor,
+            mustBeBeforeTransaction:
+                isPrimaryProcessor ? null : primaryProcessorTransaction,
           );
+
+          if (transaction != null) {
+            processor.performTransaction(
+              transaction,
+              onSuccess: (_) {
+                processor.completedTransactionIds.add(transaction.id);
+                _cleanUpCompletedTransaction();
+                _employProcessors();
+              },
+            );
+
+            if (isPrimaryProcessor) {
+              primaryProcessorTransaction = transaction;
+            }
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   void _handleTransactionAdd(Iterable<T> added) {
