@@ -137,18 +137,3 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
     );
   }
 }
-
-bool doesTutorialMatchQuery(Object? element, Query query) {
-  if (query.compareOperations.isEmpty) {
-    return true;
-  } else if (query.compareOperations.length == 1 &&
-      query.compareOperations.first.compareOperator ==
-          CompareOperator.isEqualTo &&
-      query.compareOperations.first.field == 'published' &&
-      element is Map) {
-    return (element['published'] ?? false) ==
-        query.compareOperations.first.valueToCompareTo;
-  } else {
-    throw 'Can only query a map by "published" field for equality';
-  }
-}

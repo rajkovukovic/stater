@@ -9,14 +9,15 @@ import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
 
 class RestDelegate extends AdapterDelegateWithId {
-  RestDelegate({required this.endpoint, required this.id});
+  RestDelegate({
+    required super.doesMatchQuery,
+    required this.endpoint,
+    required super.id,
+  });
 
   static const String idKey = '_id';
   static final requestOptions =
       Options(receiveTimeout: 5000, sendTimeout: 5000);
-
-  @override
-  final String id;
 
   final String endpoint;
 

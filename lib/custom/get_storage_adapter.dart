@@ -12,17 +12,13 @@ import 'package:uuid/uuid.dart';
 
 class GetStorageDelegate extends AdapterDelegateWithId {
   GetStorageDelegate({
-    required this.id,
+    required super.doesMatchQuery,
+    super.generateCompareFromQuery,
+    required super.id,
     required this.storagePrefix,
-    this.doesMatchQuery,
-    this.generateCompareFromQuery,
   });
 
-  @override
-  final String id;
   final String storagePrefix;
-  final QueryMatcher? doesMatchQuery;
-  final QueryCompareGenerator? generateCompareFromQuery;
 
   Future<GetStorage> getStorage(String collectionPath) async {
     final storageName = storagePrefix.isEmpty
@@ -114,13 +110,11 @@ class GetStorageDelegate extends AdapterDelegateWithId {
               DocumentReference(collectionPath, keys[index] as ID, this),
             ));
 
-    if (doesMatchQuery != null) {
-      docs = docs.where((element) => doesMatchQuery!(element.data(), query));
+    docs = docs.where((element) => doesMatchQuery(element.data(), query));
 
-      if (docs.length > 1 && generateCompareFromQuery != null) {
-        final compareFn = generateCompareFromQuery!(query);
-        docs = docs.sorted(compareFn!);
-      }
+    if (docs.length > 1 && generateCompareFromQuery != null) {
+      final compareFn = generateCompareFromQuery!(query);
+      docs = docs.sorted(compareFn!);
     }
 
     return QuerySnapshot(docs.toList());

@@ -47,7 +47,8 @@ abstract class AdapterDelegate {
 
   Future performOperation(Operation operation) {
     if (operation is OperationCreate) {
-      return addDocument(operation.collectionPath, operation.data);
+      return addDocument(
+          operation.collectionPath, operation.data, operation.documentId);
     }
 
     if (operation is OperationDelete) {
@@ -82,5 +83,13 @@ abstract class AdapterDelegate {
 }
 
 abstract class AdapterDelegateWithId extends AdapterDelegate {
-  String get id;
+  final String id;
+  final QueryMatcher doesMatchQuery;
+  final QueryCompareGenerator? generateCompareFromQuery;
+
+  AdapterDelegateWithId({
+    required this.id,
+    required this.doesMatchQuery,
+    this.generateCompareFromQuery,
+  });
 }

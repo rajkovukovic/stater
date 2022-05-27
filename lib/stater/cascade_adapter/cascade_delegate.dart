@@ -118,7 +118,7 @@ class CascadeDelegate extends AdapterDelegate {
     return delegateFuture(0);
   }
 
-  /// Reads the document
+  /// Reads the documents
   @override
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends dynamic>(
       Query<ID, T> query) {
@@ -133,6 +133,7 @@ class CascadeDelegate extends AdapterDelegate {
       }).then(_postFetchQuery(
         collectionPath: query.collectionPath,
         sourceDelegateIndex: delegateIndex,
+        query: query,
       ));
     }
 
@@ -169,6 +170,7 @@ class CascadeDelegate extends AdapterDelegate {
             .map(_postFetchQuery(
               collectionPath: query.collectionPath,
               sourceDelegateIndex: delegateIndex,
+              query: query,
             ))
             .handleError((_) => true))).shareReplay(maxSize: 1);
   }
@@ -242,6 +244,7 @@ class CascadeDelegate extends AdapterDelegate {
       _postFetchQuery<ID extends Object?, T extends dynamic>({
     required String collectionPath,
     required int sourceDelegateIndex,
+    required Query<ID, T> query,
   }) =>
           (querySnapshot) {
             if (sourceDelegateIndex < _delegates.length - 1) {
@@ -266,6 +269,7 @@ class CascadeDelegate extends AdapterDelegate {
             return _applyTransactionsAndReplaceDelegateOfQuerySnapshot(
               collectionPath: collectionPath,
               querySnapshot: querySnapshot,
+              query: query,
               sourceDelegate: _delegates[sourceDelegateIndex],
             );
           };
@@ -312,12 +316,42 @@ class CascadeDelegate extends AdapterDelegate {
       ID extends Object?, T extends dynamic>({
     required String collectionPath,
     required QuerySnapshot<ID, dynamic> querySnapshot,
+    required Query<ID, T> query,
     required AdapterDelegateWithId sourceDelegate,
   }) {
     final uncommittedTransactions =
         uncommittedTransactionsForDelegate(sourceDelegate);
 
-    return QuerySnapshot<ID, T>(querySnapshot.docs
+    final uncommittedCreatedDocuments = uncommittedTransactions
+        .fold<Map<String, Map<String, dynamic>>>({}, (acc, transaction) {
+      for (var operation in transaction.operations) {
+        if (operation is OperationCreate) {
+          if (operation.documentId == null) {
+            throw 'having transaction with OperationCreate without '
+                'a documentId may be a mistake?';
+          }
+          acc[operation.documentId!] = operation.data;
+        }
+      }
+      return acc;
+    });
+
+    final uncommittedCreatedDocumentsRefs = uncommittedCreatedDocuments.entries
+        .map((entry) => DocumentSnapshot<ID, T>(
+              entry.key as ID,
+              _transactionManager.applyTransactionsToEntity(
+                collectionPath: collectionPath,
+                documentId: entry.key,
+                data: entry.value,
+                useThisTransactions: uncommittedTransactions,
+              ),
+              DocumentReference(collectionPath, entry.key as ID, this),
+            ))
+        .where((documentSnapshot) =>
+            documentSnapshot.exists &&
+            sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
+
+    final fromQuery = querySnapshot.docs
         .map((documentSnapshot) => DocumentSnapshot<ID, T>(
               documentSnapshot.id,
               _transactionManager.applyTransactionsToEntity(
@@ -328,7 +362,20 @@ class CascadeDelegate extends AdapterDelegate {
               ),
               DocumentReference(collectionPath, documentSnapshot.id, this),
             ))
-        .where((documentSnapshot) => documentSnapshot.exists)
-        .toList());
+        .where((documentSnapshot) =>
+            documentSnapshot.exists &&
+            sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
+
+    final matched = [
+      ...fromQuery,
+      ...uncommittedCreatedDocumentsRefs,
+    ];
+
+    if (sourceDelegate.generateCompareFromQuery != null) {
+      final compare = sourceDelegate.generateCompareFromQuery!(query);
+      matched.sort(compare);
+    }
+
+    return QuerySnapshot<ID, T>(matched);
   }
 }
