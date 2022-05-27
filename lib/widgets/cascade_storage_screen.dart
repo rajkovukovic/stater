@@ -3,9 +3,11 @@ import 'package:stater/stater/adapter.dart';
 import 'package:stater/stater/collection_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
+import 'package:stater/widgets/tri_state_selector.dart';
+import 'package:uuid/uuid.dart';
 
-import 'tutorial_card.dart';
-import 'tutorial_screen.dart';
+import 'todo_card.dart';
+import 'todo_screen.dart';
 
 class CascadeStorageScreen extends StatefulWidget {
   const CascadeStorageScreen({Key? key, required this.adapter})
@@ -39,9 +41,9 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
         title: TriStateSelector(
           onChanged: _handleFilterChanged,
           value: filterByPublished,
-          nullLabel: 'All Tutorials',
-          trueLabel: 'Published Tutorials',
-          falseLabel: 'Not Published Tutorials',
+          nullLabel: 'All Todos',
+          trueLabel: 'Completed Only',
+          falseLabel: 'Uncompleted Only',
         ),
         actions: [
           IconButton(
@@ -74,8 +76,9 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             itemCount: data.length,
-            itemBuilder: ((context, index) => TutorialCard(
-                  tutorial: data[index]!,
+            itemBuilder: ((context, index) => TodoCard(
+                  key: ValueKey(data[index]!['_id']),
+                  todo: data[index]!,
                   onTap: () => _editExisting(snapshots[index]),
                 )),
           );
@@ -85,11 +88,11 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
   }
 
   void _setUpStreams() {
-    collectionReference = widget.adapter.collection('tutorials');
+    collectionReference = widget.adapter.collection('todos');
 
     if (filterByPublished != null) {
       query = collectionReference.where(
-          'published', CompareOperator.isEqualTo, filterByPublished);
+          'completed', CompareOperator.isEqualTo, filterByPublished);
     } else {
       query = collectionReference;
     }
@@ -115,52 +118,22 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
   void _createNew() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => TutorialScreen(
-            onCreate: _handleCreateNew, onDispose: _delayedReload),
+        builder: (_) =>
+            TodoScreen(onCreate: _handleCreateNew, onDispose: _delayedReload),
       ),
     );
   }
 
   Future _handleCreateNew(Map<String, dynamic> data) {
-    return collectionReference.add(data);
+    return collectionReference.doc(const Uuid().v4()).set(data);
   }
 
   void _editExisting(DocumentSnapshot<String, Map<String, dynamic>> snapshot) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
-            TutorialScreen(snapshot: snapshot, onDispose: _delayedReload),
+            TodoScreen(snapshot: snapshot, onDispose: _delayedReload),
       ),
-    );
-  }
-}
-
-class TriStateSelector extends StatelessWidget {
-  final bool? value;
-  final void Function(bool?)? onChanged;
-  final String? nullLabel;
-  final String? trueLabel;
-  final String? falseLabel;
-
-  const TriStateSelector({
-    super.key,
-    required this.value,
-    required this.onChanged,
-    this.nullLabel,
-    this.trueLabel,
-    this.falseLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButton<bool?>(
-      value: value,
-      onChanged: onChanged,
-      items: [
-        DropdownMenuItem(value: null, child: Text(nullLabel ?? 'null')),
-        DropdownMenuItem(value: true, child: Text(trueLabel ?? 'true')),
-        DropdownMenuItem(value: false, child: Text(falseLabel ?? 'false')),
-      ],
     );
   }
 }

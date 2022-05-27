@@ -119,7 +119,7 @@ class CascadeDelegate extends AdapterDelegate {
             sourceDelegateIndex: delegateIndex,
           ))
           .handleError((_) => true)),
-    );
+    ).shareReplay(maxSize: 1);
   }
 
   /// Notifies of document updates matching the query
@@ -134,7 +134,7 @@ class CascadeDelegate extends AdapterDelegate {
               collectionPath: query.collectionPath,
               sourceDelegateIndex: delegateIndex,
             ))
-            .handleError((_) => true)));
+            .handleError((_) => true))).shareReplay(maxSize: 1);
   }
 
   /// Sets data on the document, overwriting any existing data. If the document

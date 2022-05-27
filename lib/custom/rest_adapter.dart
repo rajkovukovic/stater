@@ -11,6 +11,8 @@ import 'package:stater/stater/query_snapshot.dart';
 class RestDelegate extends AdapterDelegateWithId {
   RestDelegate({required this.endpoint, required this.id});
 
+  static const String idKey = '_id';
+
   @override
   final String id;
 
@@ -22,7 +24,7 @@ class RestDelegate extends AdapterDelegateWithId {
           String collectionPath, T data) {
     return Dio().post('$endpoint/$collectionPath', data: data).then((response) {
       final data = response.data;
-      final id = data['id'] ?? '';
+      final id = data[idKey] ?? '';
       return DocumentSnapshot(
         id,
         data,
@@ -73,14 +75,14 @@ class RestDelegate extends AdapterDelegateWithId {
             queryParameters: queryParameters)
         .then(
           (response) => QuerySnapshot(
-            (response.data as Iterable)
+            (response.data['data'] as Iterable)
                 .map(
                   (element) => DocumentSnapshot<ID, T>(
-                    element?['id'] as ID ?? '' as ID,
+                    element?[idKey] as ID ?? '' as ID,
                     element,
                     DocumentReference(
                       query.collectionPath,
-                      element?['id'] as ID ?? '' as ID,
+                      element?[idKey] as ID ?? '' as ID,
                       this,
                     ),
                   ),
@@ -100,9 +102,19 @@ class RestDelegate extends AdapterDelegateWithId {
   @override
   Future<void> setDocument<ID extends Object?, T extends Object?>(
       String collectionPath, ID documentId, T data) async {
+    Future<dynamic> usePutMethod() {
+      return Dio()
+          .put('$endpoint/$collectionPath/$documentId', data: data)
+          .then((response) => response.data);
+    }
+
     return Dio()
-        .put('$endpoint/$collectionPath/$documentId', data: data)
-        .then((response) => response.data);
+        .post('$endpoint/$collectionPath',
+            data: {...data as Map, idKey: documentId.toString()})
+        .then((response) => response.data)
+        .catchError((error) => error?.response?.statusCode == 409
+            ? usePutMethod()
+            : Future.error(error));
   }
 
   @override

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-class TutorialCard extends StatelessWidget {
-  const TutorialCard({
+class TodoCard extends StatelessWidget {
+  const TodoCard({
     Key? key,
-    required this.tutorial,
+    required this.todo,
     this.onTap,
   }) : super(key: key);
 
-  final Map<String, dynamic> tutorial;
+  final Map<String, dynamic> todo;
   final void Function()? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final published = tutorial['published'] == true;
+    final completed = todo['completed'] == true;
     return Card(
       color: Colors.lightBlue.shade100,
       child: InkWell(
@@ -23,15 +23,13 @@ class TutorialCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SelectableText(
-                tutorial['title'],
+                todo['name'].toString(),
                 style: const TextStyle(fontSize: 18),
               ),
               const SizedBox(height: 8),
-              SelectableText(tutorial['description']),
-              const SizedBox(height: 8),
               SelectableText(
-                published ? 'published' : 'not published',
-                style: TextStyle(color: published ? Colors.blueAccent : null),
+                completed ? 'completed' : 'not completed',
+                style: TextStyle(color: completed ? Colors.blueAccent : null),
               ),
             ],
           ),

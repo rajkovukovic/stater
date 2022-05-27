@@ -22,7 +22,7 @@ bool doesTutorialMatchQuery(Object? element, Query query) {
 
 final restDelegate = RestDelegate(
   id: 'rest-server-mongodb',
-  endpoint: 'http://localhost:6868/api',
+  endpoint: 'http://localhost:3030',
 );
 
 final getStorageDelegate = GetStorageDelegate(

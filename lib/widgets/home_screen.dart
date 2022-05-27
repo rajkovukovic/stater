@@ -5,8 +5,8 @@ import 'package:stater/stater/collection_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 
-import 'tutorial_card.dart';
-import 'tutorial_screen.dart';
+import 'todo_card.dart';
+import 'todo_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -92,8 +92,8 @@ class _HomeScreenState extends State<HomeScreen> {
           return ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             itemCount: data.length,
-            itemBuilder: ((context, index) => TutorialCard(
-                  tutorial: data[index]!,
+            itemBuilder: ((context, index) => TodoCard(
+                  todo: data[index]!,
                   onTap: () => _editExisting(snapshots[index]),
                 )),
           );
@@ -134,7 +134,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _createNew() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => TutorialScreen(
+        builder: (_) =>
+            TodoScreen(
             onCreate: _handleCreateNew, onDispose: _delayedReload),
       ),
     );
@@ -148,7 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>
-            TutorialScreen(snapshot: snapshot, onDispose: _delayedReload),
+            TodoScreen(snapshot: snapshot, onDispose: _delayedReload),
       ),
     );
   }
