@@ -4,7 +4,7 @@ import 'package:stater/stater/query_snapshot.dart';
 import 'package:stater/stater/transaction/operation.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 
-abstract class AdapterDelegate {
+abstract class StorageDelegate {
   /// creates a new document
   Future<DocumentSnapshot<ID, T>?>
       addDocument<ID extends Object?, T extends Object?>(
@@ -82,12 +82,12 @@ abstract class AdapterDelegate {
   }
 }
 
-abstract class AdapterDelegateWithId extends AdapterDelegate {
+abstract class StorageDelegateWithId extends StorageDelegate {
   final String id;
   final QueryMatcher doesMatchQuery;
   final QueryCompareGenerator? generateCompareFromQuery;
 
-  AdapterDelegateWithId({
+  StorageDelegateWithId({
     required this.id,
     required this.doesMatchQuery,
     this.generateCompareFromQuery,

@@ -1,5 +1,5 @@
 import 'package:meta/meta.dart';
-import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/storage_delegate.dart';
 import 'package:stater/stater/collection_reference.dart';
 import 'package:stater/stater/converters.dart';
 import 'package:stater/stater/document_snapshot.dart';
@@ -12,11 +12,11 @@ toStorageIdentity(Object? value) {
   return value;
 }
 
-class Adapter {
+class Storage {
   @protected
-  final AdapterDelegate delegate;
+  final StorageDelegate delegate;
 
-  Adapter(this.delegate);
+  Storage(this.delegate);
 
   CollectionReference<ID, T> collection<ID extends Object?, T extends Object?>(
     String path, {

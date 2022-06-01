@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:stater/stater/adapter.dart';
+import 'package:stater/stater/storage.dart';
 import 'package:stater/stater/collection_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
@@ -10,10 +10,10 @@ import 'todo_card.dart';
 import 'todo_screen.dart';
 
 class CascadeStorageScreen extends StatefulWidget {
-  const CascadeStorageScreen({Key? key, required this.adapter})
+  const CascadeStorageScreen({Key? key, required this.storage})
       : super(key: key);
 
-  final Adapter adapter;
+  final Storage storage;
 
   @override
   State<CascadeStorageScreen> createState() => _HomeScreenState();
@@ -88,7 +88,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
   }
 
   void _setUpStreams() {
-    collectionReference = widget.adapter.collection('todos');
+    collectionReference = widget.storage.collection('todos');
 
     if (filterByPublished != null) {
       query = collectionReference.where(

@@ -1,5 +1,5 @@
 import 'package:meta/meta.dart';
-import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/storage_delegate.dart';
 
 import 'document_snapshot.dart';
 
@@ -7,7 +7,7 @@ import 'document_snapshot.dart';
 class DocumentReference<ID extends Object?, T extends Object?> {
   const DocumentReference(this.collectionPath, this.id, this._delegate);
 
-  final AdapterDelegate _delegate;
+  final StorageDelegate _delegate;
 
   final String collectionPath;
 

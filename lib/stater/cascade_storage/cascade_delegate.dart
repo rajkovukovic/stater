@@ -1,8 +1,8 @@
 import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:stater/stater/adapter_delegate.dart';
-import 'package:stater/stater/cascade_adapter/cascade_transaction_manager.dart';
-import 'package:stater/stater/cascade_adapter/exclusive_transaction.dart';
+import 'package:stater/stater/storage_delegate.dart';
+import 'package:stater/stater/cascade_storage/cascade_transaction_manager.dart';
+import 'package:stater/stater/cascade_storage/exclusive_transaction.dart';
 import 'package:stater/stater/document_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
@@ -11,16 +11,16 @@ import 'package:stater/stater/transaction/operation.dart';
 import 'package:stater/stater/transaction/transaction_storing_delegate.dart';
 
 bool ignoreCascadeDelegateAddDocumentWarning = false;
-bool _warnedAboutAdapterWithCacheAddDocument = false;
+bool _warnedAboutStorageWithCacheAddDocument = false;
 
-class CascadeDelegate extends AdapterDelegate {
-  late final List<AdapterDelegateWithId> _delegates;
+class CascadeDelegate extends StorageDelegate {
+  late final List<StorageDelegateWithId> _delegates;
   late final CascadeTransactionManager<ExclusiveTransaction>
       _transactionManager;
 
   CascadeDelegate({
-    required AdapterDelegateWithId primaryDelegate,
-    required List<AdapterDelegateWithId>? cachingDelegates,
+    required StorageDelegateWithId primaryDelegate,
+    required List<StorageDelegateWithId>? cachingDelegates,
     required TransactionStoringDelegate transactionStoringDelegate,
   }) {
     _delegates = [
@@ -47,16 +47,16 @@ class CascadeDelegate extends AdapterDelegate {
     // relation issues (like non existing foreign key)
     if (documentId == null) {
       if (!ignoreCascadeDelegateAddDocumentWarning &&
-          !_warnedAboutAdapterWithCacheAddDocument) {
+          !_warnedAboutStorageWithCacheAddDocument) {
         // ignore: avoid_print
         print('Calling collection.add method is not recommended when using '
-            'CascadeAdapter because this transactions will be discarded '
+            'CascadeStorage because this transactions will be discarded '
             'if it fails on the first try on the primary Storage.\n'
             'You may want to use collection.doc(generateNewUniqueId()).set '
             'method instead.\n'
             'To disable this message set variable '
             '"ignoreCascadeDelegateAddDocumentWarning" to true');
-        _warnedAboutAdapterWithCacheAddDocument = true;
+        _warnedAboutStorageWithCacheAddDocument = true;
       }
 
       return _delegates.first
@@ -275,7 +275,7 @@ class CascadeDelegate extends AdapterDelegate {
           };
 
   Iterable<ExclusiveTransaction> uncommittedTransactionsForDelegate(
-      AdapterDelegateWithId delegate) {
+      StorageDelegateWithId delegate) {
     final completedTransactionsIds =
         _transactionManager.completedTransactionsIds(delegate)!;
 
@@ -291,7 +291,7 @@ class CascadeDelegate extends AdapterDelegate {
           T extends dynamic>({
     required String collectionPath,
     required DocumentSnapshot<ID, T> documentSnapshot,
-    required AdapterDelegateWithId sourceDelegate,
+    required StorageDelegateWithId sourceDelegate,
   }) {
     final uncommittedTransactions =
         uncommittedTransactionsForDelegate(sourceDelegate);
@@ -317,7 +317,7 @@ class CascadeDelegate extends AdapterDelegate {
     required String collectionPath,
     required QuerySnapshot<ID, dynamic> querySnapshot,
     required Query<ID, T> query,
-    required AdapterDelegateWithId sourceDelegate,
+    required StorageDelegateWithId sourceDelegate,
   }) {
     final uncommittedTransactions =
         uncommittedTransactionsForDelegate(sourceDelegate);

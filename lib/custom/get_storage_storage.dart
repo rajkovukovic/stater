@@ -2,15 +2,15 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:stater/stater/adapter.dart';
-import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/storage_delegate.dart';
 import 'package:stater/stater/document_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
+import 'package:stater/stater/storage.dart';
 import 'package:uuid/uuid.dart';
 
-class GetStorageDelegate extends AdapterDelegateWithId {
+class GetStorageDelegate extends StorageDelegateWithId {
   GetStorageDelegate({
     required super.doesMatchQuery,
     super.generateCompareFromQuery,
@@ -152,6 +152,6 @@ class GetStorageDelegate extends AdapterDelegateWithId {
   }
 }
 
-class GetStorageAdapter extends Adapter {
-  GetStorageAdapter(GetStorageDelegate delegate) : super(delegate);
+class GetStorageStorage extends Storage {
+  GetStorageStorage(GetStorageDelegate delegate) : super(delegate);
 }

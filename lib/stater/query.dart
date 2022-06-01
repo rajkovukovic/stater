@@ -1,4 +1,4 @@
-import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/storage_delegate.dart';
 import 'package:stater/stater/converters.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query_snapshot.dart';
@@ -12,7 +12,7 @@ class Query<ID extends Object?, T extends Object?> {
     this.compareOperations = const [],
   });
 
-  final AdapterDelegate delegate;
+  final StorageDelegate delegate;
   final String collectionPath;
   final FromStorage<ID, T>? fromStorage;
   final ToStorage<T>? toStorage;

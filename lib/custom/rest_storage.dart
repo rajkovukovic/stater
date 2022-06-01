@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:stater/stater/adapter.dart';
-import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/storage_delegate.dart';
 import 'package:stater/stater/document_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/query_snapshot.dart';
+import 'package:stater/stater/storage.dart';
 
-class RestDelegate extends AdapterDelegateWithId {
+class RestDelegate extends StorageDelegateWithId {
   RestDelegate({
     required super.doesMatchQuery,
     required this.endpoint,
@@ -132,6 +132,6 @@ class RestDelegate extends AdapterDelegateWithId {
   }
 }
 
-class RestAdapter extends Adapter {
-  RestAdapter(RestDelegate delegate) : super(delegate);
+class RestStorage extends Storage {
+  RestStorage(RestDelegate delegate) : super(delegate);
 }
