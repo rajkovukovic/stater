@@ -7,22 +7,22 @@ class Query<ID extends Object?, T extends Object?> {
   const Query({
     required this.delegate,
     required this.collectionPath,
-    this.fromStorage,
-    this.toStorage,
+    this.fromHashMap,
+    this.toHashMap,
     this.compareOperations = const [],
   });
 
   final StorageDelegate delegate;
   final String collectionPath;
-  final FromStorage<ID, T>? fromStorage;
-  final ToStorage<T>? toStorage;
+  final FromHashMap<ID, T>? fromHashMap;
+  final ToHashMap<T>? toHashMap;
   final List<CompareOperation> compareOperations;
 
   // Query<ID, T> _mapQuery(Query<Map<String, dynamic>> newOriginalQuery) {
   //   return Query<T>(
   //     newOriginalQuery,
-  //     _fromStorage,
-  //     _toStorage,
+  //     _fromHashMap,
+  //     _toHashMap,
   //   );
   // }
 
@@ -89,8 +89,8 @@ class Query<ID extends Object?, T extends Object?> {
     return Query(
         collectionPath: collectionPath,
         delegate: delegate,
-        fromStorage: fromStorage,
-        toStorage: toStorage,
+        fromHashMap: fromHashMap,
+        toHashMap: toHashMap,
         compareOperations: [...compareOperations, compareOperation]);
   }
 
@@ -107,14 +107,14 @@ class Query<ID extends Object?, T extends Object?> {
   // bool operator ==(Object other) {
   //   return runtimeType == other.runtimeType &&
   //       other is Query<ID, T> &&
-  //       other._fromStorage == _fromStorage &&
-  //       other._toStorage == _toStorage &&
+  //       other._fromHashMap == _fromHashMap &&
+  //       other._toHashMap == _toHashMap &&
   //       other._originalQuery == _originalQuery;
   // }
 
   // @override
   // int get hashCode =>
-  //     hashValues(runtimeType, _fromStorage, _toStorage, _originalQuery);
+  //     hashValues(runtimeType, _fromHashMap, _toHashMap, _originalQuery);
 }
 
 enum CompareOperator {

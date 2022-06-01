@@ -4,11 +4,11 @@ import 'package:stater/src/converters.dart';
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/storage_delegate.dart';
 
-fromStorageIdentity(DocumentSnapshot snapshot) {
+fromHashMapIdentity(DocumentSnapshot snapshot) {
   return snapshot.data();
 }
 
-toStorageIdentity(Object? value) {
+toHashMapIdentity(Object? value) {
   return value;
 }
 
@@ -20,13 +20,14 @@ class Storage {
 
   CollectionReference<ID, T> collection<ID extends Object?, T extends Object?>(
     String path, {
-    FromStorage<ID, T>? fromStorage,
-    ToStorage<T>? toStorage,
+    FromHashMap<ID, T>? fromHashMap,
+    ToHashMap<T>? toHashMap,
   }) {
     return CollectionReference(
         delegate: delegate,
         collectionPath: path,
-        fromStorage: fromStorage,
-        toStorage: toStorage);
+        fromHashMap: fromHashMap,
+        toHashMap: toHashMap);
   }
 }
+

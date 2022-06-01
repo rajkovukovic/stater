@@ -10,13 +10,13 @@ class CollectionReference<ID extends Object?, T extends Object?>
   CollectionReference({
     required StorageDelegate delegate,
     required String collectionPath,
-    FromStorage<ID, T>? fromStorage,
-    ToStorage<T>? toStorage,
+    FromHashMap<ID, T>? fromHashMap,
+    ToHashMap<T>? toHashMap,
   }) : super(
             delegate: delegate,
             collectionPath: collectionPath,
-            fromStorage: fromStorage,
-            toStorage: toStorage);
+            fromHashMap: fromHashMap,
+            toHashMap: toHashMap);
 
   Future<DocumentSnapshot<ID, T>?> add(T document, [ID? documentId]) =>
       delegate.addDocument(collectionPath, document, documentId);
