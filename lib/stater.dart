@@ -1,6 +1,6 @@
 library stater;
 
-export 'custom/get_storage_storage.dart';
+export 'custom/local_storage.dart';
 export 'custom/rest_storage.dart';
 export 'src/caching_adapter_delegate.dart';
 export 'src/cascade_storage/cascade_delegate.dart';

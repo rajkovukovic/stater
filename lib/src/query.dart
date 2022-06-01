@@ -1,22 +1,20 @@
-import 'package:stater/src/converters.dart';
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query_snapshot.dart';
 import 'package:stater/src/storage_delegate.dart';
+import 'package:stater/src/storage_options.dart';
 
 class Query<ID extends Object?, T extends Object?> {
   const Query({
     required this.delegate,
-    required this.collectionPath,
-    this.fromHashMap,
-    this.toHashMap,
+    required this.collectionName,
     this.compareOperations = const [],
+    this.options = const StorageOptions(),
   });
 
   final StorageDelegate delegate;
-  final String collectionPath;
-  final FromHashMap<ID, T>? fromHashMap;
-  final ToHashMap<T>? toHashMap;
+  final String collectionName;
   final List<CompareOperation> compareOperations;
+  final StorageOptions options;
 
   // Query<ID, T> _mapQuery(Query<Map<String, dynamic>> newOriginalQuery) {
   //   return Query<T>(
@@ -87,10 +85,9 @@ class Query<ID extends Object?, T extends Object?> {
 
   Query<ID, T> whereOperation(CompareOperation compareOperation) {
     return Query(
-        collectionPath: collectionPath,
+        collectionName: collectionName,
         delegate: delegate,
-        fromHashMap: fromHashMap,
-        toHashMap: toHashMap,
+        options: options,
         compareOperations: [...compareOperations, compareOperation]);
   }
 

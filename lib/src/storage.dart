@@ -1,16 +1,7 @@
 import 'package:meta/meta.dart';
 import 'package:stater/src/collection_reference.dart';
-import 'package:stater/src/converters.dart';
-import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/storage_delegate.dart';
-
-fromHashMapIdentity(DocumentSnapshot snapshot) {
-  return snapshot.data();
-}
-
-toHashMapIdentity(Object? value) {
-  return value;
-}
+import 'package:stater/src/storage_options.dart';
 
 class Storage {
   @protected
@@ -20,14 +11,12 @@ class Storage {
 
   CollectionReference<ID, T> collection<ID extends Object?, T extends Object?>(
     String path, {
-    FromHashMap<ID, T>? fromHashMap,
-    ToHashMap<T>? toHashMap,
+    StorageOptions options = const StorageOptions(),
   }) {
     return CollectionReference(
-        delegate: delegate,
-        collectionPath: path,
-        fromHashMap: fromHashMap,
-        toHashMap: toHashMap);
+      delegate: delegate,
+      collectionName: path,
+      options: options,
+    );
   }
 }
-

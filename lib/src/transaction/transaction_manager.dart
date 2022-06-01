@@ -59,7 +59,7 @@ class TransactionManager<T extends Transaction> {
   }
 
   dynamic applyTransactionsToEntity<ID extends Object?>({
-    required String collectionPath,
+    required String collectionName,
     required ID documentId,
     required Map<String, dynamic>? data,
     Iterable<T>? useThisTransactions,
@@ -70,7 +70,7 @@ class TransactionManager<T extends Transaction> {
     for (var transaction in useThisTransactions ?? transactionQueue) {
       for (var operation in transaction.operations) {
         if (operation is OperationWithDocumentId &&
-            operation.collectionPath == collectionPath &&
+            operation.collectionName == collectionName &&
             operation.documentId == documentId) {
           switch (operation.changeType) {
             case OperationType.create:

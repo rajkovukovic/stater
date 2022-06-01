@@ -24,7 +24,7 @@ class RestDelegate extends StorageDelegateWithId {
   @override
   Future<DocumentSnapshot<ID, T>?>
       addDocument<ID extends Object?, T extends Object?>(
-          String collectionPath, T data,
+          String collectionName, T data,
           [ID? documentId]) {
     if (documentId != null) {
       data = <String, dynamic>{
@@ -34,40 +34,40 @@ class RestDelegate extends StorageDelegateWithId {
     }
 
     return Dio()
-        .post('$endpoint/$collectionPath', data: data, options: requestOptions)
+        .post('$endpoint/$collectionName', data: data, options: requestOptions)
         .then((response) {
       final data = response.data;
       final id = data[idKey] ?? '';
       return DocumentSnapshot(
         id,
         data,
-        DocumentReference(collectionPath, id, this),
+        DocumentReference(collectionName, id, this),
       );
     });
   }
 
   @override
   Future<void> deleteDocument<ID extends Object?>(
-      String collectionPath, ID documentId) {
-    return Dio().delete('$endpoint/$collectionPath/$documentId',
+      String collectionName, ID documentId) {
+    return Dio().delete('$endpoint/$collectionName/$documentId',
         options: requestOptions);
   }
 
   @override
   Stream<DocumentSnapshot<ID, T>>
       documentSnapshots<ID extends Object?, T extends Object?>(
-          String collectionPath, ID documentId) {
+          String collectionName, ID documentId) {
     // TODO: make sure updates are emmited to the stream
     // TODO: maybe periodical refetching of data?
-    return Stream.fromFuture(getDocument(collectionPath, documentId));
+    return Stream.fromFuture(getDocument(collectionName, documentId));
   }
 
   @override
   Future<DocumentSnapshot<ID, T>>
       getDocument<ID extends Object?, T extends Object?>(
-          String collectionPath, ID documentId) async {
+          String collectionName, ID documentId) async {
     return Dio()
-        .get('$endpoint/$collectionPath/$documentId', options: requestOptions)
+        .get('$endpoint/$collectionName/$documentId', options: requestOptions)
         .then((response) => response.data);
   }
 
@@ -85,7 +85,7 @@ class RestDelegate extends StorageDelegateWithId {
     }
 
     return Dio()
-        .get('$endpoint/${query.collectionPath}',
+        .get('$endpoint/${query.collectionName}',
             queryParameters: queryParameters, options: requestOptions)
         .then(
           (response) => QuerySnapshot(
@@ -95,7 +95,7 @@ class RestDelegate extends StorageDelegateWithId {
                     element?[idKey] as ID ?? '' as ID,
                     element,
                     DocumentReference(
-                      query.collectionPath,
+                      query.collectionName,
                       element?[idKey] as ID ?? '' as ID,
                       this,
                     ),
@@ -115,18 +115,18 @@ class RestDelegate extends StorageDelegateWithId {
 
   @override
   Future<void> setDocument<ID extends Object?, T extends Object?>(
-      String collectionPath, ID documentId, T data) async {
+      String collectionName, ID documentId, T data) async {
     return Dio()
-        .put('$endpoint/$collectionPath/$documentId',
+        .put('$endpoint/$collectionName/$documentId',
             data: data, options: requestOptions)
         .then((response) => response.data);
   }
 
   @override
   Future<void> updateDocument<ID extends Object?>(
-      String collectionPath, ID documentId, Map<String, Object?> data) async {
+      String collectionName, ID documentId, Map<String, Object?> data) async {
     return Dio()
-        .patch('$endpoint/$collectionPath/$documentId',
+        .patch('$endpoint/$collectionName/$documentId',
             data: data, options: requestOptions)
         .then((response) => response.data);
   }

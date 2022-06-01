@@ -19,11 +19,11 @@ OperationType operationTypeFromString(String s) {
 
 abstract class Operation {
   late final DateTime timestamp;
-  final String collectionPath;
+  final String collectionName;
 
   Operation({
     DateTime? timestamp,
-    required this.collectionPath,
+    required this.collectionName,
   }) {
     this.timestamp = timestamp ?? DateTime.now();
   }
@@ -58,7 +58,7 @@ class OperationCreate extends Operation {
   OperationCreate({
     this.documentId,
     required this.data,
-    required super.collectionPath,
+    required super.collectionName,
     super.timestamp,
   });
 
@@ -68,7 +68,7 @@ class OperationCreate extends Operation {
   factory OperationCreate.fromMap(Map<String, dynamic> map) {
     return OperationCreate(
       documentId: map['documentId'],
-      collectionPath: map['collectionPath'],
+      collectionName: map['collectionName'],
       data: map['data'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
     );
@@ -79,7 +79,7 @@ class OperationCreate extends Operation {
     return {
       'documentId': documentId,
       'changeType': changeType.name,
-      'collectionPath': collectionPath,
+      'collectionName': collectionName,
       'data': data,
       'timestamp': timestamp.millisecondsSinceEpoch,
     };
@@ -95,14 +95,14 @@ abstract class OperationWithDocumentId extends Operation {
   OperationWithDocumentId({
     required this.documentId,
     super.timestamp,
-    required super.collectionPath,
+    required super.collectionName,
   });
 }
 
 class OperationDelete extends OperationWithDocumentId {
   OperationDelete({
     required super.documentId,
-    required super.collectionPath,
+    required super.collectionName,
     super.timestamp,
   });
 
@@ -111,7 +111,7 @@ class OperationDelete extends OperationWithDocumentId {
 
   factory OperationDelete.fromMap(Map<String, dynamic> map) {
     return OperationDelete(
-      collectionPath: map['collectionPath'],
+      collectionName: map['collectionName'],
       documentId: map['documentId'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
     );
@@ -121,7 +121,7 @@ class OperationDelete extends OperationWithDocumentId {
   Map<String, dynamic> toMap() {
     return {
       'changeType': changeType.name,
-      'collectionPath': collectionPath,
+      'collectionName': collectionName,
       'documentId': documentId,
       'timestamp': timestamp.millisecondsSinceEpoch,
     };
@@ -137,7 +137,7 @@ class OperationSet extends OperationWithDocumentId {
   OperationSet({
     required this.data,
     required super.documentId,
-    required super.collectionPath,
+    required super.collectionName,
     super.timestamp,
   });
 
@@ -146,7 +146,7 @@ class OperationSet extends OperationWithDocumentId {
 
   factory OperationSet.fromMap(Map<String, dynamic> map) {
     return OperationSet(
-      collectionPath: map['collectionPath'],
+      collectionName: map['collectionName'],
       data: map['data'],
       documentId: map['documentId'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
@@ -157,7 +157,7 @@ class OperationSet extends OperationWithDocumentId {
   Map<String, dynamic> toMap() {
     return {
       'changeType': changeType.name,
-      'collectionPath': collectionPath,
+      'collectionName': collectionName,
       'data': data,
       'documentId': documentId,
       'timestamp': timestamp.millisecondsSinceEpoch,
@@ -174,7 +174,7 @@ class OperationUpdate extends OperationWithDocumentId {
   OperationUpdate({
     required this.data,
     required super.documentId,
-    required super.collectionPath,
+    required super.collectionName,
     super.timestamp,
   });
 
@@ -183,7 +183,7 @@ class OperationUpdate extends OperationWithDocumentId {
 
   factory OperationUpdate.fromMap(Map<String, dynamic> map) {
     return OperationUpdate(
-      collectionPath: map['collectionPath'],
+      collectionName: map['collectionName'],
       data: map['data'],
       documentId: map['documentId'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
@@ -194,7 +194,7 @@ class OperationUpdate extends OperationWithDocumentId {
   Map<String, dynamic> toMap() {
     return {
       'changeType': changeType.name,
-      'collectionPath': collectionPath,
+      'collectionName': collectionName,
       'data': data,
       'documentId': documentId,
       'timestamp': timestamp.millisecondsSinceEpoch,

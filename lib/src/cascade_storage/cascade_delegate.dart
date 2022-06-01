@@ -37,7 +37,7 @@ class CascadeDelegate extends StorageDelegate {
   @override
   Future<DocumentSnapshot<ID, T>?>
       addDocument<ID extends Object?, T extends dynamic>(
-    String collectionPath,
+    String collectionName,
     T document, [
     ID? documentId,
   ]) async {
@@ -60,10 +60,10 @@ class CascadeDelegate extends StorageDelegate {
       }
 
       return _delegates.first
-          .addDocument<ID, T>(collectionPath, document, documentId)
+          .addDocument<ID, T>(collectionName, document, documentId)
           .then((snapshot) {
         _delegates.sublist(1).forEach((delegate) {
-          delegate.setDocument(collectionPath, snapshot!.id, document);
+          delegate.setDocument(collectionName, snapshot!.id, document);
         });
         return snapshot;
       });
@@ -74,7 +74,7 @@ class CascadeDelegate extends StorageDelegate {
       _transactionManager.addTransaction(
         ExclusiveTransaction(operations: [
           OperationCreate(
-              collectionPath: collectionPath,
+              collectionName: collectionName,
               documentId: documentId.toString(),
               data: document as dynamic)
         ]),
@@ -86,11 +86,11 @@ class CascadeDelegate extends StorageDelegate {
   /// deletes the document
   @override
   Future<void> deleteDocument<ID extends Object?>(
-      String collectionPath, ID documentId) async {
+      String collectionName, ID documentId) async {
     _transactionManager.addTransaction(
       ExclusiveTransaction(operations: [
         OperationDelete(
-            collectionPath: collectionPath, documentId: documentId.toString())
+            collectionName: collectionName, documentId: documentId.toString())
       ]),
     );
   }
@@ -99,16 +99,16 @@ class CascadeDelegate extends StorageDelegate {
   @override
   Future<DocumentSnapshot<ID, T>>
       getDocument<ID extends Object?, T extends dynamic>(
-          String collectionPath, ID documentId) {
+          String collectionName, ID documentId) {
     Future<DocumentSnapshot<ID, T>> delegateFuture(int delegateIndex) {
       return _delegates[delegateIndex]
-          .getDocument<ID, T>(collectionPath, documentId)
+          .getDocument<ID, T>(collectionName, documentId)
           .catchError((error) {
         if (delegateIndex + 1 < _delegates.length) {
           return delegateFuture(delegateIndex + 1);
         }
       }).then(_postFetchDocument(
-        collectionPath: collectionPath,
+        collectionName: collectionName,
         sourceDelegateIndex: delegateIndex,
       ));
     }
@@ -131,7 +131,7 @@ class CascadeDelegate extends StorageDelegate {
           return delegateFuture(delegateIndex + 1);
         }
       }).then(_postFetchQuery(
-        collectionPath: query.collectionPath,
+        collectionName: query.collectionName,
         sourceDelegateIndex: delegateIndex,
         query: query,
       ));
@@ -143,16 +143,16 @@ class CascadeDelegate extends StorageDelegate {
   }
 
   /// Notifies of document updates at path defined by
-  /// collectionPath and documentId
+  /// collectionName and documentId
   @override
   Stream<DocumentSnapshot<ID, T>>
       documentSnapshots<ID extends Object?, T extends dynamic>(
-          String collectionPath, ID documentId) {
+          String collectionName, ID documentId) {
     return MergeStream(
       _delegates.mapIndexed((delegateIndex, delegate) => delegate
-          .documentSnapshots<ID, T>(collectionPath, documentId)
+          .documentSnapshots<ID, T>(collectionName, documentId)
           .map(_postFetchDocument(
-            collectionPath: collectionPath,
+            collectionName: collectionName,
             sourceDelegateIndex: delegateIndex,
           ))
           .handleError((_) => true)),
@@ -168,7 +168,7 @@ class CascadeDelegate extends StorageDelegate {
         _delegates.mapIndexed((delegateIndex, delegate) => delegate
             .querySnapshots<ID, T>(query)
             .map(_postFetchQuery(
-              collectionPath: query.collectionPath,
+              collectionName: query.collectionName,
               sourceDelegateIndex: delegateIndex,
               query: query,
             ))
@@ -179,11 +179,11 @@ class CascadeDelegate extends StorageDelegate {
   /// does not yet exist, it will be created.
   @override
   Future<void> setDocument<ID extends Object?, T extends dynamic>(
-      String collectionPath, ID documentId, T data) async {
+      String collectionName, ID documentId, T data) async {
     _transactionManager.addTransaction(
       ExclusiveTransaction(operations: [
         OperationSet(
-            collectionPath: collectionPath,
+            collectionName: collectionName,
             documentId: documentId.toString(),
             data: data as dynamic)
       ]),
@@ -196,10 +196,10 @@ class CascadeDelegate extends StorageDelegate {
   /// If no document exists yet, the update will fail.
   @override
   Future<void> updateDocument<ID extends Object?>(
-      String collectionPath, ID documentId, Map<String, Object?> data) async {
+      String collectionName, ID documentId, Map<String, Object?> data) async {
     _transactionManager.addTransaction(ExclusiveTransaction(operations: [
       OperationUpdate(
-          collectionPath: collectionPath,
+          collectionName: collectionName,
           documentId: documentId.toString(),
           data: data as dynamic)
     ]));
@@ -209,7 +209,7 @@ class CascadeDelegate extends StorageDelegate {
   /// and returns DocumentSnapshot cloned with delegate = "this"
   DocumentSnapshot<ID, T> Function(DocumentSnapshot<ID, T>)
       _postFetchDocument<ID extends Object?, T extends dynamic>({
-    required String collectionPath,
+    required String collectionName,
     required int sourceDelegateIndex,
   }) =>
           (documentSnapshot) {
@@ -223,7 +223,7 @@ class CascadeDelegate extends StorageDelegate {
                       .toSet(),
                   operations: [
                     OperationSet(
-                        collectionPath: collectionPath,
+                        collectionName: collectionName,
                         documentId: documentSnapshot.id.toString(),
                         data: documentSnapshot.data as dynamic)
                   ],
@@ -232,7 +232,7 @@ class CascadeDelegate extends StorageDelegate {
             }
 
             return _applyTransactionsAndReplaceDelegateOfDocumentSnapshot(
-              collectionPath: collectionPath,
+              collectionName: collectionName,
               documentSnapshot: documentSnapshot,
               sourceDelegate: _delegates[sourceDelegateIndex],
             );
@@ -242,7 +242,7 @@ class CascadeDelegate extends StorageDelegate {
   /// and returns QuerySnapshot cloned with delegate = "this"
   QuerySnapshot<ID, T> Function(QuerySnapshot<ID, T>)
       _postFetchQuery<ID extends Object?, T extends dynamic>({
-    required String collectionPath,
+    required String collectionName,
     required int sourceDelegateIndex,
     required Query<ID, T> query,
   }) =>
@@ -257,7 +257,7 @@ class CascadeDelegate extends StorageDelegate {
                       .toSet(),
                   operations: querySnapshot.docs
                       .map((documentSnapshot) => OperationSet(
-                          collectionPath: collectionPath,
+                          collectionName: collectionName,
                           documentId: documentSnapshot.id.toString(),
                           data:
                               documentSnapshot.data() as Map<String, dynamic>))
@@ -267,7 +267,7 @@ class CascadeDelegate extends StorageDelegate {
             }
 
             return _applyTransactionsAndReplaceDelegateOfQuerySnapshot(
-              collectionPath: collectionPath,
+              collectionName: collectionName,
               querySnapshot: querySnapshot,
               query: query,
               sourceDelegate: _delegates[sourceDelegateIndex],
@@ -289,7 +289,7 @@ class CascadeDelegate extends StorageDelegate {
   DocumentSnapshot<ID, T>
       _applyTransactionsAndReplaceDelegateOfDocumentSnapshot<ID extends Object?,
           T extends dynamic>({
-    required String collectionPath,
+    required String collectionName,
     required DocumentSnapshot<ID, T> documentSnapshot,
     required StorageDelegateWithId sourceDelegate,
   }) {
@@ -297,7 +297,7 @@ class CascadeDelegate extends StorageDelegate {
         uncommittedTransactionsForDelegate(sourceDelegate);
 
     final transformed = _transactionManager.applyTransactionsToEntity(
-      collectionPath: collectionPath,
+      collectionName: collectionName,
       documentId: documentSnapshot.id,
       data: documentSnapshot.data() as Map<String, dynamic>?,
       useThisTransactions: uncommittedTransactions,
@@ -306,7 +306,7 @@ class CascadeDelegate extends StorageDelegate {
     return DocumentSnapshot<ID, T>(
       documentSnapshot.id,
       transformed,
-      DocumentReference(collectionPath, documentSnapshot.id, this),
+      DocumentReference(collectionName, documentSnapshot.id, this),
     );
   }
 
@@ -314,7 +314,7 @@ class CascadeDelegate extends StorageDelegate {
   /// and applies all uncommitted transactions to every DocumentSnapshot.data
   QuerySnapshot<ID, T> _applyTransactionsAndReplaceDelegateOfQuerySnapshot<
       ID extends Object?, T extends dynamic>({
-    required String collectionPath,
+    required String collectionName,
     required QuerySnapshot<ID, dynamic> querySnapshot,
     required Query<ID, T> query,
     required StorageDelegateWithId sourceDelegate,
@@ -340,12 +340,12 @@ class CascadeDelegate extends StorageDelegate {
         .map((entry) => DocumentSnapshot<ID, T>(
               entry.key as ID,
               _transactionManager.applyTransactionsToEntity(
-                collectionPath: collectionPath,
+                collectionName: collectionName,
                 documentId: entry.key,
                 data: entry.value,
                 useThisTransactions: uncommittedTransactions,
               ),
-              DocumentReference(collectionPath, entry.key as ID, this),
+              DocumentReference(collectionName, entry.key as ID, this),
             ))
         .where((documentSnapshot) =>
             documentSnapshot.exists &&
@@ -355,12 +355,12 @@ class CascadeDelegate extends StorageDelegate {
         .map((documentSnapshot) => DocumentSnapshot<ID, T>(
               documentSnapshot.id,
               _transactionManager.applyTransactionsToEntity(
-                collectionPath: collectionPath,
+                collectionName: collectionName,
                 documentId: documentSnapshot.id,
                 data: documentSnapshot.data(),
                 useThisTransactions: uncommittedTransactions,
               ),
-              DocumentReference(collectionPath, documentSnapshot.id, this),
+              DocumentReference(collectionName, documentSnapshot.id, this),
             ))
         .where((documentSnapshot) =>
             documentSnapshot.exists &&
