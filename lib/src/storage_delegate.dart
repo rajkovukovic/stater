@@ -5,7 +5,7 @@ import 'package:stater/src/storage_options.dart';
 import 'package:stater/src/transaction/operation.dart';
 import 'package:stater/src/transaction/transaction.dart';
 
-abstract class StorageDelegate<O extends StorageOptions> {
+abstract class StorageDelegate {
   /// creates a new document
   Future<DocumentSnapshot<ID, T>?>
       addDocument<ID extends Object?, T extends Object?>({
@@ -27,14 +27,11 @@ abstract class StorageDelegate<O extends StorageOptions> {
       getDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
-    options = const StorageOptions(),
   });
 
   /// Reads the document
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>({
-    required Query<ID, T> query,
-    options = const StorageOptions(),
-  });
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
+      Query<ID, T> query);
 
   /// Notifies of document updates at this location.
   // Stream<DocumentSnapshot<ID, T>>
@@ -67,7 +64,7 @@ abstract class StorageDelegate<O extends StorageOptions> {
   Future<void> updateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
-    required Map<String, Object?> documentData,
+    required Map<String, dynamic> documentData,
     options = const StorageOptions(),
   });
 

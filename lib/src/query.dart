@@ -27,10 +27,7 @@ class Query<ID extends Object?, T extends Object?> {
   /// invokes data fetching
   ///
   /// returns a Future that resolves to QuerySnapshot
-  Future<QuerySnapshot<ID, T>> get({
-    options = const StorageOptions(),
-  }) =>
-      delegate.getQuery(query: this, options: options);
+  Future<QuerySnapshot<ID, T>> get() => delegate.getQuery(this);
 
   // Stream<QuerySnapshot<ID, T>> snapshots({
   //   options = const StorageOptions(),

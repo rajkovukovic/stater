@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:stater/src/document_snapshot.dart';
+import 'package:stater/stater.dart';
+import 'package:stater_example/models/todo.dart';
 
 class TodoScreen extends StatefulWidget {
   TodoScreen({
@@ -14,8 +15,8 @@ class TodoScreen extends StatefulWidget {
   }
 
   final Function(Map<String, dynamic>)? onCreate;
-  final DocumentSnapshot<String, Map<String, dynamic>>? snapshot;
-  final Map<String, dynamic>? data;
+  final DocumentSnapshot<String, Todo>? snapshot;
+  final Todo? data;
   final Function? onDispose;
 
   @override
@@ -23,9 +24,8 @@ class TodoScreen extends StatefulWidget {
 }
 
 class _ItemScreenState extends State<TodoScreen> {
-  late final _nameController =
-      TextEditingController(text: widget.data?['name']);
-  late bool _completed = widget.data?['completed'] ?? false;
+  late final _nameController = TextEditingController(text: widget.data?.name);
+  late bool _completed = widget.data?.completed ?? false;
 
   @override
   void dispose() {
@@ -64,16 +64,16 @@ class _ItemScreenState extends State<TodoScreen> {
                 onChanged: (value) =>
                     value is bool ? setState(() => _completed = value) : null,
               ),
-              ListTile(
-                  leading: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text('Created:  ${widget.data?['createdAt'] ?? ''}'),
-              )),
-              ListTile(
-                  leading: Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text('Updated:  ${widget.data?['updatedAt'] ?? ''}'),
-              )),
+              // ListTile(
+              //     leading: Padding(
+              //   padding: const EdgeInsets.only(top: 4.0),
+              //   child: Text('Created:  ${widget.data?['createdAt'] ?? ''}'),
+              // )),
+              // ListTile(
+              //     leading: Padding(
+              //   padding: const EdgeInsets.only(top: 4.0),
+              //   child: Text('Updated:  ${widget.data?['updatedAt'] ?? ''}'),
+              // )),
             ],
           ),
         ));
@@ -88,22 +88,23 @@ class _ItemScreenState extends State<TodoScreen> {
     final name = _nameController.text.trim();
 
     // create new document
-    if (widget.data == null) {
-      if (name.isNotEmpty) {
-        widget.onCreate!({
+    if (widget.data != null) {
+      final prevName = widget.data!.name;
+      final prevCompleted = widget.data!.completed;
+
+      if (prevName != name || prevCompleted != _completed) {
+        widget.snapshot!.reference.set(Todo.fromMap({
+          'id': widget.data!.id,
           'name': name,
           'completed': _completed,
-        });
+        }));
       }
     }
 
     // edit existing document
     else {
-      final prevName = widget.data!['name'];
-      final prevCompleted = widget.data?['completed'] ?? false;
-
-      if (prevName != name || prevCompleted != _completed) {
-        widget.snapshot!.reference.set({
+      if (name.isNotEmpty) {
+        widget.onCreate!({
           'name': name,
           'completed': _completed,
         });

@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:stater/stater.dart';
+import 'package:stater_example/models/todo.dart';
 import 'package:uuid/uuid.dart';
 
 import 'todo_card.dart';
 import 'todo_screen.dart';
 import 'tri_state_selector.dart';
+
+final todoConverters = StorageOptionsWithConverter<String, Todo>(
+  fromHashMap: (DocumentSnapshot snapshot) {
+    return Todo.fromMap(snapshot.data() as dynamic);
+  },
+  toHashMap: (Todo todo) {
+    return todo.toMap();
+  },
+);
 
 class CascadeStorageScreen extends StatefulWidget {
   const CascadeStorageScreen({Key? key, required this.storage})
@@ -19,11 +29,11 @@ class CascadeStorageScreen extends StatefulWidget {
 class _HomeScreenState extends State<CascadeStorageScreen> {
   bool? filterByPublished;
 
-  late CollectionReference<String, Map<String, dynamic>> collectionReference;
+  late CollectionReference<String, Todo> collectionReference;
 
-  late Query<String, Map<String, dynamic>> query;
+  late Query<String, Todo> query;
 
-  late Stream<List<DocumentSnapshot<String, Map<String, dynamic>>>> documents;
+  late Future<List<DocumentSnapshot<String, Todo>>> documents;
 
   @override
   void didChangeDependencies() {
@@ -48,8 +58,9 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
           IconButton(onPressed: _createNew, icon: const Icon(Icons.add))
         ],
       ),
-      body: StreamBuilder<List<DocumentSnapshot<String, Map<String, dynamic>>>>(
-        stream: documents,
+      body: FutureBuilder<List<DocumentSnapshot<String, Todo>>>(
+        // future: documents,
+        future: Future.value(<DocumentSnapshot<String, Todo>>[]),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             throw snapshot.error!;
@@ -74,7 +85,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             itemCount: data.length,
             itemBuilder: ((context, index) => TodoCard(
-                  key: ValueKey(data[index]!['_id']),
+                  key: ValueKey(data[index]!.id),
                   todo: data[index]!,
                   onTap: () => _editExisting(snapshots[index]),
                 )),
@@ -85,7 +96,8 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
   }
 
   void _setUpStreams() {
-    collectionReference = widget.storage.collection('todos');
+    collectionReference = widget.storage
+        .collection<String, Todo>('todos', options: todoConverters);
 
     if (filterByPublished != null) {
       query = collectionReference.where(
@@ -94,7 +106,10 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
       query = collectionReference;
     }
 
-    documents = query.snapshots().map((snapshot) => snapshot.docs);
+    documents = query.get().then((snapshot) {
+      print(123);
+      return snapshot.docs;
+    });
   }
 
   _handleFilterChanged(bool? value) {
@@ -122,10 +137,13 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
   }
 
   Future _handleCreateNew(Map<String, dynamic> data) {
-    return collectionReference.add(data, const Uuid().v4());
+    return collectionReference.add(
+      Todo.fromMap(data),
+      documentId: const Uuid().v4(),
+    );
   }
 
-  void _editExisting(DocumentSnapshot<String, Map<String, dynamic>> snapshot) {
+  void _editExisting(DocumentSnapshot<String, Todo> snapshot) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) =>

@@ -4,7 +4,7 @@ class StorageOptions {
   const StorageOptions();
 }
 
-class StorageOptionsWithConverter<ID, T> {
+class StorageOptionsWithConverter<ID, T> extends StorageOptions {
   final FromHashMap<ID, T> fromHashMap;
   final ToHashMap<T> toHashMap;
 

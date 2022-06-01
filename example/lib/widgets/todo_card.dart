@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stater_example/models/todo.dart';
 
 class TodoCard extends StatelessWidget {
   const TodoCard({
@@ -7,12 +8,12 @@ class TodoCard extends StatelessWidget {
     this.onTap,
   }) : super(key: key);
 
-  final Map<String, dynamic> todo;
+  final Todo todo;
   final void Function()? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final completed = todo['completed'] == true;
+    final completed = todo.completed == true;
     return Card(
       color: Colors.lightBlue.shade100,
       child: InkWell(
@@ -23,7 +24,7 @@ class TodoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SelectableText(
-                todo['name'].toString(),
+                todo.name,
                 style: const TextStyle(fontSize: 18),
               ),
               const SizedBox(height: 8),

@@ -43,7 +43,6 @@ class DocumentReference<ID extends Object?, T extends Object?> {
       delegate.getDocument(
         collectionName: collectionName,
         documentId: id,
-        options: options,
       );
 
   // /// Notifies of document updates at this location.
@@ -77,7 +76,7 @@ class DocumentReference<ID extends Object?, T extends Object?> {
   ///
   /// If no document exists yet, the update will fail.
   Future<void> update(
-    Map<String, Object?> documentData, {
+    Map<String, dynamic> documentData, {
     options = const StorageOptions(),
   }) =>
       delegate.updateDocument(

@@ -142,14 +142,12 @@ class CascadeDelegate extends StorageDelegate {
 
   /// Reads the documents
   @override
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends dynamic>({
-    required Query<ID, T> query,
-    options = const StorageOptions(),
-  }) {
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends dynamic>(
+      Query<ID, T> query) {
     // TODO: should we refactor to use ```for ... { await ... }``` ?
     Future<QuerySnapshot<ID, T>> delegateFuture(int delegateIndex) {
       return _delegates[delegateIndex]
-          .getQuery<ID, T>(query: query, options: options)
+          .getQuery<ID, T>(query)
           .catchError((error) {
         if (delegateIndex + 1 < _delegates.length) {
           return delegateFuture(delegateIndex + 1);
@@ -158,7 +156,6 @@ class CascadeDelegate extends StorageDelegate {
         collectionName: query.collectionName,
         sourceDelegateIndex: delegateIndex,
         query: query,
-        options: options,
       ));
     }
 
@@ -287,7 +284,6 @@ class CascadeDelegate extends StorageDelegate {
     required String collectionName,
     required int sourceDelegateIndex,
     required Query<ID, T> query,
-    options = const StorageOptions(),
   }) =>
           (querySnapshot) {
             if (sourceDelegateIndex < _delegates.length - 1) {

@@ -118,23 +118,31 @@ class GetStorageDelegate extends StorageDelegateWithId {
   }
 
   @override
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>({
-    required Query<ID, T> query,
-    options = const StorageOptions(),
-  }) async {
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
+      Query<ID, T> query) async {
+    final options = query.options;
+
     final collection = query.collectionName;
+
     final storage = await getStorage(collection);
+
     final keys = List<String>.from(storage.getKeys());
-    var docs = (storage.getValues() as Iterable<dynamic>)
-        .mapIndexed((index, doc) => DocumentSnapshot<ID, T>(
-              keys[index] as ID,
-              doc,
-              DocumentReference(
-                collectionName: query.collectionName,
-                documentId: keys[index] as ID,
-                delegate: this,
-              ),
-            ));
+
+    var docs =
+        (storage.getValues() as Iterable<dynamic>).mapIndexed((index, doc) {
+      print(doc);
+      return DocumentSnapshot<ID, T>(
+        keys[index] as ID,
+        (options is StorageOptionsWithConverter)
+            ? options.fromHashMap(doc)
+            : doc,
+        DocumentReference(
+          collectionName: query.collectionName,
+          documentId: keys[index] as ID,
+          delegate: this,
+        ),
+      );
+    });
 
     docs = docs.where((element) => doesMatchQuery(element.data(), query));
 
@@ -170,12 +178,12 @@ class GetStorageDelegate extends StorageDelegateWithId {
   Future<void> updateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
-    required Map<String, Object?> documentData,
+    required Map<String, dynamic> documentData,
     options = const StorageOptions(),
   }) async {
     final storage = await getStorage(collectionName);
     final existing =
-        storage.read(documentId.toString()) as Map<String, Object?>?;
+        storage.read(documentId.toString()) as Map<String, dynamic>?;
 
     if (existing == null) {
       throw 'GetStorageDelegate.update: there is no doc to update (id=$documentId)';

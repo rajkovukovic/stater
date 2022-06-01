@@ -10,12 +10,12 @@ class Storage {
   Storage(this.delegate);
 
   CollectionReference<ID, T> collection<ID extends Object?, T extends Object?>(
-    String path, {
+    String collectionName, {
     options = const StorageOptions(),
   }) {
     return CollectionReference(
       delegate: delegate,
-      collectionName: path,
+      collectionName: collectionName,
       options: options,
     );
   }
