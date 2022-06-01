@@ -1,4 +1,4 @@
-import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/storage_delegate.dart';
 import 'package:stater/stater/document_reference.dart';
 import 'package:stater/stater/document_snapshot.dart';
 
@@ -8,7 +8,7 @@ import 'query.dart';
 class CollectionReference<ID extends Object?, T extends Object?>
     extends Query<ID, T> {
   CollectionReference({
-    required AdapterDelegate delegate,
+    required StorageDelegate delegate,
     required String collectionPath,
     FromStorage<ID, T>? fromStorage,
     ToStorage<T>? toStorage,

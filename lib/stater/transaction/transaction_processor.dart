@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
-import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/storage_delegate.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 
 const _retrySequencesInMilliseconds = [1000, 2000, 5000];
 
 /// Processes a transaction and retires forever
 class TransactionProcessor {
-  final AdapterDelegateWithId delegate;
+  final StorageDelegateWithId delegate;
   final Set<String> completedTransactionIds;
 
   Transaction? currentTransaction;

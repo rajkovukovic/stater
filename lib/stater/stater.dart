@@ -1,8 +1,8 @@
 library stater;
 
-import 'package:stater/custom/get_storage_adapter.dart';
-import 'package:stater/custom/rest_adapter.dart';
-import 'package:stater/stater/cascade_adapter/cascade_adapter.dart';
+import 'package:stater/custom/get_storage_storage.dart';
+import 'package:stater/custom/rest_storage.dart';
+import 'package:stater/stater/cascade_storage/cascade_storage.dart';
 import 'package:stater/stater/query.dart';
 import 'package:stater/stater/transaction/transaction_storing_delegate.dart';
 
@@ -33,7 +33,7 @@ final getStorageDelegate = GetStorageDelegate(
   doesMatchQuery: doesTodoMatchQuery,
 );
 
-final stater = CascadeAdapter(
+final stater = CascadeStorage(
     primaryDelegate: restDelegate,
     cachingDelegates: [
       getStorageDelegate,

@@ -3,8 +3,8 @@
 import 'package:async/async.dart';
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
-import 'package:stater/stater/adapter_delegate.dart';
-import 'package:stater/stater/cascade_adapter/exclusive_transaction.dart';
+import 'package:stater/stater/storage_delegate.dart';
+import 'package:stater/stater/cascade_storage/exclusive_transaction.dart';
 import 'package:stater/stater/transaction/transaction.dart';
 import 'package:stater/stater/transaction/transaction_manager.dart';
 import 'package:stater/stater/transaction/transaction_processor.dart';
@@ -13,13 +13,13 @@ import 'package:stater/stater/transaction/transaction_storing_delegate.dart';
 class CascadeTransactionManager<T extends ExclusiveTransaction>
     extends TransactionManager<T> {
   @protected
-  final List<AdapterDelegateWithId> delegates;
+  final List<StorageDelegateWithId> delegates;
 
   @protected
   final TransactionStoringDelegate transactionStoringDelegate;
 
   @protected
-  late Map<AdapterDelegateWithId, TransactionProcessor> processorMap;
+  late Map<StorageDelegateWithId, TransactionProcessor> processorMap;
 
   bool _isInit = false;
   late CancelableOperation? _cancelInit;
@@ -301,7 +301,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     listeners.clear();
   }
 
-  Set<String>? completedTransactionsIds(AdapterDelegateWithId delegate) {
+  Set<String>? completedTransactionsIds(StorageDelegateWithId delegate) {
     return processorMap[delegate]?.completedTransactionIds;
   }
 }
@@ -313,7 +313,7 @@ Map<String, Set<String>> fromStoredTransactionsState(
 }
 
 Map<String, dynamic> toStoredTransactionsState(
-    Map<AdapterDelegateWithId, TransactionProcessor> processorMap) {
+    Map<StorageDelegateWithId, TransactionProcessor> processorMap) {
   return processorMap.map(
       (key, value) => MapEntry(key.id, value.completedTransactionIds.toList()));
 }

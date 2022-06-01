@@ -1,7 +1,7 @@
-import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/storage_delegate.dart';
 import 'package:stater/stater/transaction/operation.dart';
 
-abstract class CachingAdapterDelegate extends AdapterDelegate {
+abstract class CachingStorageDelegate extends StorageDelegate {
   @override
   Future performOperation(Operation operation) {
     if (operation is OperationCreate) {

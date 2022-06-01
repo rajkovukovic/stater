@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:stater/stater/adapter.dart';
-import 'package:stater/stater/adapter_delegate.dart';
+import 'package:stater/stater/storage_delegate.dart';
 import 'package:stater/stater/document_reference.dart';
+import 'package:stater/stater/storage.dart';
 
 class TransactionStoringDelegate {
   final Future<List<Map<String, dynamic>>?> Function() readTransactions;
@@ -46,13 +46,13 @@ class TransactionStoringDelegate {
   }
 
   factory TransactionStoringDelegate.fromDelegate({
-    required AdapterDelegate delegate,
+    required StorageDelegate delegate,
     required String collectionName,
     required String transactionsKey,
     required String transactionsStateKey,
   }) {
-    final adapter = Adapter(delegate);
-    final collection = adapter.collection(collectionName);
+    final storage = Storage(delegate);
+    final collection = storage.collection(collectionName);
 
     return TransactionStoringDelegate.fromDocumentReferences(
       transactionsDocRef: collection.doc(transactionsKey),

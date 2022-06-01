@@ -9,14 +9,14 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // final restMachine = RestAdapter(
+  // final restMachine = RestStorage(
   //   RestDelegate(
   //     id: 'rest-server-mongodb',
   //     endpoint: 'http://localhost:6868/api',
   //   ),
   // );
 
-  // final getStorageMachine = GetStorageAdapter(
+  // final getStorageMachine = GetStorageStorage(
   //   GetStorageDelegate(
   //     id: 'get-storage',
   //     storagePrefix: 'DB',

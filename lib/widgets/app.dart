@@ -8,7 +8,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: CascadeStorageScreen(adapter: stater),
+      home: CascadeStorageScreen(storage: stater),
     );
   }
 }

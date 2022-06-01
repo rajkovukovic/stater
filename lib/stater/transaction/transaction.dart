@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:stater/stater/cascade_adapter/exclusive_transaction.dart';
+import 'package:stater/stater/cascade_storage/exclusive_transaction.dart';
 import 'package:uuid/uuid.dart';
 
 import 'operation.dart';
