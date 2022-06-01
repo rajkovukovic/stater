@@ -11,7 +11,7 @@ class Storage {
 
   CollectionReference<ID, T> collection<ID extends Object?, T extends Object?>(
     String path, {
-    StorageOptions options = const StorageOptions(),
+    options = const StorageOptions(),
   }) {
     return CollectionReference(
       delegate: delegate,

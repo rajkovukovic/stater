@@ -10,20 +10,29 @@ class CollectionReference<ID extends Object?, T extends Object?>
   CollectionReference({
     required StorageDelegate delegate,
     required String collectionName,
-    StorageOptions options = const StorageOptions(),
+    options = const StorageOptions(),
   }) : super(
           delegate: delegate,
           collectionName: collectionName,
           options: options,
         );
 
-  Future<DocumentSnapshot<ID, T>?> add(T document, [ID? documentId]) =>
-      delegate.addDocument(collectionName, document, documentId);
+  Future<DocumentSnapshot<ID, T>?> add(
+    T document, {
+    ID? documentId,
+    options = const StorageOptions(),
+  }) =>
+      delegate.addDocument(
+        collectionName: collectionName,
+        documentData: document,
+        documentId: documentId,
+        options: options,
+      );
 
   DocumentReference<ID, T> doc(ID documentId) {
     return DocumentReference<ID, T>(
       collectionName: collectionName,
-      id: documentId,
+      documentId: documentId,
       delegate: delegate,
       options: options,
     );

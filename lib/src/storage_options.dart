@@ -4,9 +4,9 @@ class StorageOptions {
   const StorageOptions();
 }
 
-class StorageOptionsWithConverter {
-  final FromHashMap fromHashMap;
-  final ToHashMap toHashMap;
+class StorageOptionsWithConverter<ID, T> {
+  final FromHashMap<ID, T> fromHashMap;
+  final ToHashMap<T> toHashMap;
 
   const StorageOptionsWithConverter({
     required this.fromHashMap,

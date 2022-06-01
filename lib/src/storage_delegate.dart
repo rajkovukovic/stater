@@ -1,84 +1,134 @@
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query.dart';
 import 'package:stater/src/query_snapshot.dart';
+import 'package:stater/src/storage_options.dart';
 import 'package:stater/src/transaction/operation.dart';
 import 'package:stater/src/transaction/transaction.dart';
 
-abstract class StorageDelegate {
+abstract class StorageDelegate<O extends StorageOptions> {
   /// creates a new document
   Future<DocumentSnapshot<ID, T>?>
-      addDocument<ID extends Object?, T extends Object?>(
-    String collection,
-    T data, [
+      addDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required T documentData,
     ID? documentId,
-  ]);
+    options = const StorageOptions(),
+  });
 
   /// deletes the document
-  Future<void> deleteDocument<ID extends Object?>(
-      String collectionName, ID documentId);
+  Future<void> deleteDocument<ID extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    options = const StorageOptions(),
+  });
 
   /// Reads the document
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends Object?>(
-          String collectionName, ID documentId);
+      getDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    options = const StorageOptions(),
+  });
 
   /// Reads the document
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-      Query<ID, T> query);
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>({
+    required Query<ID, T> query,
+    options = const StorageOptions(),
+  });
 
   /// Notifies of document updates at this location.
-  Stream<DocumentSnapshot<ID, T>>
-      documentSnapshots<ID extends Object?, T extends Object?>(
-          String collectionName, ID documentId);
+  // Stream<DocumentSnapshot<ID, T>>
+  //     documentSnapshots<ID extends Object?, T extends Object?>({
+  //   required String collectionName,
+  //   required ID documentId,
+  //   options = const StorageOptions(),
+  // });
 
   /// Notifies of document updates at this location.
-  Stream<QuerySnapshot<ID, T>>
-      querySnapshots<ID extends Object?, T extends Object?>(Query<ID, T> query);
+  // Stream<QuerySnapshot<ID, T>>
+  //     querySnapshots<ID extends Object?, T extends Object?>({
+  //   required Query<ID, T> query,
+  //   options = const StorageOptions(),
+  // });
 
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
-  Future<void> setDocument<ID extends Object?, T extends Object?>(
-      String collectionName, ID documentId, T data);
+  Future<void> setDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    required T documentData,
+    options = const StorageOptions(),
+  });
 
   /// Updates data on the document. Data will be merged with any existing
   /// document data.
   ///
   /// If no document exists yet, the update will fail.
-  Future<void> updateDocument<ID extends Object?>(
-      String collectionName, ID documentId, Map<String, Object?> data);
+  Future<void> updateDocument<ID extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    required Map<String, Object?> documentData,
+    options = const StorageOptions(),
+  });
 
-  Future performOperation(Operation operation) {
+  Future performOperation(
+    Operation operation, {
+    options = const StorageOptions(),
+  }) {
     if (operation is OperationCreate) {
       return addDocument(
-          operation.collectionName, operation.data, operation.documentId);
+        collectionName: operation.collectionName,
+        documentData: operation.data,
+        documentId: operation.documentId,
+        options: options,
+      );
     }
 
     if (operation is OperationDelete) {
-      return deleteDocument(operation.collectionName, operation.documentId);
+      return deleteDocument(
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        options: options,
+      );
     }
 
     if (operation is OperationSet) {
       return setDocument(
-          operation.collectionName, operation.documentId, operation.data);
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        documentData: operation.data,
+        options: options,
+      );
     }
 
     if (operation is OperationUpdate) {
       return updateDocument(
-          operation.collectionName, operation.documentId, operation.data);
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        documentData: operation.data,
+        options: options,
+      );
     }
 
     throw 'performOperation does not implement an action when '
         'operation type is ${operation.runtimeType}';
   }
 
-  Future performTransaction(Transaction transaction,
-      [doOperationsInParallel = false]) async {
+  Future performTransaction(
+    Transaction transaction, {
+    doOperationsInParallel = false,
+    options = const StorageOptions(),
+  }) async {
     // TODO: implement rollback in case of failure
     if (doOperationsInParallel) {
-      return Future.wait(transaction.operations.map(performOperation));
+      return Future.wait(transaction.operations
+          .map((operation) => performOperation(operation, options: options)));
     } else {
       for (var operation in transaction.operations) {
-        await performOperation(operation);
+        await performOperation(
+          operation,
+          options: options,
+        );
       }
     }
   }

@@ -8,6 +8,7 @@ import 'package:stater/src/query.dart';
 import 'package:stater/src/query_snapshot.dart';
 import 'package:stater/src/storage.dart';
 import 'package:stater/src/storage_delegate.dart';
+import 'package:stater/src/storage_options.dart';
 import 'package:uuid/uuid.dart';
 
 class GetStorageDelegate extends StorageDelegateWithId {
@@ -30,75 +31,97 @@ class GetStorageDelegate extends StorageDelegateWithId {
 
   @override
   Future<DocumentSnapshot<ID, T>>
-      addDocument<ID extends Object?, T extends Object?>(
-          String collection, T data,
-          [ID? documentId]) {
+      addDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required T documentData,
+    ID? documentId,
+    options = const StorageOptions(),
+  }) {
     final notNullDocumentId = documentId ?? const Uuid().v4() as ID;
 
-    return setDocument(collection, documentId, data)
-        .then((_) => DocumentSnapshot(
-              notNullDocumentId,
-              data,
-              DocumentReference(collection, notNullDocumentId, this),
-            ));
+    return setDocument(
+      collectionName: collectionName,
+      documentId: documentId,
+      documentData: documentData,
+    ).then((_) => DocumentSnapshot(
+          notNullDocumentId,
+          documentData,
+          DocumentReference(
+            collectionName: collectionName,
+            documentId: notNullDocumentId,
+            delegate: this,
+          ),
+        ));
   }
 
   @override
-  Future<void> deleteDocument<ID extends Object?>(
-      String collection, ID documentId) async {
-    final storage = await getStorage(collection);
+  Future<void> deleteDocument<ID extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    options = const StorageOptions(),
+  }) async {
+    final storage = await getStorage(collectionName);
 
     return storage.remove(documentId.toString());
   }
 
-  @override
-  Stream<DocumentSnapshot<ID, T>>
-      documentSnapshots<ID extends Object?, T extends Object?>(
-          String collection, ID documentId) {
-    late StreamController<DocumentSnapshot<ID, T>> stream;
-    Future<GetStorage>? storageFuture;
-    void Function()? storageUnsubscriber;
+  // @override
+  // Stream<DocumentSnapshot<ID, T>>
+  //     documentSnapshots<ID extends Object?, T extends Object?>(
+  //         String collection, ID documentId) {
+  //   late StreamController<DocumentSnapshot<ID, T>> stream;
+  //   Future<GetStorage>? storageFuture;
+  //   void Function()? storageUnsubscriber;
 
-    subscribe() async {
-      storageFuture ??= getStorage(collection);
-      final storage = await storageFuture!;
-      storageUnsubscriber = storage.listenKey(documentId.toString(), (value) {
-        stream.add(value);
-      });
-    }
+  //   subscribe() async {
+  //     storageFuture ??= getStorage(collection);
+  //     final storage = await storageFuture!;
+  //     storageUnsubscriber = storage.listenKey(documentId.toString(), (value) {
+  //       stream.add(value);
+  //     });
+  //   }
 
-    unsubscribe() async {
-      await storageFuture;
-      storageUnsubscriber?.call();
-      storageUnsubscriber = null;
-    }
+  //   unsubscribe() async {
+  //     await storageFuture;
+  //     storageUnsubscriber?.call();
+  //     storageUnsubscriber = null;
+  //   }
 
-    stream = StreamController(
-        onListen: subscribe,
-        onResume: subscribe,
-        onCancel: unsubscribe,
-        onPause: unsubscribe);
+  //   stream = StreamController(
+  //       onListen: subscribe,
+  //       onResume: subscribe,
+  //       onCancel: unsubscribe,
+  //       onPause: unsubscribe);
 
-    return stream.stream;
-  }
+  //   return stream.stream;
+  // }
 
   @override
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends Object?>(
-          String collection, ID documentId) async {
-    final storage = await getStorage(collection);
+      getDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    options = const StorageOptions(),
+  }) async {
+    final storage = await getStorage(collectionName);
     final data = storage.read(documentId.toString());
 
     return Future.value(DocumentSnapshot(
       documentId,
       data,
-      DocumentReference(collection, documentId, this),
+      DocumentReference(
+        collectionName: collectionName,
+        documentId: documentId,
+        delegate: this,
+      ),
     ));
   }
 
   @override
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-      Query<ID, T> query) async {
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>({
+    required Query<ID, T> query,
+    options = const StorageOptions(),
+  }) async {
     final collection = query.collectionName;
     final storage = await getStorage(collection);
     final keys = List<String>.from(storage.getKeys());
@@ -106,7 +129,11 @@ class GetStorageDelegate extends StorageDelegateWithId {
         .mapIndexed((index, doc) => DocumentSnapshot<ID, T>(
               keys[index] as ID,
               doc,
-              DocumentReference(collection, keys[index] as ID, this),
+              DocumentReference(
+                collectionName: query.collectionName,
+                documentId: keys[index] as ID,
+                delegate: this,
+              ),
             ));
 
     docs = docs.where((element) => doesMatchQuery(element.data(), query));
@@ -119,34 +146,42 @@ class GetStorageDelegate extends StorageDelegateWithId {
     return QuerySnapshot(docs.toList());
   }
 
+  // @override
+  // Stream<QuerySnapshot<ID, T>>
+  //     querySnapshots<ID extends Object?, T extends Object?>(
+  //         Query<ID, T> query) {
+  //   // TODO: make this updates are emitted to the stream
+  //   return Stream.fromFuture(getQuery(query));
+  // }
+
   @override
-  Stream<QuerySnapshot<ID, T>>
-      querySnapshots<ID extends Object?, T extends Object?>(
-          Query<ID, T> query) {
-    // TODO: make this updates are emitted to the stream
-    return Stream.fromFuture(getQuery(query));
+  Future<void> setDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    required T documentData,
+    options = const StorageOptions(),
+  }) async {
+    final storage = await getStorage(collectionName);
+
+    storage.write(documentId.toString(), documentData);
   }
 
   @override
-  Future<void> setDocument<ID extends Object?, T extends Object?>(
-      String collection, ID documentId, T data) async {
-    final storage = await getStorage(collection);
-
-    storage.write(documentId.toString(), data);
-  }
-
-  @override
-  Future<void> updateDocument<ID extends Object?>(
-      String collection, ID documentId, Map<String, Object?> data) async {
-    final storage = await getStorage(collection);
+  Future<void> updateDocument<ID extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    required Map<String, Object?> documentData,
+    options = const StorageOptions(),
+  }) async {
+    final storage = await getStorage(collectionName);
     final existing =
         storage.read(documentId.toString()) as Map<String, Object?>?;
 
     if (existing == null) {
       throw 'GetStorageDelegate.update: there is no doc to update (id=$documentId)';
     } else {
-      return storage.write(
-          documentId.toString(), <String, Object?>{...existing, ...data});
+      return storage.write(documentId.toString(),
+          <String, Object?>{...existing, ...documentData});
     }
   }
 }

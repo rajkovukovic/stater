@@ -24,9 +24,18 @@ class Query<ID extends Object?, T extends Object?> {
   //   );
   // }
 
-  Future<QuerySnapshot<ID, T>> get() => delegate.getQuery(this);
+  /// invokes data fetching
+  ///
+  /// returns a Future that resolves to QuerySnapshot
+  Future<QuerySnapshot<ID, T>> get({
+    options = const StorageOptions(),
+  }) =>
+      delegate.getQuery(query: this, options: options);
 
-  Stream<QuerySnapshot<ID, T>> snapshots() => delegate.querySnapshots(this);
+  // Stream<QuerySnapshot<ID, T>> snapshots({
+  //   options = const StorageOptions(),
+  // }) =>
+  //     delegate.querySnapshots(query: this, options: options);
 
   // @override
   // Query<T> endAt(List<Object?> values) {
