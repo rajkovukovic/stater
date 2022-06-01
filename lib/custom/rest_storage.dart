@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:stater/stater/storage_delegate.dart';
-import 'package:stater/stater/document_reference.dart';
-import 'package:stater/stater/document_snapshot.dart';
-import 'package:stater/stater/query.dart';
-import 'package:stater/stater/query_snapshot.dart';
-import 'package:stater/stater/storage.dart';
+import 'package:stater/src/document_reference.dart';
+import 'package:stater/src/document_snapshot.dart';
+import 'package:stater/src/query.dart';
+import 'package:stater/src/query_snapshot.dart';
+import 'package:stater/src/storage.dart';
+import 'package:stater/src/storage_delegate.dart';
 
 class RestDelegate extends StorageDelegateWithId {
   RestDelegate({
