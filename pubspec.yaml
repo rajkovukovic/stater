@@ -1,6 +1,6 @@
 name: stater
 description: library for state management with Firebase like API with support for caching of server data locally
-version: 0.1.0-alpha.1+1
+version: 0.1.0-alpha.2+2
 homepage:
 
 environment:
