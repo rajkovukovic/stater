@@ -12,4 +12,9 @@ class QuerySnapshot<ID extends Object?, T extends Object?> {
 
   /// Returns the size (number of documents) of this snapshot.
   int get size => docs.length;
+
+  QuerySnapshot<CastedID, Casted> cast<CastedID, Casted>() {
+    return QuerySnapshot(
+        _docs.map((doc) => doc.cast<CastedID, Casted>()).toList());
+  }
 }

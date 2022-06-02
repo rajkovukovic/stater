@@ -3,6 +3,7 @@ import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query_snapshot.dart';
 import 'package:stater/src/storage_delegate.dart';
 import 'package:stater/src/storage_options.dart';
+import 'package:stater/src/utils/convert_query_snapshot.dart';
 
 class Query<ID extends Object?, T extends Object?> {
   const Query(
@@ -29,7 +30,10 @@ class Query<ID extends Object?, T extends Object?> {
   /// invokes data fetching
   ///
   /// returns a Future that resolves to QuerySnapshot
-  Future<QuerySnapshot<ID, T>> get() => delegate.getQuery(this, converters);
+  Future<QuerySnapshot<ID, T>> get() =>
+      delegate.getQuery<ID, Object?>(this).then((QuerySnapshot querySnapshot) =>
+          convertQuerySnapshot(querySnapshot.cast<ID, Map<String, dynamic>>(),
+              converters: converters));
 
   // Stream<QuerySnapshot<ID, T>> snapshots({
   //   options = const StorageOptions(),

@@ -15,13 +15,15 @@ class CollectionReference<ID extends Object?, T extends Object?>
   });
 
   Future<DocumentSnapshot<ID, T>?> add(
-    T document, {
+    T documentData, {
     ID? documentId,
     options = const StorageOptions(),
   }) =>
       delegate.addDocument(
         collectionName: collectionName,
-        documentData: document,
+        documentData: converters == null
+            ? documentData
+            : converters!.toHashMap(documentData) as dynamic,
         documentId: documentId,
         options: options,
       );

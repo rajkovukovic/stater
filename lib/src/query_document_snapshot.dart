@@ -2,7 +2,7 @@ import 'package:meta/meta.dart';
 
 import 'document_snapshot.dart';
 
-/// A [QueryDocumentSnapshot] contains data read from a document in your [FirebaseFirestore]
+/// A [QueryDocumentSnapshot] contains data read from a
 /// database as part of a query.
 ///
 /// A [QueryDocumentSnapshot] offers the same API surface as a [DocumentSnapshot].

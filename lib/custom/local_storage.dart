@@ -38,7 +38,6 @@ class GetStorageDelegate extends CascadableStorageDelegate {
     required T documentData,
     ID? documentId,
     options = const StorageOptions(),
-    Converters<ID, T>? converters,
   }) {
     final notNullDocumentId = documentId ?? const Uuid().v4() as ID;
 
@@ -46,7 +45,6 @@ class GetStorageDelegate extends CascadableStorageDelegate {
       collectionName: collectionName,
       documentId: documentId,
       documentData: documentData,
-      converters: converters,
     ).then((_) => DocumentSnapshot(
           notNullDocumentId,
           documentData,
@@ -106,23 +104,10 @@ class GetStorageDelegate extends CascadableStorageDelegate {
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
-    Converters<ID, T>? converters,
   }) async {
     final storage = await getStorage(collectionName);
-    dynamic data = storage.read(documentId.toString());
 
-    if (converters != null) {
-      data = converters.fromHashMap(
-        DocumentSnapshot<ID, Map<String, dynamic>>(
-            documentId,
-            data,
-            DocumentReference<ID, Map<String, dynamic>>(
-              collectionName: collectionName,
-              documentId: documentId,
-              delegate: this,
-            )),
-      );
-    }
+    dynamic data = storage.read(documentId.toString());
 
     return Future.value(DocumentSnapshot(
       documentId,
@@ -131,7 +116,6 @@ class GetStorageDelegate extends CascadableStorageDelegate {
         collectionName: collectionName,
         documentId: documentId,
         delegate: this,
-        converters: converters,
       ),
     ));
   }
@@ -145,9 +129,6 @@ class GetStorageDelegate extends CascadableStorageDelegate {
 
     final storage = await getStorage(collection);
 
-    print(storage.getKeys());
-    print(storage.getValues());
-
     final keys = List<String>.from(storage.getKeys());
 
     var stored = (storage.getValues() as Iterable<dynamic>).toList();
@@ -155,19 +136,6 @@ class GetStorageDelegate extends CascadableStorageDelegate {
     final docs = stored.mapIndexed((int index, dynamic doc) {
       if (doc is String) {
         doc = jsonDecode(doc);
-      }
-
-      if (converters != null) {
-        doc = converters.fromHashMap(
-          DocumentSnapshot<ID, Map<String, dynamic>>(
-              keys[index] as ID,
-              doc,
-              DocumentReference<ID, Map<String, dynamic>>(
-                collectionName: query.collectionName,
-                documentId: keys[index] as ID,
-                delegate: this,
-              )),
-        );
       }
 
       return DocumentSnapshot<ID, T>(
@@ -181,8 +149,6 @@ class GetStorageDelegate extends CascadableStorageDelegate {
         ),
       );
     });
-
-    // print(docs.first);
 
     // docs = docs.where((element) => doesMatchQuery(element.data(), query));
 
@@ -208,14 +174,10 @@ class GetStorageDelegate extends CascadableStorageDelegate {
     required ID documentId,
     required T documentData,
     options = const StorageOptions(),
-    Converters<ID, T>? converters,
   }) async {
     final storage = await getStorage(collectionName);
 
-    storage.write(
-      documentId.toString(),
-      converters != null ? converters.toHashMap(documentData) : documentData,
-    );
+    storage.write(documentId.toString(), documentData);
   }
 
   @override

@@ -56,6 +56,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
       ),
       body: FutureBuilder<List<DocumentSnapshot<String, Todo>>>(
         future: documents,
+        // future: Future.value([]),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             throw snapshot.error!;

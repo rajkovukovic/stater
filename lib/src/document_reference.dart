@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 import 'package:stater/src/converters.dart';
 import 'package:stater/src/storage_delegate.dart';
 import 'package:stater/src/storage_options.dart';
+import 'package:stater/src/utils/convert_document_snapshot.dart';
 
 import 'document_snapshot.dart';
 
@@ -26,6 +27,14 @@ class DocumentReference<ID extends Object?, T extends Object?> {
 
   final Converters<ID, T>? converters;
 
+  DocumentReference<CastedID, Casted> cast<CastedID, Casted>() {
+    return DocumentReference(
+        collectionName: collectionName,
+        documentId: id as CastedID,
+        delegate: delegate,
+        options: options);
+  }
+
   /// Deletes the current document from the collection.
   Future<void> delete({
     options = const StorageOptions(),
@@ -44,10 +53,15 @@ class DocumentReference<ID extends Object?, T extends Object?> {
   Future<DocumentSnapshot<ID, T>> get({
     options = const StorageOptions(),
   }) =>
-      delegate.getDocument(
-        collectionName: collectionName,
-        documentId: id,
-      );
+      delegate
+          .getDocument<ID, Object?>(
+            collectionName: collectionName,
+            documentId: id,
+          )
+          .then((documentSnapshot) => convertDocumentSnapshot(
+                documentSnapshot as dynamic,
+                converters: converters,
+              ));
 
   // /// Notifies of document updates at this location.
   // ///
@@ -64,13 +78,13 @@ class DocumentReference<ID extends Object?, T extends Object?> {
 
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
-  Future<void> set(T documentData) =>
-      delegate.setDocument(
+  Future<void> set(T documentData) => delegate.setDocument(
         collectionName: collectionName,
         documentId: id,
-        documentData: documentData,
+        documentData: converters == null
+            ? documentData
+            : converters!.toHashMap(documentData),
         options: options,
-        converters: converters,
       );
 
   /// Updates data on the document. Data will be merged with any existing
