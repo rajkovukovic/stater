@@ -207,21 +207,15 @@ class CascadeDelegate extends StorageDelegate {
     required ID documentId,
     required T documentData,
     options = const StorageOptions(),
-    Converters<ID, T>? converters,
   }) async {
-    if (options is StorageOptionsWithConverter) {
-      _transactionManager.addTransaction(
-        ExclusiveTransaction(operations: [
-          OperationSet(
-              collectionName: collectionName,
-              documentId: documentId.toString(),
-              data: options.toHashMap(documentData))
-        ]),
-      );
-    } else {
-      throw 'CascadeDelegate.setDocument must be called with options of type '
-          'StorageOptionsWithConverter';
-    }
+    _transactionManager.addTransaction(
+      ExclusiveTransaction(operations: [
+        OperationSet(
+            collectionName: collectionName,
+            documentId: documentId.toString(),
+            data: documentData as dynamic)
+      ]),
+    );
   }
 
   /// Updates data on the document. Data will be merged with any existing
@@ -319,7 +313,7 @@ class CascadeDelegate extends StorageDelegate {
   Iterable<ExclusiveTransaction> uncommittedTransactionsForDelegate(
       CascadableStorageDelegate delegate) {
     final completedTransactionsIds =
-        _transactionManager.completedTransactionsIds(delegate)!;
+        _transactionManager.completedTransactionsIds(delegate) ?? {};
 
     return _transactionManager.getTransactionQueue().where((transaction) =>
         !transaction.excludeDelegateWithIds.contains(delegate.id) &&

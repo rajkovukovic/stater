@@ -5,5 +5,5 @@ import 'package:stater/src/query.dart';
 abstract class Queryable {
   bool doesMatchQuery(Query query);
 
-  int Function(Queryable a, Queryable b)? generateCompareFromQuery(Query query);
+  int Function(T a, T b)? generateCompareFromQuery<T>(Query query);
 }

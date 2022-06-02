@@ -21,7 +21,7 @@ class DocumentSnapshot<ID extends Object?, T extends Object?> {
 
   DocumentSnapshot<CastedID, Casted> cast<CastedID, Casted>() {
     return DocumentSnapshot(
-        id as CastedID, _data as Casted, reference.cast<CastedID, Casted>());
+        id as CastedID, _data as Casted?, reference.cast<CastedID, Casted>());
   }
 
   /// Metadata about this document concerning its source and if it has local

@@ -58,10 +58,12 @@ class DocumentReference<ID extends Object?, T extends Object?> {
             collectionName: collectionName,
             documentId: id,
           )
-          .then((documentSnapshot) => convertDocumentSnapshot(
-                documentSnapshot as dynamic,
-                converters: converters,
-              ));
+          .then((documentSnapshot) => converters == null
+              ? documentSnapshot.cast<ID, T>()
+              : convertDocumentSnapshot(
+                  documentSnapshot.cast<ID, Map<String, dynamic>>(),
+                  converters: converters,
+                ));
 
   // /// Notifies of document updates at this location.
   // ///

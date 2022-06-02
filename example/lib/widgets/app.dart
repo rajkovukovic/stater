@@ -17,36 +17,36 @@ bool doesTodoMatchQuery(Todo todo, Query query) {
   }
 }
 
-// final restDelegate = RestDelegate(
-//   id: 'rest-server-mongodb',
-//   endpoint: 'http://localhost:3030',
-//   doesMatchQuery: doesTodoMatchQuery,
-// );
-
-// final getStorageDelegate = GetStorageDelegate(
-//   id: 'get-storage',
-//   storagePrefix: 'DB',
-//   doesMatchQuery: doesTodoMatchQuery,
-// );
-
-// final stater = CascadeStorage(
-//     primaryDelegate: restDelegate,
-//     cachingDelegates: [
-//       getStorageDelegate,
-//     ],
-//     transactionStoringDelegate: TransactionStoringDelegate.fromDelegate(
-//       delegate: getStorageDelegate,
-//       collectionName: 'uncommitted',
-//       transactionsKey: 'transactions',
-//       transactionsStateKey: 'processedTransactions',
-//     ));
-
-final stater = GetStorageStorage(
-  GetStorageDelegate(
-    id: 'get-storage',
-    storagePrefix: 'DB',
-  ),
+final restDelegate = RestDelegate(
+  id: 'rest-server-mongodb',
+  endpoint: 'http://localhost:3030',
+  // doesMatchQuery: doesTodoMatchQuery,
 );
+
+final getStorageDelegate = GetStorageDelegate(
+  id: 'get-storage',
+  storagePrefix: 'DB',
+  // doesMatchQuery: doesTodoMatchQuery,
+);
+
+final stater = CascadeStorage(
+    primaryDelegate: restDelegate,
+    cachingDelegates: [
+      getStorageDelegate,
+    ],
+    transactionStoringDelegate: TransactionStoringDelegate.fromDelegate(
+      delegate: getStorageDelegate,
+      collectionName: 'uncommitted',
+      transactionsKey: 'transactions',
+      transactionsStateKey: 'processedTransactions',
+    ));
+
+// final stater = GetStorageStorage(
+//   GetStorageDelegate(
+//     id: 'get-storage',
+//     storagePrefix: 'DB',
+//   ),
+// );
 
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);

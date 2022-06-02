@@ -87,6 +87,22 @@ class RestDelegate extends CascadableStorageDelegate {
     Query<ID, T> query, [
     Converters<ID, T>? converters,
   ]) async {
+    // var fakeId = 'fake-rest' as ID;
+    // return Future.value(QuerySnapshot([
+    //   DocumentSnapshot(
+    //     fakeId,
+    //     {
+    //       "_id": fakeId,
+    //       "name": fakeId,
+    //     } as T,
+    //     DocumentReference(
+    //       collectionName: query.collectionName,
+    //       documentId: fakeId,
+    //       delegate: this,
+    //     ),
+    //   )
+    // ]));
+
     final queryParameters = <String, dynamic>{};
 
     for (var operation in query.compareOperations) {
@@ -134,6 +150,8 @@ class RestDelegate extends CascadableStorageDelegate {
     options = const StorageOptions(),
     Converters<ID, T>? converters,
   }) async {
+    // return Future.value();
+
     return Dio()
         .put('$endpoint/$collectionName/$documentId',
             data: documentData, options: requestOptions)
