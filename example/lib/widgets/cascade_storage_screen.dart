@@ -7,13 +7,9 @@ import 'todo_card.dart';
 import 'todo_screen.dart';
 import 'tri_state_selector.dart';
 
-final todoConverters = StorageOptionsWithConverter<String, Todo>(
-  fromHashMap: (DocumentSnapshot snapshot) {
-    return Todo.fromMap(snapshot.data() as dynamic);
-  },
-  toHashMap: (Todo todo) {
-    return todo.toMap();
-  },
+final todoConverters = Converters<String, Todo>(
+  (snapshot) => Todo.fromMap(snapshot.data()!),
+  (todo) => todo.toMap(),
 );
 
 class CascadeStorageScreen extends StatefulWidget {
@@ -59,8 +55,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
         ],
       ),
       body: FutureBuilder<List<DocumentSnapshot<String, Todo>>>(
-        // future: documents,
-        future: Future.value(<DocumentSnapshot<String, Todo>>[]),
+        future: documents,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             throw snapshot.error!;
@@ -97,7 +92,8 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
 
   void _setUpStreams() {
     collectionReference = widget.storage
-        .collection<String, Todo>('todos', options: todoConverters);
+        .collection<String, Todo>('todos')
+        .withConverters(todoConverters);
 
     if (filterByPublished != null) {
       query = collectionReference.where(
@@ -107,7 +103,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
     }
 
     documents = query.get().then((snapshot) {
-      print(123);
+      print(snapshot.docs.length);
       return snapshot.docs;
     });
   }

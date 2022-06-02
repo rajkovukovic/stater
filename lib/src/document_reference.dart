@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:stater/src/converters.dart';
 import 'package:stater/src/storage_delegate.dart';
 import 'package:stater/src/storage_options.dart';
 
@@ -11,6 +12,7 @@ class DocumentReference<ID extends Object?, T extends Object?> {
     required ID documentId,
     required this.delegate,
     this.options = const StorageOptions(),
+    this.converters,
   }) : id = documentId;
 
   final StorageDelegate delegate;
@@ -21,6 +23,8 @@ class DocumentReference<ID extends Object?, T extends Object?> {
   final ID id;
 
   final StorageOptions options;
+
+  final Converters<ID, T>? converters;
 
   /// Deletes the current document from the collection.
   Future<void> delete({
@@ -60,15 +64,13 @@ class DocumentReference<ID extends Object?, T extends Object?> {
 
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
-  Future<void> set(
-    T documentData, {
-    options = const StorageOptions(),
-  }) =>
+  Future<void> set(T documentData) =>
       delegate.setDocument(
         collectionName: collectionName,
         documentId: id,
         documentData: documentData,
         options: options,
+        converters: converters,
       );
 
   /// Updates data on the document. Data will be merged with any existing

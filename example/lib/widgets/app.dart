@@ -45,7 +45,6 @@ final stater = GetStorageStorage(
   GetStorageDelegate(
     id: 'get-storage',
     storagePrefix: 'DB',
-    doesMatchQuery: (_, __) => true,
   ),
 );
 

@@ -1,3 +1,4 @@
+import 'package:stater/src/converters.dart';
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query.dart';
 import 'package:stater/src/query_snapshot.dart';
@@ -31,7 +32,8 @@ abstract class StorageDelegate {
 
   /// Reads the document
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-      Query<ID, T> query);
+      Query<ID, T> query,
+      [Converters<ID, T>? converters]);
 
   /// Notifies of document updates at this location.
   // Stream<DocumentSnapshot<ID, T>>
@@ -55,6 +57,7 @@ abstract class StorageDelegate {
     required ID documentId,
     required T documentData,
     options = const StorageOptions(),
+    Converters<ID, T>? converters,
   });
 
   /// Updates data on the document. Data will be merged with any existing
@@ -133,12 +136,12 @@ abstract class StorageDelegate {
 
 abstract class StorageDelegateWithId extends StorageDelegate {
   final String id;
-  final QueryMatcher doesMatchQuery;
-  final QueryCompareGenerator? generateCompareFromQuery;
+  // final QueryMatcher doesMatchQuery;
+  // final QueryCompareGenerator? generateCompareFromQuery;
 
   StorageDelegateWithId({
     required this.id,
-    required this.doesMatchQuery,
-    this.generateCompareFromQuery,
+    // required this.doesMatchQuery,
+    // this.generateCompareFromQuery,
   });
 }

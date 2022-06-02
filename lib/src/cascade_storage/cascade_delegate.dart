@@ -1,5 +1,6 @@
 import 'package:stater/src/cascade_storage/cascade_transaction_manager.dart';
 import 'package:stater/src/cascade_storage/exclusive_transaction.dart';
+import 'package:stater/src/converters.dart';
 import 'package:stater/src/document_reference.dart';
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query.dart';
@@ -143,7 +144,8 @@ class CascadeDelegate extends StorageDelegate {
   /// Reads the documents
   @override
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends dynamic>(
-      Query<ID, T> query) {
+      Query<ID, T> query,
+      [Converters<ID, T>? converters]) {
     // TODO: should we refactor to use ```for ... { await ... }``` ?
     Future<QuerySnapshot<ID, T>> delegateFuture(int delegateIndex) {
       return _delegates[delegateIndex]
@@ -205,6 +207,7 @@ class CascadeDelegate extends StorageDelegate {
     required ID documentId,
     required T documentData,
     options = const StorageOptions(),
+    Converters<ID, T>? converters,
   }) async {
     if (options is StorageOptionsWithConverter) {
       _transactionManager.addTransaction(
@@ -393,13 +396,13 @@ class CascadeDelegate extends StorageDelegate {
                 documentId: entry.key as ID,
                 delegate: this,
               ),
-            ))
-        .where((documentSnapshot) =>
-            documentSnapshot.exists &&
-            sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
+            ));
+    // .where((documentSnapshot) =>
+    //     documentSnapshot.exists &&
+    //     sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
 
-    final fromQuery = querySnapshot.docs
-        .map((documentSnapshot) => DocumentSnapshot<ID, T>(
+    final fromQuery =
+        querySnapshot.docs.map((documentSnapshot) => DocumentSnapshot<ID, T>(
               documentSnapshot.id,
               _transactionManager.applyTransactionsToEntity(
                 collectionName: collectionName,
@@ -412,20 +415,20 @@ class CascadeDelegate extends StorageDelegate {
                 documentId: documentSnapshot.id,
                 delegate: this,
               ),
-            ))
-        .where((documentSnapshot) =>
-            documentSnapshot.exists &&
-            sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
+            ));
+    // .where((documentSnapshot) =>
+    //     documentSnapshot.exists &&
+    //     sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
 
     final matched = [
       ...fromQuery,
       ...uncommittedCreatedDocumentsRefs,
     ];
 
-    if (sourceDelegate.generateCompareFromQuery != null) {
-      final compare = sourceDelegate.generateCompareFromQuery!(query);
-      matched.sort(compare);
-    }
+    // if (sourceDelegate.generateCompareFromQuery != null) {
+    //   final compare = sourceDelegate.generateCompareFromQuery!(query);
+    //   matched.sort(compare);
+    // }
 
     return QuerySnapshot<ID, T>(matched);
   }

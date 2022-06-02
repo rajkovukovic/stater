@@ -1,20 +1,22 @@
+import 'package:stater/src/converters.dart';
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query_snapshot.dart';
 import 'package:stater/src/storage_delegate.dart';
 import 'package:stater/src/storage_options.dart';
 
 class Query<ID extends Object?, T extends Object?> {
-  const Query({
-    required this.delegate,
-    required this.collectionName,
-    this.compareOperations = const [],
-    this.options = const StorageOptions(),
-  });
+  const Query(
+      {required this.delegate,
+      required this.collectionName,
+      this.compareOperations = const [],
+      this.options = const StorageOptions(),
+      this.converters});
 
   final StorageDelegate delegate;
   final String collectionName;
   final List<CompareOperation> compareOperations;
   final StorageOptions options;
+  final Converters<ID, T>? converters;
 
   // Query<ID, T> _mapQuery(Query<Map<String, dynamic>> newOriginalQuery) {
   //   return Query<T>(
@@ -27,7 +29,7 @@ class Query<ID extends Object?, T extends Object?> {
   /// invokes data fetching
   ///
   /// returns a Future that resolves to QuerySnapshot
-  Future<QuerySnapshot<ID, T>> get() => delegate.getQuery(this);
+  Future<QuerySnapshot<ID, T>> get() => delegate.getQuery(this, converters);
 
   // Stream<QuerySnapshot<ID, T>> snapshots({
   //   options = const StorageOptions(),
@@ -118,6 +120,29 @@ class Query<ID extends Object?, T extends Object?> {
   // @override
   // int get hashCode =>
   //     hashValues(runtimeType, _fromHashMap, _toHashMap, _originalQuery);
+
+  Query<RID, R> withConverters<RID, R>(Converters<RID, R> converters) {
+    return Query<RID, R>(
+      collectionName: collectionName,
+      delegate: delegate,
+      compareOperations: compareOperations,
+      options: options,
+      converters: converters,
+    );
+  }
+
+  Query<RID, R> withConvertersFrom<RID, R>({
+    required FromHashMap<RID, R> fromHashMap,
+    required ToHashMap<R> toHashMap,
+  }) {
+    return Query<RID, R>(
+      collectionName: collectionName,
+      delegate: delegate,
+      compareOperations: compareOperations,
+      options: options,
+      converters: Converters(fromHashMap, toHashMap),
+    );
+  }
 }
 
 enum CompareOperator {
