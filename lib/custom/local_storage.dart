@@ -13,7 +13,7 @@ import 'package:stater/src/storage_delegate.dart';
 import 'package:stater/src/storage_options.dart';
 import 'package:uuid/uuid.dart';
 
-class GetStorageDelegate extends StorageDelegateWithId {
+class GetStorageDelegate extends CascadableStorageDelegate {
   GetStorageDelegate({
     // required super.doesMatchQuery,
     // super.generateCompareFromQuery,

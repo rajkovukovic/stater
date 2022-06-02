@@ -14,13 +14,13 @@ bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutStorageWithCacheAddDocument = false;
 
 class CascadeDelegate extends StorageDelegate {
-  late final List<StorageDelegateWithId> _delegates;
+  late final List<CascadableStorageDelegate> _delegates;
   late final CascadeTransactionManager<ExclusiveTransaction>
       _transactionManager;
 
   CascadeDelegate({
-    required StorageDelegateWithId primaryDelegate,
-    required List<StorageDelegateWithId>? cachingDelegates,
+    required CascadableStorageDelegate primaryDelegate,
+    required List<CascadableStorageDelegate>? cachingDelegates,
     required TransactionStoringDelegate transactionStoringDelegate,
   }) {
     _delegates = [
@@ -317,7 +317,7 @@ class CascadeDelegate extends StorageDelegate {
           };
 
   Iterable<ExclusiveTransaction> uncommittedTransactionsForDelegate(
-      StorageDelegateWithId delegate) {
+      CascadableStorageDelegate delegate) {
     final completedTransactionsIds =
         _transactionManager.completedTransactionsIds(delegate)!;
 
@@ -333,7 +333,7 @@ class CascadeDelegate extends StorageDelegate {
           T extends dynamic>({
     required String collectionName,
     required DocumentSnapshot<ID, T> documentSnapshot,
-    required StorageDelegateWithId sourceDelegate,
+    required CascadableStorageDelegate sourceDelegate,
   }) {
     final uncommittedTransactions =
         uncommittedTransactionsForDelegate(sourceDelegate);
@@ -363,7 +363,7 @@ class CascadeDelegate extends StorageDelegate {
     required String collectionName,
     required QuerySnapshot<ID, dynamic> querySnapshot,
     required Query<ID, T> query,
-    required StorageDelegateWithId sourceDelegate,
+    required CascadableStorageDelegate sourceDelegate,
   }) {
     final uncommittedTransactions =
         uncommittedTransactionsForDelegate(sourceDelegate);

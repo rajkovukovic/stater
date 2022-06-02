@@ -134,12 +134,12 @@ abstract class StorageDelegate {
   }
 }
 
-abstract class StorageDelegateWithId extends StorageDelegate {
+abstract class CascadableStorageDelegate extends StorageDelegate {
   final String id;
   // final QueryMatcher doesMatchQuery;
   // final QueryCompareGenerator? generateCompareFromQuery;
 
-  StorageDelegateWithId({
+  CascadableStorageDelegate({
     required this.id,
     // required this.doesMatchQuery,
     // this.generateCompareFromQuery,

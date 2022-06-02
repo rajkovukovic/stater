@@ -13,13 +13,13 @@ import 'package:stater/src/transaction/transaction_storing_delegate.dart';
 class CascadeTransactionManager<T extends ExclusiveTransaction>
     extends TransactionManager<T> {
   @protected
-  final List<StorageDelegateWithId> delegates;
+  final List<CascadableStorageDelegate> delegates;
 
   @protected
   final TransactionStoringDelegate transactionStoringDelegate;
 
   @protected
-  late Map<StorageDelegateWithId, TransactionProcessor> processorMap;
+  late Map<CascadableStorageDelegate, TransactionProcessor> processorMap;
 
   bool _isInit = false;
   late CancelableOperation? _cancelInit;
@@ -301,7 +301,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     listeners.clear();
   }
 
-  Set<String>? completedTransactionsIds(StorageDelegateWithId delegate) {
+  Set<String>? completedTransactionsIds(CascadableStorageDelegate delegate) {
     return processorMap[delegate]?.completedTransactionIds;
   }
 }
@@ -313,7 +313,7 @@ Map<String, Set<String>> fromStoredTransactionsState(
 }
 
 Map<String, dynamic> toStoredTransactionsState(
-    Map<StorageDelegateWithId, TransactionProcessor> processorMap) {
+    Map<CascadableStorageDelegate, TransactionProcessor> processorMap) {
   return processorMap.map(
       (key, value) => MapEntry(key.id, value.completedTransactionIds.toList()));
 }

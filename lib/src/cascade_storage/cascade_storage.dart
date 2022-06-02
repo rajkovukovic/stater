@@ -11,8 +11,8 @@ import 'package:stater/src/transaction/transaction_storing_delegate.dart';
 /// or returns error of the last storage if all adapters fail.
 class CascadeStorage<ID extends Object?> extends Storage {
   CascadeStorage({
-    required StorageDelegateWithId primaryDelegate,
-    required List<StorageDelegateWithId>? cachingDelegates,
+    required CascadableStorageDelegate primaryDelegate,
+    required List<CascadableStorageDelegate>? cachingDelegates,
     required TransactionStoringDelegate transactionStoringDelegate,
   }) : super(CascadeDelegate(
             primaryDelegate: primaryDelegate,
