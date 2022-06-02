@@ -38,6 +38,7 @@ class GetStorageDelegate extends StorageDelegateWithId {
     required T documentData,
     ID? documentId,
     options = const StorageOptions(),
+    Converters<ID, T>? converters,
   }) {
     final notNullDocumentId = documentId ?? const Uuid().v4() as ID;
 
@@ -45,6 +46,7 @@ class GetStorageDelegate extends StorageDelegateWithId {
       collectionName: collectionName,
       documentId: documentId,
       documentData: documentData,
+      converters: converters,
     ).then((_) => DocumentSnapshot(
           notNullDocumentId,
           documentData,
@@ -104,9 +106,23 @@ class GetStorageDelegate extends StorageDelegateWithId {
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
+    Converters<ID, T>? converters,
   }) async {
     final storage = await getStorage(collectionName);
-    final data = storage.read(documentId.toString());
+    dynamic data = storage.read(documentId.toString());
+
+    if (converters != null) {
+      data = converters.fromHashMap(
+        DocumentSnapshot<ID, Map<String, dynamic>>(
+            documentId,
+            data,
+            DocumentReference<ID, Map<String, dynamic>>(
+              collectionName: collectionName,
+              documentId: documentId,
+              delegate: this,
+            )),
+      );
+    }
 
     return Future.value(DocumentSnapshot(
       documentId,
@@ -115,6 +131,7 @@ class GetStorageDelegate extends StorageDelegateWithId {
         collectionName: collectionName,
         documentId: documentId,
         delegate: this,
+        converters: converters,
       ),
     ));
   }
