@@ -27,6 +27,8 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
 
   String searchTerm = '';
 
+  final textController = TextEditingController();
+
   late CollectionReference<String, Todo> collectionReference;
 
   late Query<String, Todo> query;
@@ -58,7 +60,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
             ),
             Expanded(
               child: TextField(
-                  onChanged: _changeSearchTerm,
+                  controller: textController,
                   decoration: const InputDecoration(
                     contentPadding: EdgeInsets.only(top: 15),
                     border: InputBorder.none,
@@ -67,6 +69,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
                     hintStyle: TextStyle(color: Colors.white54),
                     prefixIcon: Icon(Icons.search, color: Colors.white),
                   ),
+                  onChanged: _changeSearchTerm,
                   style: const TextStyle(color: Colors.white)),
             ),
           ],
@@ -92,9 +95,29 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
           final snapshots = snapshot.data ?? [];
 
           if (snapshots.isEmpty) {
+            final thereIsQuery =
+                filterByPublished != null || searchTerm.trim().isNotEmpty;
+
             return Center(
-              child: ElevatedButton(
-                  onPressed: _createNew, child: const Text('Create One')),
+              child: thereIsQuery
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('no results...'),
+                        ),
+                        ElevatedButton(
+                            onPressed: () {
+                              _handleFilterChanged(null);
+                              _changeSearchTerm('');
+                              textController.clear();
+                            },
+                            child: const Text('Clear filters'))
+                      ],
+                    )
+                  : ElevatedButton(
+                      onPressed: _createNew, child: const Text('Create One')),
             );
           }
 
