@@ -131,13 +131,10 @@ class GetStorageDelegate extends CascadableStorageDelegate {
 
     final keys = List<String>.from(storage.getKeys());
 
-    var stored = (storage.getValues() as Iterable<dynamic>).toList();
+    var stored = (storage.getValues() as Iterable<dynamic>)
+        .map((doc) => doc is String ? jsonDecode(doc) : doc);
 
     final docs = stored.mapIndexed((int index, dynamic doc) {
-      if (doc is String) {
-        doc = jsonDecode(doc);
-      }
-
       return DocumentSnapshot<ID, T>(
         keys[index] as ID,
         doc,

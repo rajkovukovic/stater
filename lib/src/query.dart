@@ -95,8 +95,20 @@ class Query<ID extends Object?, T extends Object?> {
   //   return _mapQuery(_originalQuery.startAtDocument(documentSnapshot));
   // }
 
+  Query<ID, T> copyWithCompareOperations(
+    List<CompareOperation> compareOperations,
+  ) {
+    return Query(
+        converters: converters,
+        collectionName: collectionName,
+        delegate: delegate,
+        options: options,
+        compareOperations: compareOperations);
+  }
+
   Query<ID, T> whereOperation(CompareOperation compareOperation) {
     return Query(
+        converters: converters,
         collectionName: collectionName,
         delegate: delegate,
         options: options,

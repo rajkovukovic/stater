@@ -81,21 +81,33 @@ class CascadeDelegate extends StorageDelegate {
     }
     // we have id generated on the UI, so it is safe to make
     // a transaction out of this request
-    else if (options is StorageOptionsWithConverter) {
+    else if (options is StorageOptionsWithConverters) {
+      final data = options.toHashMap(documentData);
       _transactionManager.addTransaction(
         ExclusiveTransaction(operations: [
           OperationCreate(
             collectionName: collectionName,
             documentId: documentId.toString(),
-            data: options.toHashMap(documentData),
+            data: data,
           )
         ]),
       );
       return null;
+    } else if (documentData is Map<String, dynamic>) {
+      _transactionManager.addTransaction(
+        ExclusiveTransaction(operations: [
+          OperationCreate(
+            collectionName: collectionName,
+            documentId: documentId.toString(),
+            data: documentData,
+          )
+        ]),
+      );
     } else {
       throw 'CascadeDelegate.addDocument must be called with options of type '
           'StorageOptionsWithConverter';
     }
+    return null;
   }
 
   /// deletes the document
@@ -149,7 +161,7 @@ class CascadeDelegate extends StorageDelegate {
     // TODO: should we refactor to use ```for ... { await ... }``` ?
     Future<QuerySnapshot<ID, T>> delegateFuture(int delegateIndex) {
       return _delegates[delegateIndex]
-          .getQuery<ID, T>(query)
+          .getQuery<ID, T>(query.copyWithCompareOperations(const []))
           .catchError((error) {
         if (delegateIndex + 1 < _delegates.length) {
           return delegateFuture(delegateIndex + 1);
@@ -276,39 +288,75 @@ class CascadeDelegate extends StorageDelegate {
 
   /// writes this QuerySnapshot.document to all delegates of lower priority
   /// and returns QuerySnapshot cloned with delegate = "this"
-  QuerySnapshot<ID, T> Function(QuerySnapshot<ID, T>)
-      _postFetchQuery<ID extends Object?, T extends dynamic>({
+  QuerySnapshot<ID, T> Function(QuerySnapshot<ID, T>) _postFetchQuery<
+          ID extends Object?, T extends dynamic>({
     required String collectionName,
     required int sourceDelegateIndex,
     required Query<ID, T> query,
   }) =>
-          (querySnapshot) {
-            if (sourceDelegateIndex < _delegates.length - 1) {
-              _transactionManager.insertTransaction(
-                0,
-                ExclusiveTransaction(
-                  excludeDelegateWithIds: _delegates
-                      .sublist(0, sourceDelegateIndex + 1)
-                      .map((delegate) => delegate.id)
-                      .toSet(),
-                  operations: querySnapshot.docs
-                      .map((documentSnapshot) => OperationSet(
-                          collectionName: collectionName,
-                          documentId: documentSnapshot.id.toString(),
-                          data:
-                              documentSnapshot.data() as Map<String, dynamic>))
-                      .toList(),
-                ),
-              );
+      (querySnapshot) {
+        if (sourceDelegateIndex < _delegates.length - 1) {
+          _transactionManager.insertTransaction(
+            0,
+            ExclusiveTransaction(
+              excludeDelegateWithIds: _delegates
+                  .sublist(0, sourceDelegateIndex + 1)
+                  .map((delegate) => delegate.id)
+                  .toSet(),
+              operations: querySnapshot.docs
+                  .map((documentSnapshot) => OperationSet(
+                      collectionName: collectionName,
+                      documentId: documentSnapshot.id.toString(),
+                      data: documentSnapshot.data() as Map<String, dynamic>))
+                  .toList(),
+            ),
+          );
+        }
+
+        final docsAfterTransactions =
+            _applyTransactionsAndReplaceDelegateOfQuerySnapshot(
+          collectionName: collectionName,
+          querySnapshot: querySnapshot,
+          query: query,
+          sourceDelegate: _delegates[sourceDelegateIndex],
+        ).docs;
+
+        bool doesTodoMatchQuery(Map<String, dynamic> todo, Query query) {
+          if (query.compareOperations.isEmpty) {
+            return true;
+          } else {
+            for (var operation in query.compareOperations) {
+              if (operation.compareOperator == CompareOperator.isEqualTo &&
+                  {'completed', 'search'}.contains(operation.field)) {
+                if (operation.field == 'completed') {
+                  if (operation.valueToCompareTo ==
+                      (todo['completed'] ?? false)) {
+                    continue;
+                  } else {
+                    return false;
+                  }
+                } else {
+                  if ((todo['name'] as String? ?? '').toLowerCase().contains(
+                      operation.valueToCompareTo.toString().toLowerCase())) {
+                    continue;
+                  } else {
+                    return false;
+                  }
+                }
+              } else {
+                throw 'Todo query can contain "completed" and "search" fields only';
+              }
             }
 
-            return _applyTransactionsAndReplaceDelegateOfQuerySnapshot(
-              collectionName: collectionName,
-              querySnapshot: querySnapshot,
-              query: query,
-              sourceDelegate: _delegates[sourceDelegateIndex],
-            );
-          };
+            return true;
+          }
+        }
+
+        return QuerySnapshot(docsAfterTransactions
+            .where((snapshot) =>
+                doesTodoMatchQuery(snapshot.data() as dynamic, query))
+            .toList());
+      };
 
   Iterable<ExclusiveTransaction> uncommittedTransactionsForDelegate(
       CascadableStorageDelegate delegate) {
@@ -415,7 +463,8 @@ class CascadeDelegate extends StorageDelegate {
     //     sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
 
     final matched = [
-      ...fromQuery,
+      ...fromQuery.where(
+          (snapshot) => !uncommittedCreatedDocuments.containsKey(snapshot.id)),
       ...uncommittedCreatedDocumentsRefs,
     ];
 

@@ -2,6 +2,7 @@ import 'package:stater/src/converters.dart';
 import 'package:stater/src/document_reference.dart';
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/storage_options.dart';
+import 'package:stater/src/utils/convert_document_snapshot.dart';
 
 import 'query.dart';
 
@@ -19,14 +20,22 @@ class CollectionReference<ID extends Object?, T extends Object?>
     ID? documentId,
     options = const StorageOptions(),
   }) =>
-      delegate.addDocument(
-        collectionName: collectionName,
-        documentData: converters == null
-            ? documentData
-            : converters!.toHashMap(documentData) as dynamic,
-        documentId: documentId,
-        options: options,
-      );
+      converters == null
+          ? delegate.addDocument<ID, T>(
+              collectionName: collectionName,
+              documentData: documentData,
+              documentId: documentId,
+              options: options,
+            )
+          : delegate
+              .addDocument<ID, Map<String, dynamic>>(
+                collectionName: collectionName,
+                documentData: converters!.toHashMap(documentData),
+                documentId: documentId,
+                options: options,
+              )
+              .then((snapshot) =>
+                  convertDocumentSnapshot(snapshot!, converters: converters));
 
   DocumentReference<ID, T> doc(ID documentId) {
     return DocumentReference<ID, T>(

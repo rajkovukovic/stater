@@ -25,6 +25,8 @@ class CascadeStorageScreen extends StatefulWidget {
 class _HomeScreenState extends State<CascadeStorageScreen> {
   bool? filterByPublished;
 
+  String searchTerm = '';
+
   late CollectionReference<String, Todo> collectionReference;
 
   late Query<String, Todo> query;
@@ -41,12 +43,33 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: TriStateSelector(
-          onChanged: _handleFilterChanged,
-          value: filterByPublished,
-          nullLabel: 'All Todos',
-          trueLabel: 'Completed Only',
-          falseLabel: 'Uncompleted Only',
+        backgroundColor: Colors.grey,
+        title: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            TriStateSelector(
+              onChanged: _handleFilterChanged,
+              dropdownColor: Colors.grey,
+              value: filterByPublished,
+              nullLabel: 'All Todos',
+              trueLabel: 'Completed',
+              falseLabel: 'Uncompleted',
+              textStyle: const TextStyle(color: Colors.white),
+            ),
+            Expanded(
+              child: TextField(
+                  onChanged: _changeSearchTerm,
+                  decoration: const InputDecoration(
+                    contentPadding: EdgeInsets.only(top: 15),
+                    border: InputBorder.none,
+                    fillColor: Colors.white,
+                    hintText: 'Search...',
+                    hintStyle: TextStyle(color: Colors.white54),
+                    prefixIcon: Icon(Icons.search, color: Colors.white),
+                  ),
+                  style: const TextStyle(color: Colors.white)),
+            ),
+          ],
         ),
         actions: [
           IconButton(
@@ -91,16 +114,33 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
     );
   }
 
+  void _changeSearchTerm(String nextSearchTerm) {
+    searchTerm = nextSearchTerm;
+    _setUpStreams();
+    setState(() {});
+  }
+
   void _setUpStreams() {
     collectionReference = widget.storage
         .collection<String, Todo>('todos')
         .withConverters(todoConverters);
 
+    query = collectionReference;
+
     if (filterByPublished != null) {
-      query = collectionReference.where(
-          'completed', CompareOperator.isEqualTo, filterByPublished);
-    } else {
-      query = collectionReference;
+      query = query.where(
+        'completed',
+        CompareOperator.isEqualTo,
+        filterByPublished,
+      );
+    }
+
+    if (searchTerm.trim().isNotEmpty) {
+      query = query.where(
+        'search',
+        CompareOperator.isEqualTo,
+        searchTerm.trim(),
+      );
     }
 
     documents = query.get().then((snapshot) {
