@@ -9,6 +9,7 @@
 		"pubspec.yaml": ".gitignore, .packages, .metadata, pubspec.lock, analysis_options.yaml, jira.iml, .flutter-plugins, .flutter-plugins-dependencies, *.iml, keystore"
 	},
 	"cSpell.words": [
+		"autofocus",
 		"Cascadable",
 		"firestore",
 		"rxdart",

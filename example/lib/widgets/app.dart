@@ -1,8 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:stater/stater.dart';
 import 'package:stater_example/models/todo.dart';
-
-import 'cascade_storage_screen.dart';
+import 'package:stater_example/widgets/todos_screen.dart';
 
 bool doesTodoMatchQuery(Todo todo, Query query) {
   if (query.compareOperations.isEmpty) {
@@ -29,32 +29,39 @@ final getStorageDelegate = GetStorageDelegate(
   // doesMatchQuery: doesTodoMatchQuery,
 );
 
-final stater = CascadeStorage(
-    primaryDelegate: restDelegate,
-    cachingDelegates: [
-      getStorageDelegate,
-    ],
-    transactionStoringDelegate: TransactionStoringDelegate.fromDelegate(
-      delegate: getStorageDelegate,
-      collectionName: 'uncommitted',
-      transactionsKey: 'transactions',
-      transactionsStateKey: 'processedTransactions',
-    ));
+const _useLocalStorageOnly = !kIsWeb;
 
-// final stater = GetStorageStorage(
-//   GetStorageDelegate(
-//     id: 'get-storage',
-//     storagePrefix: 'DB',
-//   ),
-// );
+final stater = _useLocalStorageOnly
+    ? GetStorageStorage(
+        GetStorageDelegate(
+          id: 'get-storage',
+          storagePrefix: 'DB',
+        ),
+      )
+    : CascadeStorage(
+        primaryDelegate: restDelegate,
+        cachingDelegates: [
+          getStorageDelegate,
+        ],
+        transactionStoringDelegate: TransactionStoringDelegate.fromDelegate(
+          delegate: getStorageDelegate,
+          collectionName: 'uncommitted',
+          transactionsKey: 'transactions',
+          transactionsStateKey: 'processedTransactions',
+        ));
 
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: CascadeStorageScreen(storage: stater),
+    return GestureDetector(
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+      },
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: TodosScreen(storage: stater),
+      ),
     );
   }
 }
