@@ -13,10 +13,15 @@ final todoConverters = Converters<String, Todo>(
 );
 
 class CascadeStorageScreen extends StatefulWidget {
-  const CascadeStorageScreen({Key? key, required this.storage})
-      : super(key: key);
+  const CascadeStorageScreen({
+    super.key,
+    required this.storage,
+    this.useConverters = false,
+  });
 
   final Storage storage;
+
+  final bool useConverters;
 
   @override
   State<CascadeStorageScreen> createState() => _HomeScreenState();
@@ -45,7 +50,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.grey,
+        // backgroundColor: Colors.grey,
         title: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -61,6 +66,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
             Expanded(
               child: TextField(
                   controller: textController,
+                  cursorColor: Colors.white,
                   decoration: const InputDecoration(
                     contentPadding: EdgeInsets.only(top: 15),
                     border: InputBorder.none,
@@ -77,7 +83,8 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
         actions: [
           IconButton(
               onPressed: _reload, icon: const Icon(Icons.replay_outlined)),
-          IconButton(onPressed: _createNew, icon: const Icon(Icons.add))
+          IconButton(
+              onPressed: _openCreateTodoForm, icon: const Icon(Icons.add))
         ],
       ),
       body: FutureBuilder<List<DocumentSnapshot<String, Todo>>>(
@@ -117,7 +124,8 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
                       ],
                     )
                   : ElevatedButton(
-                      onPressed: _createNew, child: const Text('Create One')),
+                      onPressed: _openCreateTodoForm,
+                      child: const Text('Create One')),
             );
           }
 
@@ -129,7 +137,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
             itemBuilder: ((context, index) => TodoCard(
                   key: ValueKey(data[index]!.id),
                   todo: data[index]!,
-                  onTap: () => _editExisting(snapshots[index]),
+                  onTap: () => _openEditTodoForm(snapshots[index]),
                 )),
           );
         },
@@ -166,10 +174,7 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
       );
     }
 
-    documents = query.get().then((snapshot) {
-      print(snapshot.docs.length);
-      return snapshot.docs;
-    });
+    documents = query.get().then((snapshot) => snapshot.docs);
   }
 
   _handleFilterChanged(bool? value) {
@@ -187,28 +192,20 @@ class _HomeScreenState extends State<CascadeStorageScreen> {
     Future.delayed(const Duration(milliseconds: 100)).then((_) => _reload());
   }
 
-  void _createNew() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            TodoScreen(onCreate: _handleCreateNew, onDispose: _delayedReload),
-      ),
-    );
+  void _openCreateTodoForm() {
+    TodoScreen.showAsModal(
+        context: context, onCreate: _createTodo, onDispose: _delayedReload);
   }
 
-  Future _handleCreateNew(Map<String, dynamic> data) {
+  void _openEditTodoForm(DocumentSnapshot<String, Todo> snapshot) {
+    TodoScreen.showAsModal(
+        context: context, snapshot: snapshot, onDispose: _delayedReload);
+  }
+
+  Future _createTodo(Map<String, dynamic> data) {
     return collectionReference.add(
       Todo.fromMap(data),
       documentId: const Uuid().v4(),
-    );
-  }
-
-  void _editExisting(DocumentSnapshot<String, Todo> snapshot) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) =>
-            TodoScreen(snapshot: snapshot, onDispose: _delayedReload),
-      ),
     );
   }
 }

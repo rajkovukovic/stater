@@ -21,6 +21,22 @@ class TodoScreen extends StatefulWidget {
 
   @override
   State<TodoScreen> createState() => _ItemScreenState();
+
+
+  static Future<T?> showAsModal<T>({
+    required BuildContext context,
+    bool rootNavigator = false,
+    Function(Map<String, dynamic>)? onCreate,
+    required Function? onDispose,
+    DocumentSnapshot<String, Todo>? snapshot,
+  }) {
+    return Navigator.of(context, rootNavigator: rootNavigator).push(
+      MaterialPageRoute(
+        builder: (_) => TodoScreen(
+            onCreate: onCreate, onDispose: onDispose, snapshot: snapshot),
+      ),
+    );
+  }
 }
 
 class _ItemScreenState extends State<TodoScreen> {
