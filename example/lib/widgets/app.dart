@@ -2,7 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:stater/stater.dart';
 import 'package:stater_example/models/todo.dart';
-import 'package:stater_example/widgets/todos_screen.dart';
+import 'package:stater_example/widgets/home_screen.dart';
+import 'package:stater_example/widgets/todos_screen_no_converters.dart';
+import 'package:stater_example/widgets/todos_screen_with_converters.dart';
 
 bool doesTodoMatchQuery(Todo todo, Query query) {
   if (query.compareOperations.isEmpty) {
@@ -32,12 +34,15 @@ final getStorageDelegate = GetStorageDelegate(
 const _useLocalStorageOnly = !kIsWeb;
 
 final stater = _useLocalStorageOnly
-    ? GetStorageStorage(
-        GetStorageDelegate(
-          id: 'get-storage',
-          storagePrefix: 'DB',
-        ),
-      )
+    ? CascadeStorage(
+        primaryDelegate: getStorageDelegate,
+        cachingDelegates: [],
+        transactionStoringDelegate: TransactionStoringDelegate.fromDelegate(
+          delegate: getStorageDelegate,
+          collectionName: 'uncommitted',
+          transactionsKey: 'transactions',
+          transactionsStateKey: 'processedTransactions',
+        ))
     : CascadeStorage(
         primaryDelegate: restDelegate,
         cachingDelegates: [
@@ -50,6 +55,13 @@ final stater = _useLocalStorageOnly
           transactionsStateKey: 'processedTransactions',
         ));
 
+class Routes {
+  static String home = 'home';
+  static String withConverters = 'withConverters';
+  static String noConverters = 'noConverters';
+  static String splitScreen = 'splitScreen';
+}
+
 class App extends StatelessWidget {
   const App({Key? key}) : super(key: key);
   @override
@@ -60,7 +72,18 @@ class App extends StatelessWidget {
       },
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: TodosScreen(storage: stater),
+        initialRoute: Routes.home,
+        routes: {
+          Routes.home: (context) => const HomeScreen(),
+          Routes.withConverters: (context) =>
+              TodosScreenWithConverters(storage: stater),
+          Routes.noConverters: (context) =>
+              TodosScreenNoConverters(storage: stater),
+          Routes.splitScreen: (context) => Row(children: [
+                Expanded(child: TodosScreenWithConverters(storage: stater)),
+                Expanded(child: TodosScreenNoConverters(storage: stater)),
+              ]),
+        },
       ),
     );
   }

@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'package:stater/stater.dart';
 
 class Todo {
   final String id;
@@ -11,7 +11,7 @@ class Todo {
     this.completed = false,
   });
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
@@ -19,15 +19,16 @@ class Todo {
     };
   }
 
-  factory Todo.fromMap(Map<String, dynamic> map) {
+  factory Todo.fromJson(Map<String, dynamic> map) {
     return Todo(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       completed: map['completed'] ?? false,
     );
   }
-
-  String toJson() => json.encode(toMap());
-
-  factory Todo.fromJson(String source) => Todo.fromMap(json.decode(source));
 }
+
+final todoConverters = Converters<String, Todo>(
+  (snapshot) => Todo.fromJson(snapshot.data()!),
+  (todo) => todo.toJson(),
+);

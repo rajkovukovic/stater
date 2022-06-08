@@ -111,7 +111,7 @@ abstract class StorageDelegate {
         'operation type is ${operation.runtimeType}';
   }
 
-  Future performTransaction(
+  Future<dynamic> performTransaction(
     Transaction transaction, {
     doOperationsInParallel = false,
     options = const StorageOptions(),
@@ -121,12 +121,16 @@ abstract class StorageDelegate {
       return Future.wait(transaction.operations
           .map((operation) => performOperation(operation, options: options)));
     } else {
+      final operationResults = [];
       for (var operation in transaction.operations) {
-        await performOperation(
-          operation,
-          options: options,
+        operationResults.add(
+          await performOperation(
+            operation,
+            options: options,
+          ),
         );
       }
+      return operationResults;
     }
   }
 }

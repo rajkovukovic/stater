@@ -79,6 +79,7 @@ class _TodoCardState extends State<TodoCard> {
         children: [
           // A SlidableAction can have an icon and/or a label.
           SlidableAction(
+            autoClose: true,
             onPressed: (_) => {},
             backgroundColor: const Color(0xFFFE4A49),
             foregroundColor: Colors.white,

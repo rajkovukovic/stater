@@ -6,13 +6,8 @@ import 'package:uuid/uuid.dart';
 
 import 'todo_card.dart';
 
-final todoConverters = Converters<String, Todo>(
-  (snapshot) => Todo.fromMap(snapshot.data()!),
-  (todo) => todo.toMap(),
-);
-
-class TodosScreen extends StatefulWidget {
-  const TodosScreen({
+class TodosScreenNoConverters extends StatefulWidget {
+  const TodosScreenNoConverters({
     super.key,
     required this.storage,
     this.useConverters = false,
@@ -23,13 +18,14 @@ class TodosScreen extends StatefulWidget {
   final bool useConverters;
 
   @override
-  State<TodosScreen> createState() => _TodosScreenState();
+  State<TodosScreenNoConverters> createState() =>
+      _TodosScreenNoConvertersState();
 }
 
-class _TodosScreenState extends State<TodosScreen> {
-  late CollectionReference<String, Todo> collectionReference;
-  late Query<String, Todo> query;
-  late Future<List<DocumentSnapshot<String, Todo>>> documents;
+class _TodosScreenNoConvertersState extends State<TodosScreenNoConverters> {
+  late CollectionReference<String, Map<String, dynamic>> collectionReference;
+  late Query<String, Map<String, dynamic>> query;
+  late Future<List<DocumentSnapshot<String, Map<String, dynamic>>>> documents;
 
   bool? completedFilter;
   String searchTerm = '';
@@ -45,6 +41,7 @@ class _TodosScreenState extends State<TodosScreen> {
   @override
   Widget build(BuildContext context) {
     return TodosScreenWrapper(
+      appBarColor: Colors.grey,
       completedFilter: completedFilter,
       newTodoCard: _buildNewTodoCard(),
       onCreateNewPressed: () => setState(() {
@@ -53,23 +50,27 @@ class _TodosScreenState extends State<TodosScreen> {
       onQueryChanged: _handleQueryChanged,
       onReload: _reloadData,
       searchTerm: searchTerm,
-      todoBuilder: (context, todo) => TodoCard(
-        key: ValueKey(todo.id),
-        completed: todo.completed,
-        name: todo.name,
+      todoBuilder: (context, todo) => todo is Map
+          ? TodoCard(
+              key: ValueKey(todo['id']),
+              completed: todo['completed'],
+              name: todo['name'],
         onCompletedChanged: (value) {
-          collectionReference.doc(todo.id).update({'completed': value});
+                collectionReference
+                    .doc(todo['id'])
+                    .update({'completed': value});
           _reloadData();
         },
         onDelete: () {
-          collectionReference.doc(todo.id).delete();
+                collectionReference.doc(todo['id']).delete();
           _reloadData();
         },
         onNameChanged: (value) {
-          collectionReference.doc(todo.id).update({'name': value});
+                collectionReference.doc(todo['id']).update({'name': value});
           _reloadData();
         },
-      ),
+            )
+          : const Text('Todo must be of type Map'),
       todosFuture: documents,
     );
   }
@@ -93,7 +94,7 @@ class _TodosScreenState extends State<TodosScreen> {
 
         Future.delayed(const Duration(milliseconds: 10)).then((_) {
           if (newTodo!.name.isNotEmpty || newTodo!.completed) {
-            collectionReference.add(newTodo!, documentId: newTodo!.id);
+            collectionReference.add(newTodo!.toJson(), documentId: newTodo!.id);
             newTodo = null;
             _reloadData();
           } else {
@@ -106,7 +107,8 @@ class _TodosScreenState extends State<TodosScreen> {
   }
 
   void _setUpStreams() {
-    collectionReference = widget.storage.collection<String, Todo>('todos');
+    collectionReference =
+        widget.storage.collection<String, Map<String, dynamic>>('todos');
 
     query = collectionReference;
 

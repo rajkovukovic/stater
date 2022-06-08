@@ -6,13 +6,8 @@ import 'package:uuid/uuid.dart';
 
 import 'todo_card.dart';
 
-final todoConverters = Converters<String, Todo>(
-  (snapshot) => Todo.fromMap(snapshot.data()!),
-  (todo) => todo.toMap(),
-);
-
-class TodosScreen extends StatefulWidget {
-  const TodosScreen({
+class TodosScreenWithConverters extends StatefulWidget {
+  const TodosScreenWithConverters({
     super.key,
     required this.storage,
     this.useConverters = false,
@@ -23,10 +18,11 @@ class TodosScreen extends StatefulWidget {
   final bool useConverters;
 
   @override
-  State<TodosScreen> createState() => _TodosScreenState();
+  State<TodosScreenWithConverters> createState() =>
+      _TodosScreenWithConvertersState();
 }
 
-class _TodosScreenState extends State<TodosScreen> {
+class _TodosScreenWithConvertersState extends State<TodosScreenWithConverters> {
   late CollectionReference<String, Todo> collectionReference;
   late Query<String, Todo> query;
   late Future<List<DocumentSnapshot<String, Todo>>> documents;

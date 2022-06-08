@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:stater/stater.dart';
-import 'package:stater_example/models/todo.dart';
 
 import 'tri_state_selector.dart';
 
-final todoConverters = Converters<String, Todo>(
-  (snapshot) => Todo.fromMap(snapshot.data()!),
-  (todo) => todo.toMap(),
-);
-
 class TodosScreenWrapper extends StatefulWidget {
   const TodosScreenWrapper({
+    this.appBarColor,
     this.completedFilter,
     super.key,
     this.newTodoCard,
@@ -21,6 +15,8 @@ class TodosScreenWrapper extends StatefulWidget {
     required this.todoBuilder,
     required this.todosFuture,
   });
+
+  final Color? appBarColor;
 
   final bool? completedFilter;
 
@@ -64,6 +60,7 @@ class _TodosScreenWrapper extends State<TodosScreenWrapper> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: widget.appBarColor,
         title: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
