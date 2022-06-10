@@ -6,7 +6,7 @@ final restDelegate = RestDelegate(
   endpoint: 'http://localhost:3030',
 );
 
-final localStorageDelegate = LocalStorageDelegate(
+final localStorageDelegate = GetStorageDelegate(
   id: 'get-storage',
   storagePrefix: 'DB',
 );

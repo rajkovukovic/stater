@@ -13,8 +13,8 @@ import 'package:stater/src/storage_delegate.dart';
 import 'package:stater/src/storage_options.dart';
 import 'package:uuid/uuid.dart';
 
-class LocalStorageDelegate extends CascadableStorageDelegate {
-  LocalStorageDelegate({
+class GetStorageDelegate extends CascadableStorageDelegate {
+  GetStorageDelegate({
     // required super.doesMatchQuery,
     // super.generateCompareFromQuery,
     required super.id,
@@ -198,5 +198,5 @@ class LocalStorageDelegate extends CascadableStorageDelegate {
 }
 
 class GetStorageStorage extends Storage {
-  GetStorageStorage(LocalStorageDelegate delegate) : super(delegate);
+  GetStorageStorage(GetStorageDelegate delegate) : super(delegate);
 }
