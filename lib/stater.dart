@@ -18,7 +18,7 @@ export 'src/queryable.dart';
 export 'src/storage.dart';
 export 'src/storage_delegate.dart';
 export 'src/storage_options.dart';
-export 'src/transaction/operation.dart';
+export 'src/transaction/operation/operation.dart';
 export 'src/transaction/transaction.dart';
 export 'src/transaction/transaction_manager.dart';
 export 'src/transaction/transaction_processor.dart';

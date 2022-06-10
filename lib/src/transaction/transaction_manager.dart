@@ -1,5 +1,5 @@
 import 'package:meta/meta.dart';
-import 'package:stater/src/transaction/operation.dart';
+import 'package:stater/src/transaction/operation/operation.dart';
 import 'package:stater/src/transaction/transaction.dart';
 
 class TransactionManager<T extends Transaction> {
@@ -83,7 +83,7 @@ class TransactionManager<T extends Transaction> {
               nextData = null;
               break;
             case OperationType.set:
-              nextData = {...(operation as OperationSet).data};
+              nextData = {...(operation as SetOperation).data};
               break;
             case OperationType.update:
               if (nextData == null) {
@@ -91,7 +91,7 @@ class TransactionManager<T extends Transaction> {
               } else {
                 nextData = {
                   ...nextData,
-                  ...(operation as OperationUpdate).data
+                  ...(operation as UpdateOperation).data
                 };
               }
               break;

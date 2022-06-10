@@ -19,4 +19,9 @@ class Storage {
       options: options,
     );
   }
+
+  Future request(String requestName, dynamic params) {
+    throw 'Storage.request method should be overridden in classes'
+        'that extends Storage class';
+  }
 }
