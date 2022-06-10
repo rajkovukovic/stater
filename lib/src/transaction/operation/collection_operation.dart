@@ -9,7 +9,5 @@ abstract class CollectionOperation extends Operation {
   CollectionOperation({
     DateTime? timestamp,
     required this.collectionName,
-  }) {
-    super.timestamp = timestamp ?? DateTime.now();
-  }
+  }) : super(timestamp: timestamp);
 }

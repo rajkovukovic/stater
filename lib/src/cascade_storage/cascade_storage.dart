@@ -1,4 +1,5 @@
 import 'package:stater/src/cascade_storage/cascade_delegate.dart';
+import 'package:stater/src/cascade_storage/json_query_matcher.dart';
 import 'package:stater/src/storage.dart';
 import 'package:stater/src/storage_delegate.dart';
 import 'package:stater/src/transaction/transaction_storing_delegate.dart';
@@ -14,8 +15,10 @@ class CascadeStorage<ID extends Object?> extends Storage {
     required CascadableStorageDelegate primaryDelegate,
     required List<CascadableStorageDelegate>? cachingDelegates,
     required TransactionStoringDelegate transactionStoringDelegate,
+    JsonQueryMatcher? queryMatcher,
   }) : super(CascadeDelegate(
             primaryDelegate: primaryDelegate,
             cachingDelegates: cachingDelegates,
-            transactionStoringDelegate: transactionStoringDelegate));
+            transactionStoringDelegate: transactionStoringDelegate,
+            queryMatcher: queryMatcher));
 }

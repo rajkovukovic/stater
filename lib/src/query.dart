@@ -179,7 +179,7 @@ class CompareOperation {
       this.field, this.compareOperator, this.valueToCompareTo);
 }
 
-typedef QueryMatcher<T extends Object?> = bool Function(T element, Query query);
+// typedef QueryMatcher<T extends Object?> = bool Function(T element, Query query);
 
 typedef QueryCompareGenerator<ID extends Object?, T extends Object?> = int
         Function(DocumentSnapshot<ID, T> a, DocumentSnapshot<ID, T> b)?

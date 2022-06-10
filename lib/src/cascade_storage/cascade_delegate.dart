@@ -1,5 +1,6 @@
 import 'package:stater/src/cascade_storage/cascade_transaction_manager.dart';
 import 'package:stater/src/cascade_storage/exclusive_transaction.dart';
+import 'package:stater/src/cascade_storage/json_query_matcher.dart';
 import 'package:stater/src/converters.dart';
 import 'package:stater/src/document_reference.dart';
 import 'package:stater/src/document_snapshot.dart';
@@ -17,20 +18,25 @@ class CascadeDelegate extends StorageDelegate {
   late final List<CascadableStorageDelegate> _delegates;
   late final CascadeTransactionManager<ExclusiveTransaction>
       _transactionManager;
+  late final JsonQueryMatcher _queryMatcher;
 
   CascadeDelegate({
     required CascadableStorageDelegate primaryDelegate,
     required List<CascadableStorageDelegate>? cachingDelegates,
     required TransactionStoringDelegate transactionStoringDelegate,
+    JsonQueryMatcher? queryMatcher,
   }) {
     _delegates = [
       primaryDelegate,
       if (cachingDelegates != null) ...cachingDelegates,
     ];
+
     _transactionManager = CascadeTransactionManager(
       delegates: _delegates,
       transactionStoringDelegate: transactionStoringDelegate,
     );
+
+    _queryMatcher = queryMatcher ?? JsonQueryMatcher.empty();
   }
 
   /// creates a new document
@@ -288,75 +294,51 @@ class CascadeDelegate extends StorageDelegate {
 
   /// writes this QuerySnapshot.document to all delegates of lower priority
   /// and returns QuerySnapshot cloned with delegate = "this"
-  QuerySnapshot<ID, T> Function(QuerySnapshot<ID, T>) _postFetchQuery<
-          ID extends Object?, T extends dynamic>({
+  QuerySnapshot<ID, T> Function(QuerySnapshot<ID, T>)
+      _postFetchQuery<ID extends Object?, T extends dynamic>({
     required String collectionName,
     required int sourceDelegateIndex,
     required Query<ID, T> query,
   }) =>
-      (querySnapshot) {
-        if (sourceDelegateIndex < _delegates.length - 1) {
-          _transactionManager.insertTransaction(
-            0,
-            ExclusiveTransaction(
-              excludeDelegateWithIds: _delegates
-                  .sublist(0, sourceDelegateIndex + 1)
-                  .map((delegate) => delegate.id)
-                  .toSet(),
-              operations: querySnapshot.docs
-                  .map((documentSnapshot) => SetOperation(
-                      collectionName: collectionName,
-                      documentId: documentSnapshot.id.toString(),
-                      data: documentSnapshot.data() as Map<String, dynamic>))
-                  .toList(),
-            ),
-          );
-        }
-
-        final docsAfterTransactions =
-            _applyTransactionsAndReplaceDelegateOfQuerySnapshot(
-          collectionName: collectionName,
-          querySnapshot: querySnapshot,
-          query: query,
-          sourceDelegate: _delegates[sourceDelegateIndex],
-        ).docs;
-
-        bool doesTodoMatchQuery(Map<String, dynamic> todo, Query query) {
-          if (query.compareOperations.isEmpty) {
-            return true;
-          } else {
-            for (var operation in query.compareOperations) {
-              if (operation.compareOperator == CompareOperator.isEqualTo &&
-                  {'completed', 'search'}.contains(operation.field)) {
-                if (operation.field == 'completed') {
-                  if (operation.valueToCompareTo ==
-                      (todo['completed'] ?? false)) {
-                    continue;
-                  } else {
-                    return false;
-                  }
-                } else {
-                  if ((todo['name'] as String? ?? '').toLowerCase().contains(
-                      operation.valueToCompareTo.toString().toLowerCase())) {
-                    continue;
-                  } else {
-                    return false;
-                  }
-                }
-              } else {
-                throw 'Todo query can contain "completed" and "search" fields only';
-              }
+          (querySnapshot) {
+            if (sourceDelegateIndex < _delegates.length - 1) {
+              _transactionManager.insertTransaction(
+                0,
+                ExclusiveTransaction(
+                  excludeDelegateWithIds: _delegates
+                      .sublist(0, sourceDelegateIndex + 1)
+                      .map((delegate) => delegate.id)
+                      .toSet(),
+                  operations: querySnapshot.docs
+                      .map((documentSnapshot) => SetOperation(
+                          collectionName: collectionName,
+                          documentId: documentSnapshot.id.toString(),
+                          data:
+                              documentSnapshot.data() as Map<String, dynamic>))
+                      .toList(),
+                ),
+              );
             }
 
-            return true;
-          }
-        }
+            final docsAfterTransactions =
+                _applyTransactionsAndReplaceDelegateOfQuerySnapshot(
+              collectionName: collectionName,
+              querySnapshot: querySnapshot,
+              query: query,
+              sourceDelegate: _delegates[sourceDelegateIndex],
+            ).docs;
 
-        return QuerySnapshot(docsAfterTransactions
-            .where((snapshot) =>
-                doesTodoMatchQuery(snapshot.data() as dynamic, query))
-            .toList());
-      };
+            final doesTodoMatchQuery = _queryMatcher.get(collectionName);
+
+            final docsAfterQuery = doesTodoMatchQuery != null
+                ? docsAfterTransactions
+                    .where((snapshot) =>
+                        doesTodoMatchQuery(snapshot.data() as dynamic, query))
+                    .toList()
+                : docsAfterTransactions;
+
+            return QuerySnapshot(docsAfterQuery);
+          };
 
   Iterable<ExclusiveTransaction> uncommittedTransactionsForDelegate(
       CascadableStorageDelegate delegate) {

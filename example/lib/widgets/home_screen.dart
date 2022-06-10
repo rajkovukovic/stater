@@ -13,20 +13,29 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              ElevatedButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(Routes.withConverters),
-                child: const Text('With Converters'),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(Routes.withConverters),
+                  child: const Text('With Converters'),
+                ),
               ),
-              ElevatedButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(Routes.noConverters),
-                child: const Text('No Converters'),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(Routes.noConverters),
+                  child: const Text('No Converters'),
+                ),
               ),
-              ElevatedButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(Routes.splitScreen),
-                child: const Text('Split Screen'),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: () =>
+                      Navigator.of(context).pushNamed(Routes.splitScreen),
+                  child: const Text('Split Screen'),
+                ),
               ),
             ],
           ),

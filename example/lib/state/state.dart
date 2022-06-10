@@ -1,4 +1,5 @@
 import 'package:stater/stater.dart';
+import 'package:stater_example/state/does_todo_match_query.dart';
 
 final restDelegate = RestDelegate(
   id: 'rest-server-mongodb',
@@ -9,6 +10,10 @@ final localStorageDelegate = LocalStorageDelegate(
   id: 'get-storage',
   storagePrefix: 'DB',
 );
+
+const queryMatcher = JsonQueryMatcher({
+  'todos': doesTodoMatchQuery,
+});
 
 final state = CascadeStorage(
   primaryDelegate: restDelegate,
@@ -21,6 +26,7 @@ final state = CascadeStorage(
     transactionsKey: 'transactions',
     transactionsStateKey: 'processedTransactions',
   ),
+  queryMatcher: queryMatcher,
 );
 
 // final localData = {'photos': {}};

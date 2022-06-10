@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:stater_example/state.dart';
+import 'package:stater_example/state/state.dart';
 import 'package:stater_example/widgets/home_screen.dart';
 import 'package:stater_example/widgets/todos_screen_no_converters.dart';
 import 'package:stater_example/widgets/todos_screen_with_converters.dart';
