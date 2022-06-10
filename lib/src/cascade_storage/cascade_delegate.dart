@@ -7,7 +7,7 @@ import 'package:stater/src/query.dart';
 import 'package:stater/src/query_snapshot.dart';
 import 'package:stater/src/storage_delegate.dart';
 import 'package:stater/src/storage_options.dart';
-import 'package:stater/src/transaction/operation.dart';
+import 'package:stater/src/transaction/operation/operation.dart';
 import 'package:stater/src/transaction/transaction_storing_delegate.dart';
 
 bool ignoreCascadeDelegateAddDocumentWarning = false;
@@ -85,7 +85,7 @@ class CascadeDelegate extends StorageDelegate {
       final data = options.toHashMap(documentData);
       _transactionManager.addTransaction(
         ExclusiveTransaction(operations: [
-          OperationCreate(
+          CreateOperation(
             collectionName: collectionName,
             documentId: documentId.toString(),
             data: data,
@@ -96,7 +96,7 @@ class CascadeDelegate extends StorageDelegate {
     } else if (documentData is Map<String, dynamic>) {
       _transactionManager.addTransaction(
         ExclusiveTransaction(operations: [
-          OperationCreate(
+          CreateOperation(
             collectionName: collectionName,
             documentId: documentId.toString(),
             data: documentData,
@@ -119,7 +119,7 @@ class CascadeDelegate extends StorageDelegate {
   }) async {
     _transactionManager.addTransaction(
       ExclusiveTransaction(operations: [
-        OperationDelete(
+        DeleteOperation(
             collectionName: collectionName, documentId: documentId.toString())
       ]),
     );
@@ -222,7 +222,7 @@ class CascadeDelegate extends StorageDelegate {
   }) async {
     _transactionManager.addTransaction(
       ExclusiveTransaction(operations: [
-        OperationSet(
+        SetOperation(
             collectionName: collectionName,
             documentId: documentId.toString(),
             data: documentData as dynamic)
@@ -243,7 +243,7 @@ class CascadeDelegate extends StorageDelegate {
   }) async {
     if (documentData != null) {
       _transactionManager.addTransaction(ExclusiveTransaction(operations: [
-        OperationUpdate(
+        UpdateOperation(
           collectionName: collectionName,
           documentId: documentId.toString(),
           data: documentData,
@@ -270,7 +270,7 @@ class CascadeDelegate extends StorageDelegate {
                       .map((delegate) => delegate.id)
                       .toSet(),
                   operations: [
-                    OperationSet(
+                    SetOperation(
                         collectionName: collectionName,
                         documentId: documentSnapshot.id.toString(),
                         data: documentSnapshot.data as dynamic)
@@ -304,7 +304,7 @@ class CascadeDelegate extends StorageDelegate {
                   .map((delegate) => delegate.id)
                   .toSet(),
               operations: querySnapshot.docs
-                  .map((documentSnapshot) => OperationSet(
+                  .map((documentSnapshot) => SetOperation(
                       collectionName: collectionName,
                       documentId: documentSnapshot.id.toString(),
                       data: documentSnapshot.data() as Map<String, dynamic>))
@@ -413,7 +413,7 @@ class CascadeDelegate extends StorageDelegate {
     final uncommittedCreatedDocuments = uncommittedTransactions
         .fold<Map<String, Map<String, dynamic>>>({}, (acc, transaction) {
       for (var operation in transaction.operations) {
-        if (operation is OperationCreate) {
+        if (operation is CreateOperation) {
           if (operation.documentId == null) {
             throw 'having transaction with OperationCreate without '
                 'a documentId may be a mistake?';

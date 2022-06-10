@@ -2,7 +2,7 @@ import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query.dart';
 import 'package:stater/src/query_snapshot.dart';
 import 'package:stater/src/storage_options.dart';
-import 'package:stater/src/transaction/operation.dart';
+import 'package:stater/src/transaction/operation/operation.dart';
 import 'package:stater/src/transaction/transaction.dart';
 
 abstract class StorageDelegate {
@@ -72,7 +72,7 @@ abstract class StorageDelegate {
     Operation operation, {
     options = const StorageOptions(),
   }) {
-    if (operation is OperationCreate) {
+    if (operation is CreateOperation) {
       return addDocument(
         collectionName: operation.collectionName,
         documentData: operation.data,
@@ -81,7 +81,7 @@ abstract class StorageDelegate {
       );
     }
 
-    if (operation is OperationDelete) {
+    if (operation is DeleteOperation) {
       return deleteDocument(
         collectionName: operation.collectionName,
         documentId: operation.documentId,
@@ -89,7 +89,7 @@ abstract class StorageDelegate {
       );
     }
 
-    if (operation is OperationSet) {
+    if (operation is SetOperation) {
       return setDocument(
         collectionName: operation.collectionName,
         documentId: operation.documentId,
@@ -98,7 +98,7 @@ abstract class StorageDelegate {
       );
     }
 
-    if (operation is OperationUpdate) {
+    if (operation is UpdateOperation) {
       return updateDocument(
         collectionName: operation.collectionName,
         documentId: operation.documentId,
