@@ -1,5 +1,5 @@
 import 'package:meta/meta.dart';
-import 'package:stater/src/transaction/operation.dart';
+import 'package:stater/src/transaction/operation/operation.dart';
 import 'package:stater/src/transaction/transaction.dart';
 
 class TransactionManager<T extends Transaction> {
@@ -59,7 +59,7 @@ class TransactionManager<T extends Transaction> {
   }
 
   dynamic applyTransactionsToEntity<ID extends Object?>({
-    required String collectionPath,
+    required String collectionName,
     required ID documentId,
     required Map<String, dynamic>? data,
     Iterable<T>? useThisTransactions,
@@ -70,7 +70,7 @@ class TransactionManager<T extends Transaction> {
     for (var transaction in useThisTransactions ?? transactionQueue) {
       for (var operation in transaction.operations) {
         if (operation is OperationWithDocumentId &&
-            operation.collectionPath == collectionPath &&
+            operation.collectionName == collectionName &&
             operation.documentId == documentId) {
           switch (operation.changeType) {
             case OperationType.create:
@@ -83,7 +83,7 @@ class TransactionManager<T extends Transaction> {
               nextData = null;
               break;
             case OperationType.set:
-              nextData = {...(operation as OperationSet).data};
+              nextData = {...(operation as SetOperation).data};
               break;
             case OperationType.update:
               if (nextData == null) {
@@ -91,7 +91,7 @@ class TransactionManager<T extends Transaction> {
               } else {
                 nextData = {
                   ...nextData,
-                  ...(operation as OperationUpdate).data
+                  ...(operation as UpdateOperation).data
                 };
               }
               break;

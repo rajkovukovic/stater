@@ -1,25 +1,45 @@
 import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/transaction/operation.dart';
+import 'package:stater/src/storage_options.dart';
+import 'package:stater/src/transaction/operation/operation.dart';
 
 abstract class CachingStorageDelegate extends StorageDelegate {
   @override
-  Future performOperation(Operation operation) {
-    if (operation is OperationCreate) {
-      return addDocument(operation.collectionPath, operation.data);
+  Future performOperation(
+    Operation operation, {
+    options = const StorageOptions(),
+  }) {
+    if (operation is CreateOperation) {
+      return addDocument(
+        collectionName: operation.collectionName,
+        documentData: operation.data,
+        options: options,
+      );
     }
 
-    if (operation is OperationDelete) {
-      return deleteDocument(operation.collectionPath, operation.documentId);
+    if (operation is DeleteOperation) {
+      return deleteDocument(
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        options: options,
+      );
     }
 
-    if (operation is OperationSet) {
+    if (operation is SetOperation) {
       return setDocument(
-          operation.collectionPath, operation.documentId, operation.data);
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        documentData: operation.data,
+        options: options,
+      );
     }
 
-    if (operation is OperationUpdate) {
+    if (operation is UpdateOperation) {
       return updateDocument(
-          operation.collectionPath, operation.documentId, operation.data);
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        documentData: operation.data,
+        options: options,
+      );
     }
 
     throw 'performOperation does not implement an action when '

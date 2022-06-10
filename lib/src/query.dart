@@ -2,33 +2,43 @@ import 'package:stater/src/converters.dart';
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query_snapshot.dart';
 import 'package:stater/src/storage_delegate.dart';
+import 'package:stater/src/storage_options.dart';
+import 'package:stater/src/utils/convert_query_snapshot.dart';
 
 class Query<ID extends Object?, T extends Object?> {
-  const Query({
-    required this.delegate,
-    required this.collectionPath,
-    this.fromStorage,
-    this.toStorage,
-    this.compareOperations = const [],
-  });
+  const Query(
+      {required this.delegate,
+      required this.collectionName,
+      this.compareOperations = const [],
+      this.options = const StorageOptions(),
+      this.converters});
 
   final StorageDelegate delegate;
-  final String collectionPath;
-  final FromStorage<ID, T>? fromStorage;
-  final ToStorage<T>? toStorage;
+  final String collectionName;
   final List<CompareOperation> compareOperations;
+  final StorageOptions options;
+  final Converters<ID, T>? converters;
 
   // Query<ID, T> _mapQuery(Query<Map<String, dynamic>> newOriginalQuery) {
   //   return Query<T>(
   //     newOriginalQuery,
-  //     _fromStorage,
-  //     _toStorage,
+  //     _fromHashMap,
+  //     _toHashMap,
   //   );
   // }
 
-  Future<QuerySnapshot<ID, T>> get() => delegate.getQuery(this);
+  /// invokes data fetching
+  ///
+  /// returns a Future that resolves to QuerySnapshot
+  Future<QuerySnapshot<ID, T>> get() =>
+      delegate.getQuery<ID, Object?>(this).then((QuerySnapshot querySnapshot) =>
+          convertQuerySnapshot(querySnapshot.cast<ID, Map<String, dynamic>>(),
+              converters: converters));
 
-  Stream<QuerySnapshot<ID, T>> snapshots() => delegate.querySnapshots(this);
+  // Stream<QuerySnapshot<ID, T>> snapshots({
+  //   options = const StorageOptions(),
+  // }) =>
+  //     delegate.querySnapshots(query: this, options: options);
 
   // @override
   // Query<T> endAt(List<Object?> values) {
@@ -85,12 +95,23 @@ class Query<ID extends Object?, T extends Object?> {
   //   return _mapQuery(_originalQuery.startAtDocument(documentSnapshot));
   // }
 
+  Query<ID, T> copyWithCompareOperations(
+    List<CompareOperation> compareOperations,
+  ) {
+    return Query(
+        converters: converters,
+        collectionName: collectionName,
+        delegate: delegate,
+        options: options,
+        compareOperations: compareOperations);
+  }
+
   Query<ID, T> whereOperation(CompareOperation compareOperation) {
     return Query(
-        collectionPath: collectionPath,
+        converters: converters,
+        collectionName: collectionName,
         delegate: delegate,
-        fromStorage: fromStorage,
-        toStorage: toStorage,
+        options: options,
         compareOperations: [...compareOperations, compareOperation]);
   }
 
@@ -107,14 +128,37 @@ class Query<ID extends Object?, T extends Object?> {
   // bool operator ==(Object other) {
   //   return runtimeType == other.runtimeType &&
   //       other is Query<ID, T> &&
-  //       other._fromStorage == _fromStorage &&
-  //       other._toStorage == _toStorage &&
+  //       other._fromHashMap == _fromHashMap &&
+  //       other._toHashMap == _toHashMap &&
   //       other._originalQuery == _originalQuery;
   // }
 
   // @override
   // int get hashCode =>
-  //     hashValues(runtimeType, _fromStorage, _toStorage, _originalQuery);
+  //     hashValues(runtimeType, _fromHashMap, _toHashMap, _originalQuery);
+
+  Query<RID, R> withConverters<RID, R>(Converters<RID, R> converters) {
+    return Query<RID, R>(
+      collectionName: collectionName,
+      delegate: delegate,
+      compareOperations: compareOperations,
+      options: options,
+      converters: converters,
+    );
+  }
+
+  Query<RID, R> withConvertersFrom<RID, R>({
+    required FromHashMap<RID, R> fromHashMap,
+    required ToHashMap<R> toHashMap,
+  }) {
+    return Query<RID, R>(
+      collectionName: collectionName,
+      delegate: delegate,
+      compareOperations: compareOperations,
+      options: options,
+      converters: Converters(fromHashMap, toHashMap),
+    );
+  }
 }
 
 enum CompareOperator {
@@ -135,7 +179,7 @@ class CompareOperation {
       this.field, this.compareOperator, this.valueToCompareTo);
 }
 
-typedef QueryMatcher<T extends Object?> = bool Function(T element, Query query);
+// typedef QueryMatcher<T extends Object?> = bool Function(T element, Query query);
 
 typedef QueryCompareGenerator<ID extends Object?, T extends Object?> = int
         Function(DocumentSnapshot<ID, T> a, DocumentSnapshot<ID, T> b)?

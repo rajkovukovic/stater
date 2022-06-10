@@ -1,12 +1,13 @@
 library stater;
 
-export 'custom/get_storage_storage.dart';
+export 'custom/local_storage.dart';
 export 'custom/rest_storage.dart';
 export 'src/caching_adapter_delegate.dart';
 export 'src/cascade_storage/cascade_delegate.dart';
 export 'src/cascade_storage/cascade_storage.dart';
 export 'src/cascade_storage/cascade_transaction_manager.dart';
 export 'src/cascade_storage/exclusive_transaction.dart';
+export 'src/cascade_storage/json_query_matcher.dart';
 export 'src/collection_reference.dart';
 export 'src/converters.dart';
 export 'src/document_reference.dart';
@@ -17,7 +18,8 @@ export 'src/query_snapshot.dart';
 export 'src/queryable.dart';
 export 'src/storage.dart';
 export 'src/storage_delegate.dart';
-export 'src/transaction/operation.dart';
+export 'src/storage_options.dart';
+export 'src/transaction/operation/operation.dart';
 export 'src/transaction/transaction.dart';
 export 'src/transaction/transaction_manager.dart';
 export 'src/transaction/transaction_processor.dart';

@@ -19,6 +19,11 @@ class DocumentSnapshot<ID extends Object?, T extends Object?> {
 
   const DocumentSnapshot(this.id, this._data, this.reference);
 
+  DocumentSnapshot<CastedID, Casted> cast<CastedID, Casted>() {
+    return DocumentSnapshot(
+        id as CastedID, _data as Casted?, reference.cast<CastedID, Casted>());
+  }
+
   /// Metadata about this document concerning its source and if it has local
   /// modifications.
   // SnapshotMetadata get metadata;

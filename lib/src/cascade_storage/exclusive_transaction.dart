@@ -1,4 +1,4 @@
-import 'package:stater/src/transaction/operation.dart';
+import 'package:stater/src/transaction/operation/operation.dart';
 import 'package:stater/src/transaction/transaction.dart';
 
 class ExclusiveTransaction extends Transaction {

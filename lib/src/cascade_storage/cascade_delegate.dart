@@ -1,46 +1,53 @@
-import 'package:collection/collection.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:stater/src/cascade_storage/cascade_transaction_manager.dart';
 import 'package:stater/src/cascade_storage/exclusive_transaction.dart';
+import 'package:stater/src/cascade_storage/json_query_matcher.dart';
+import 'package:stater/src/converters.dart';
 import 'package:stater/src/document_reference.dart';
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query.dart';
 import 'package:stater/src/query_snapshot.dart';
 import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/transaction/operation.dart';
+import 'package:stater/src/storage_options.dart';
+import 'package:stater/src/transaction/operation/operation.dart';
 import 'package:stater/src/transaction/transaction_storing_delegate.dart';
 
 bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutStorageWithCacheAddDocument = false;
 
 class CascadeDelegate extends StorageDelegate {
-  late final List<StorageDelegateWithId> _delegates;
+  late final List<CascadableStorageDelegate> _delegates;
   late final CascadeTransactionManager<ExclusiveTransaction>
       _transactionManager;
+  late final JsonQueryMatcher _queryMatcher;
 
   CascadeDelegate({
-    required StorageDelegateWithId primaryDelegate,
-    required List<StorageDelegateWithId>? cachingDelegates,
+    required CascadableStorageDelegate primaryDelegate,
+    required List<CascadableStorageDelegate>? cachingDelegates,
     required TransactionStoringDelegate transactionStoringDelegate,
+    JsonQueryMatcher? queryMatcher,
   }) {
     _delegates = [
       primaryDelegate,
       if (cachingDelegates != null) ...cachingDelegates,
     ];
+
     _transactionManager = CascadeTransactionManager(
       delegates: _delegates,
       transactionStoringDelegate: transactionStoringDelegate,
     );
+
+    _queryMatcher = queryMatcher ?? JsonQueryMatcher.empty();
   }
 
   /// creates a new document
   @override
   Future<DocumentSnapshot<ID, T>?>
-      addDocument<ID extends Object?, T extends dynamic>(
-    String collectionPath,
-    T document, [
+      addDocument<ID extends Object?, T extends dynamic>({
+    required String collectionName,
+    required T documentData,
     ID? documentId,
-  ]) async {
+    options = const StorageOptions(),
+  }) async {
     // we do not have an id generated on the UI, so it is not safe to make a
     // transaction out of this request, because document that is going to be
     // created won't have same id across all delegates which may cause
@@ -60,37 +67,66 @@ class CascadeDelegate extends StorageDelegate {
       }
 
       return _delegates.first
-          .addDocument<ID, T>(collectionPath, document, documentId)
+          .addDocument<ID, T>(
+        collectionName: collectionName,
+        documentData: documentData,
+        documentId: documentId,
+        options: options,
+      )
           .then((snapshot) {
         _delegates.sublist(1).forEach((delegate) {
-          delegate.setDocument(collectionPath, snapshot!.id, document);
+          delegate.setDocument(
+            collectionName: collectionName,
+            documentId: snapshot!.id,
+            documentData: documentData,
+            options: options,
+          );
         });
         return snapshot;
       });
     }
     // we have id generated on the UI, so it is safe to make
     // a transaction out of this request
-    else {
+    else if (options is StorageOptionsWithConverters) {
+      final data = options.toHashMap(documentData);
       _transactionManager.addTransaction(
         ExclusiveTransaction(operations: [
-          OperationCreate(
-              collectionPath: collectionPath,
-              documentId: documentId.toString(),
-              data: document as dynamic)
+          CreateOperation(
+            collectionName: collectionName,
+            documentId: documentId.toString(),
+            data: data,
+          )
         ]),
       );
       return null;
+    } else if (documentData is Map<String, dynamic>) {
+      _transactionManager.addTransaction(
+        ExclusiveTransaction(operations: [
+          CreateOperation(
+            collectionName: collectionName,
+            documentId: documentId.toString(),
+            data: documentData,
+          )
+        ]),
+      );
+    } else {
+      throw 'CascadeDelegate.addDocument must be called with options of type '
+          'StorageOptionsWithConverter';
     }
+    return null;
   }
 
   /// deletes the document
   @override
-  Future<void> deleteDocument<ID extends Object?>(
-      String collectionPath, ID documentId) async {
+  Future<void> deleteDocument<ID extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    options = const StorageOptions(),
+  }) async {
     _transactionManager.addTransaction(
       ExclusiveTransaction(operations: [
-        OperationDelete(
-            collectionPath: collectionPath, documentId: documentId.toString())
+        DeleteOperation(
+            collectionName: collectionName, documentId: documentId.toString())
       ]),
     );
   }
@@ -98,18 +134,23 @@ class CascadeDelegate extends StorageDelegate {
   /// Reads the document
   @override
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends dynamic>(
-          String collectionPath, ID documentId) {
+      getDocument<ID extends Object?, T extends dynamic>({
+    required String collectionName,
+    required ID documentId,
+    options = const StorageOptions(),
+  }) {
     Future<DocumentSnapshot<ID, T>> delegateFuture(int delegateIndex) {
       return _delegates[delegateIndex]
-          .getDocument<ID, T>(collectionPath, documentId)
+          .getDocument<ID, T>(
+              collectionName: collectionName, documentId: documentId)
           .catchError((error) {
         if (delegateIndex + 1 < _delegates.length) {
           return delegateFuture(delegateIndex + 1);
         }
       }).then(_postFetchDocument(
-        collectionPath: collectionPath,
+        collectionName: collectionName,
         sourceDelegateIndex: delegateIndex,
+        options: options,
       ));
     }
 
@@ -121,17 +162,18 @@ class CascadeDelegate extends StorageDelegate {
   /// Reads the documents
   @override
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends dynamic>(
-      Query<ID, T> query) {
+      Query<ID, T> query,
+      [Converters<ID, T>? converters]) {
     // TODO: should we refactor to use ```for ... { await ... }``` ?
     Future<QuerySnapshot<ID, T>> delegateFuture(int delegateIndex) {
       return _delegates[delegateIndex]
-          .getQuery<ID, T>(query)
+          .getQuery<ID, T>(query.copyWithCompareOperations(const []))
           .catchError((error) {
         if (delegateIndex + 1 < _delegates.length) {
           return delegateFuture(delegateIndex + 1);
         }
       }).then(_postFetchQuery(
-        collectionPath: query.collectionPath,
+        collectionName: query.collectionName,
         sourceDelegateIndex: delegateIndex,
         query: query,
       ));
@@ -143,49 +185,53 @@ class CascadeDelegate extends StorageDelegate {
   }
 
   /// Notifies of document updates at path defined by
-  /// collectionPath and documentId
-  @override
-  Stream<DocumentSnapshot<ID, T>>
-      documentSnapshots<ID extends Object?, T extends dynamic>(
-          String collectionPath, ID documentId) {
-    return MergeStream(
-      _delegates.mapIndexed((delegateIndex, delegate) => delegate
-          .documentSnapshots<ID, T>(collectionPath, documentId)
-          .map(_postFetchDocument(
-            collectionPath: collectionPath,
-            sourceDelegateIndex: delegateIndex,
-          ))
-          .handleError((_) => true)),
-    ).shareReplay(maxSize: 1);
-  }
+  /// collectionName and documentId
+  // @override
+  // Stream<DocumentSnapshot<ID, T>>
+  //     documentSnapshots<ID extends Object?, T extends dynamic>(
+  //         String collectionName, ID documentId) {
+  //   return MergeStream(
+  //     _delegates.mapIndexed((delegateIndex, delegate) => delegate
+  //         .documentSnapshots<ID, T>(collectionName, documentId)
+  //         .map(_postFetchDocument(
+  //           collectionName: collectionName,
+  //           sourceDelegateIndex: delegateIndex,
+  //         ))
+  //         .handleError((_) => true)),
+  //   ).shareReplay(maxSize: 1);
+  // }
 
   /// Notifies of document updates matching the query
-  @override
-  Stream<QuerySnapshot<ID, T>>
-      querySnapshots<ID extends Object?, T extends dynamic>(
-          Query<ID, T> query) {
-    return MergeStream(
-        _delegates.mapIndexed((delegateIndex, delegate) => delegate
-            .querySnapshots<ID, T>(query)
-            .map(_postFetchQuery(
-              collectionPath: query.collectionPath,
-              sourceDelegateIndex: delegateIndex,
-              query: query,
-            ))
-            .handleError((_) => true))).shareReplay(maxSize: 1);
-  }
+  // @override
+  // Stream<QuerySnapshot<ID, T>>
+  //     querySnapshots<ID extends Object?, T extends dynamic>(
+  //         Query<ID, T> query) {
+  //   return MergeStream(
+  //       _delegates.mapIndexed((delegateIndex, delegate) => delegate
+  //           .querySnapshots<ID, T>(query)
+  //           .map(_postFetchQuery(
+  //             collectionName: query.collectionName,
+  //             sourceDelegateIndex: delegateIndex,
+  //             query: query,
+  //           ))
+  //           .handleError((_) => true))).shareReplay(maxSize: 1);
+  // }
 
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
   @override
-  Future<void> setDocument<ID extends Object?, T extends dynamic>(
-      String collectionPath, ID documentId, T data) async {
+  Future<void> setDocument<ID extends Object?, T extends dynamic>({
+    required String collectionName,
+    required ID documentId,
+    required T documentData,
+    options = const StorageOptions(),
+  }) async {
     _transactionManager.addTransaction(
       ExclusiveTransaction(operations: [
-        OperationSet(
-            collectionPath: collectionPath,
+        SetOperation(
+            collectionName: collectionName,
             documentId: documentId.toString(),
-            data: data as dynamic)
+            data: documentData as dynamic)
       ]),
     );
   }
@@ -195,22 +241,30 @@ class CascadeDelegate extends StorageDelegate {
   ///
   /// If no document exists yet, the update will fail.
   @override
-  Future<void> updateDocument<ID extends Object?>(
-      String collectionPath, ID documentId, Map<String, Object?> data) async {
-    _transactionManager.addTransaction(ExclusiveTransaction(operations: [
-      OperationUpdate(
-          collectionPath: collectionPath,
+  Future<void> updateDocument<ID extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    Map<String, dynamic>? documentData,
+    options = const StorageOptions(),
+  }) async {
+    if (documentData != null) {
+      _transactionManager.addTransaction(ExclusiveTransaction(operations: [
+        UpdateOperation(
+          collectionName: collectionName,
           documentId: documentId.toString(),
-          data: data as dynamic)
-    ]));
+          data: documentData,
+        )
+      ]));
+    }
   }
 
   /// writes this DocumentSnapshot.document to all the delegates
   /// and returns DocumentSnapshot cloned with delegate = "this"
   DocumentSnapshot<ID, T> Function(DocumentSnapshot<ID, T>)
       _postFetchDocument<ID extends Object?, T extends dynamic>({
-    required String collectionPath,
+    required String collectionName,
     required int sourceDelegateIndex,
+    options = const StorageOptions(),
   }) =>
           (documentSnapshot) {
             if (sourceDelegateIndex < _delegates.length - 1) {
@@ -222,8 +276,8 @@ class CascadeDelegate extends StorageDelegate {
                       .map((delegate) => delegate.id)
                       .toSet(),
                   operations: [
-                    OperationSet(
-                        collectionPath: collectionPath,
+                    SetOperation(
+                        collectionName: collectionName,
                         documentId: documentSnapshot.id.toString(),
                         data: documentSnapshot.data as dynamic)
                   ],
@@ -232,7 +286,7 @@ class CascadeDelegate extends StorageDelegate {
             }
 
             return _applyTransactionsAndReplaceDelegateOfDocumentSnapshot(
-              collectionPath: collectionPath,
+              collectionName: collectionName,
               documentSnapshot: documentSnapshot,
               sourceDelegate: _delegates[sourceDelegateIndex],
             );
@@ -242,7 +296,7 @@ class CascadeDelegate extends StorageDelegate {
   /// and returns QuerySnapshot cloned with delegate = "this"
   QuerySnapshot<ID, T> Function(QuerySnapshot<ID, T>)
       _postFetchQuery<ID extends Object?, T extends dynamic>({
-    required String collectionPath,
+    required String collectionName,
     required int sourceDelegateIndex,
     required Query<ID, T> query,
   }) =>
@@ -256,8 +310,8 @@ class CascadeDelegate extends StorageDelegate {
                       .map((delegate) => delegate.id)
                       .toSet(),
                   operations: querySnapshot.docs
-                      .map((documentSnapshot) => OperationSet(
-                          collectionPath: collectionPath,
+                      .map((documentSnapshot) => SetOperation(
+                          collectionName: collectionName,
                           documentId: documentSnapshot.id.toString(),
                           data:
                               documentSnapshot.data() as Map<String, dynamic>))
@@ -266,18 +320,30 @@ class CascadeDelegate extends StorageDelegate {
               );
             }
 
-            return _applyTransactionsAndReplaceDelegateOfQuerySnapshot(
-              collectionPath: collectionPath,
+            final docsAfterTransactions =
+                _applyTransactionsAndReplaceDelegateOfQuerySnapshot(
+              collectionName: collectionName,
               querySnapshot: querySnapshot,
               query: query,
               sourceDelegate: _delegates[sourceDelegateIndex],
-            );
+            ).docs;
+
+            final doesTodoMatchQuery = _queryMatcher.get(collectionName);
+
+            final docsAfterQuery = doesTodoMatchQuery != null
+                ? docsAfterTransactions
+                    .where((snapshot) =>
+                        doesTodoMatchQuery(snapshot.data() as dynamic, query))
+                    .toList()
+                : docsAfterTransactions;
+
+            return QuerySnapshot(docsAfterQuery);
           };
 
   Iterable<ExclusiveTransaction> uncommittedTransactionsForDelegate(
-      StorageDelegateWithId delegate) {
+      CascadableStorageDelegate delegate) {
     final completedTransactionsIds =
-        _transactionManager.completedTransactionsIds(delegate)!;
+        _transactionManager.completedTransactionsIds(delegate) ?? {};
 
     return _transactionManager.getTransactionQueue().where((transaction) =>
         !transaction.excludeDelegateWithIds.contains(delegate.id) &&
@@ -289,15 +355,15 @@ class CascadeDelegate extends StorageDelegate {
   DocumentSnapshot<ID, T>
       _applyTransactionsAndReplaceDelegateOfDocumentSnapshot<ID extends Object?,
           T extends dynamic>({
-    required String collectionPath,
+    required String collectionName,
     required DocumentSnapshot<ID, T> documentSnapshot,
-    required StorageDelegateWithId sourceDelegate,
+    required CascadableStorageDelegate sourceDelegate,
   }) {
     final uncommittedTransactions =
         uncommittedTransactionsForDelegate(sourceDelegate);
 
     final transformed = _transactionManager.applyTransactionsToEntity(
-      collectionPath: collectionPath,
+      collectionName: collectionName,
       documentId: documentSnapshot.id,
       data: documentSnapshot.data() as Map<String, dynamic>?,
       useThisTransactions: uncommittedTransactions,
@@ -306,7 +372,11 @@ class CascadeDelegate extends StorageDelegate {
     return DocumentSnapshot<ID, T>(
       documentSnapshot.id,
       transformed,
-      DocumentReference(collectionPath, documentSnapshot.id, this),
+      DocumentReference(
+        collectionName: collectionName,
+        documentId: documentSnapshot.id,
+        delegate: this,
+      ),
     );
   }
 
@@ -314,10 +384,10 @@ class CascadeDelegate extends StorageDelegate {
   /// and applies all uncommitted transactions to every DocumentSnapshot.data
   QuerySnapshot<ID, T> _applyTransactionsAndReplaceDelegateOfQuerySnapshot<
       ID extends Object?, T extends dynamic>({
-    required String collectionPath,
+    required String collectionName,
     required QuerySnapshot<ID, dynamic> querySnapshot,
     required Query<ID, T> query,
-    required StorageDelegateWithId sourceDelegate,
+    required CascadableStorageDelegate sourceDelegate,
   }) {
     final uncommittedTransactions =
         uncommittedTransactionsForDelegate(sourceDelegate);
@@ -325,7 +395,7 @@ class CascadeDelegate extends StorageDelegate {
     final uncommittedCreatedDocuments = uncommittedTransactions
         .fold<Map<String, Map<String, dynamic>>>({}, (acc, transaction) {
       for (var operation in transaction.operations) {
-        if (operation is OperationCreate) {
+        if (operation is CreateOperation) {
           if (operation.documentId == null) {
             throw 'having transaction with OperationCreate without '
                 'a documentId may be a mistake?';
@@ -340,41 +410,50 @@ class CascadeDelegate extends StorageDelegate {
         .map((entry) => DocumentSnapshot<ID, T>(
               entry.key as ID,
               _transactionManager.applyTransactionsToEntity(
-                collectionPath: collectionPath,
+                collectionName: collectionName,
                 documentId: entry.key,
                 data: entry.value,
                 useThisTransactions: uncommittedTransactions,
               ),
-              DocumentReference(collectionPath, entry.key as ID, this),
-            ))
-        .where((documentSnapshot) =>
-            documentSnapshot.exists &&
-            sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
+              DocumentReference(
+                collectionName: collectionName,
+                documentId: entry.key as ID,
+                delegate: this,
+              ),
+            ));
+    // .where((documentSnapshot) =>
+    //     documentSnapshot.exists &&
+    //     sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
 
-    final fromQuery = querySnapshot.docs
-        .map((documentSnapshot) => DocumentSnapshot<ID, T>(
+    final fromQuery =
+        querySnapshot.docs.map((documentSnapshot) => DocumentSnapshot<ID, T>(
               documentSnapshot.id,
               _transactionManager.applyTransactionsToEntity(
-                collectionPath: collectionPath,
+                collectionName: collectionName,
                 documentId: documentSnapshot.id,
                 data: documentSnapshot.data(),
                 useThisTransactions: uncommittedTransactions,
               ),
-              DocumentReference(collectionPath, documentSnapshot.id, this),
-            ))
-        .where((documentSnapshot) =>
-            documentSnapshot.exists &&
-            sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
+              DocumentReference(
+                collectionName: collectionName,
+                documentId: documentSnapshot.id,
+                delegate: this,
+              ),
+            ));
+    // .where((documentSnapshot) =>
+    //     documentSnapshot.exists &&
+    //     sourceDelegate.doesMatchQuery(documentSnapshot.data(), query));
 
     final matched = [
-      ...fromQuery,
+      ...fromQuery.where(
+          (snapshot) => !uncommittedCreatedDocuments.containsKey(snapshot.id)),
       ...uncommittedCreatedDocumentsRefs,
     ];
 
-    if (sourceDelegate.generateCompareFromQuery != null) {
-      final compare = sourceDelegate.generateCompareFromQuery!(query);
-      matched.sort(compare);
-    }
+    // if (sourceDelegate.generateCompareFromQuery != null) {
+    //   final compare = sourceDelegate.generateCompareFromQuery!(query);
+    //   matched.sort(compare);
+    // }
 
     return QuerySnapshot<ID, T>(matched);
   }

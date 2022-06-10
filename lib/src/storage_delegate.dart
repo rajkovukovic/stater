@@ -1,95 +1,148 @@
 import 'package:stater/src/document_snapshot.dart';
 import 'package:stater/src/query.dart';
 import 'package:stater/src/query_snapshot.dart';
-import 'package:stater/src/transaction/operation.dart';
+import 'package:stater/src/storage_options.dart';
+import 'package:stater/src/transaction/operation/operation.dart';
 import 'package:stater/src/transaction/transaction.dart';
 
 abstract class StorageDelegate {
   /// creates a new document
   Future<DocumentSnapshot<ID, T>?>
-      addDocument<ID extends Object?, T extends Object?>(
-          String collectionPath, T data,
-          [ID? documentId]);
+      addDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required T documentData,
+    ID? documentId,
+    options = const StorageOptions(),
+  });
 
   /// deletes the document
-  Future<void> deleteDocument<ID extends Object?>(
-      String collectionPath, ID documentId);
+  Future<void> deleteDocument<ID extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    options = const StorageOptions(),
+  });
 
   /// Reads the document
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends Object?>(
-          String collectionPath, ID documentId);
+      getDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required ID documentId,
+  });
 
   /// Reads the document
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
       Query<ID, T> query);
 
   /// Notifies of document updates at this location.
-  Stream<DocumentSnapshot<ID, T>>
-      documentSnapshots<ID extends Object?, T extends Object?>(
-          String collectionPath, ID documentId);
+  // Stream<DocumentSnapshot<ID, T>>
+  //     documentSnapshots<ID extends Object?, T extends Object?>({
+  //   required String collectionName,
+  //   required ID documentId,
+  //   options = const StorageOptions(),
+  // });
 
   /// Notifies of document updates at this location.
-  Stream<QuerySnapshot<ID, T>>
-      querySnapshots<ID extends Object?, T extends Object?>(Query<ID, T> query);
+  // Stream<QuerySnapshot<ID, T>>
+  //     querySnapshots<ID extends Object?, T extends Object?>({
+  //   required Query<ID, T> query,
+  //   options = const StorageOptions(),
+  // });
 
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
-  Future<void> setDocument<ID extends Object?, T extends Object?>(
-      String collectionPath, ID documentId, T data);
+  Future<void> setDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    required T documentData,
+    options = const StorageOptions(),
+  });
 
   /// Updates data on the document. Data will be merged with any existing
   /// document data.
   ///
   /// If no document exists yet, the update will fail.
-  Future<void> updateDocument<ID extends Object?>(
-      String collectionPath, ID documentId, Map<String, Object?> data);
+  Future<void> updateDocument<ID extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    required Map<String, dynamic> documentData,
+    options = const StorageOptions(),
+  });
 
-  Future performOperation(Operation operation) {
-    if (operation is OperationCreate) {
+  Future performOperation(
+    Operation operation, {
+    options = const StorageOptions(),
+  }) {
+    if (operation is CreateOperation) {
       return addDocument(
-          operation.collectionPath, operation.data, operation.documentId);
+        collectionName: operation.collectionName,
+        documentData: operation.data,
+        documentId: operation.documentId,
+        options: options,
+      );
     }
 
-    if (operation is OperationDelete) {
-      return deleteDocument(operation.collectionPath, operation.documentId);
+    if (operation is DeleteOperation) {
+      return deleteDocument(
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        options: options,
+      );
     }
 
-    if (operation is OperationSet) {
+    if (operation is SetOperation) {
       return setDocument(
-          operation.collectionPath, operation.documentId, operation.data);
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        documentData: operation.data,
+        options: options,
+      );
     }
 
-    if (operation is OperationUpdate) {
+    if (operation is UpdateOperation) {
       return updateDocument(
-          operation.collectionPath, operation.documentId, operation.data);
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        documentData: operation.data,
+        options: options,
+      );
     }
 
     throw 'performOperation does not implement an action when '
         'operation type is ${operation.runtimeType}';
   }
 
-  Future performTransaction(Transaction transaction,
-      [doOperationsInParallel = false]) async {
+  Future<dynamic> performTransaction(
+    Transaction transaction, {
+    doOperationsInParallel = false,
+    options = const StorageOptions(),
+  }) async {
     // TODO: implement rollback in case of failure
     if (doOperationsInParallel) {
-      return Future.wait(transaction.operations.map(performOperation));
+      return Future.wait(transaction.operations
+          .map((operation) => performOperation(operation, options: options)));
     } else {
+      final operationResults = [];
       for (var operation in transaction.operations) {
-        await performOperation(operation);
+        operationResults.add(
+          await performOperation(
+            operation,
+            options: options,
+          ),
+        );
       }
+      return operationResults;
     }
   }
 }
 
-abstract class StorageDelegateWithId extends StorageDelegate {
+abstract class CascadableStorageDelegate extends StorageDelegate {
   final String id;
-  final QueryMatcher doesMatchQuery;
-  final QueryCompareGenerator? generateCompareFromQuery;
+  // final QueryMatcher doesMatchQuery;
+  // final QueryCompareGenerator? generateCompareFromQuery;
 
-  StorageDelegateWithId({
+  CascadableStorageDelegate({
     required this.id,
-    required this.doesMatchQuery,
-    this.generateCompareFromQuery,
+    // required this.doesMatchQuery,
+    // this.generateCompareFromQuery,
   });
 }

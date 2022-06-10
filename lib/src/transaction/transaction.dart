@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:stater/src/cascade_storage/exclusive_transaction.dart';
 import 'package:uuid/uuid.dart';
 
-import 'operation.dart';
+import 'operation/operation.dart';
 
 class Transaction {
   final List<Operation> operations;

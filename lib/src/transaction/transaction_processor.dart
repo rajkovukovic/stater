@@ -8,7 +8,7 @@ const _retrySequencesInMilliseconds = [1000, 2000, 5000];
 
 /// Processes a transaction and retires forever
 class TransactionProcessor {
-  final StorageDelegateWithId delegate;
+  final CascadableStorageDelegate delegate;
   final Set<String> completedTransactionIds;
 
   Transaction? currentTransaction;
