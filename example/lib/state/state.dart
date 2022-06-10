@@ -42,7 +42,7 @@ final state = CascadeStorage(
 //   )
 // ];
 
-// final filePath = {};
+// final filePath = '/Users/me/photo.jpg';
 
 // final a =
 //     state.request('uploadPhotos', {'filePath': filePath, 'documentId': 'uuid'});

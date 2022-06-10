@@ -1,22 +1,25 @@
 import 'dart:convert';
 
 import 'operation.dart';
-import 'operation_type.dart';
 
-class OperationServiceRequest extends Operation {
+/// Performs a non standard CRUD operation
+class ServiceRequestOperation extends Operation {
   dynamic data;
+  String serviceName;
 
-  OperationServiceRequest({
+  ServiceRequestOperation({
     required this.data,
+    required this.serviceName,
     super.timestamp,
   });
 
   @override
   get changeType => OperationType.serviceRequest;
 
-  factory OperationServiceRequest.fromMap(Map<String, dynamic> map) {
-    return OperationServiceRequest(
+  factory ServiceRequestOperation.fromMap(Map<String, dynamic> map) {
+    return ServiceRequestOperation(
       data: map['data'],
+      serviceName: map['serviceName'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
     );
   }
@@ -26,10 +29,11 @@ class OperationServiceRequest extends Operation {
     return {
       'changeType': changeType.name,
       'data': data,
+      'serviceName': serviceName,
       'timestamp': timestamp.millisecondsSinceEpoch,
     };
   }
 
-  factory OperationServiceRequest.fromJson(String source) =>
-      OperationServiceRequest.fromMap(json.decode(source));
+  factory ServiceRequestOperation.fromJson(String source) =>
+      ServiceRequestOperation.fromMap(json.decode(source));
 }

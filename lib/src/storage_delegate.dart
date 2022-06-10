@@ -29,6 +29,11 @@ abstract class StorageDelegate {
     required ID documentId,
   });
 
+  Future serviceRequest(String serviceName, dynamic params) {
+    throw 'classes derived from StorageDelegate should implement serviceRequest'
+        'method. Did you forget to implement it?';
+  }
+
   /// Reads the document
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
       Query<ID, T> query);
@@ -105,6 +110,10 @@ abstract class StorageDelegate {
         documentData: operation.data,
         options: options,
       );
+    }
+
+    if (operation is ServiceRequestOperation) {
+      return serviceRequest(operation.serviceName, operation.data);
     }
 
     throw 'performOperation does not implement an action when '

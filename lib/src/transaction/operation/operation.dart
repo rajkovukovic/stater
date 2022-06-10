@@ -44,7 +44,7 @@ abstract class Operation {
       case OperationType.update:
         return UpdateOperation.fromMap(map);
       case OperationType.serviceRequest:
-        return OperationServiceRequest.fromMap(map);
+        return ServiceRequestOperation.fromMap(map);
       default:
         throw 'Operation.fromMap does not have implemented $changeType';
     }
