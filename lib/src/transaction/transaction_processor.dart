@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
-import 'package:stater/src/storage_delegate.dart';
+import 'package:stater/src/delegate/cascadable_storage_delegate.dart';
 import 'package:stater/src/transaction/transaction.dart';
 
 const _retrySequencesInMilliseconds = [1000, 2000, 5000];

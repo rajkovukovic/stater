@@ -1,8 +1,4 @@
-import 'package:stater/src/cascade_storage/cascade_delegate.dart';
-import 'package:stater/src/cascade_storage/json_query_matcher.dart';
-import 'package:stater/src/storage.dart';
-import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/transaction/transaction_storing_delegate.dart';
+import 'package:stater/stater.dart';
 
 /// Storage that implements caching mechanism.
 ///

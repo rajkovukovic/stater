@@ -1,9 +1,4 @@
-import 'package:stater/src/document_snapshot.dart';
-import 'package:stater/src/query.dart';
-import 'package:stater/src/query_snapshot.dart';
-import 'package:stater/src/storage_options.dart';
-import 'package:stater/src/transaction/operation/operation.dart';
-import 'package:stater/src/transaction/transaction.dart';
+import 'package:stater/stater.dart';
 
 abstract class StorageDelegate {
   /// creates a new document
@@ -144,51 +139,4 @@ abstract class StorageDelegate {
       return operationResults;
     }
   }
-}
-
-abstract class CascadableStorageDelegate extends StorageDelegate {
-  final String id;
-  // final QueryMatcher doesMatchQuery;
-  // final QueryCompareGenerator? generateCompareFromQuery;
-
-  CascadableStorageDelegate({
-    required this.id,
-    // required this.doesMatchQuery,
-    // this.generateCompareFromQuery,
-  });
-}
-
-abstract class QuickStorageDelegate extends StorageDelegate {
-  /// removes all documents and all collections
-  Future<void> removeAllCollections();
-
-  /// removes a collection and all its documents
-  Future<void> removeCollection(String collectionName);
-
-  /// removes all documents from a collection,
-  /// but leaves empty collection behind
-  Future<void> removeAllDocumentsInCollection(String collectionName);
-
-  /// inserts all [documents] to a collection and overwrites existing ones
-  Future<void> insertToCollection(
-    String collectionName,
-    Map<String, dynamic> documents,
-  );
-
-  /// removes all collection documents and inserts all from [documents] param
-  Future<void> replaceCollection(
-    String collectionName,
-    Map<String, dynamic> documents,
-  );
-
-  /// merges [collections] map into existing data
-  ///
-  /// existing documents will be overwritten
-  Future<void> insertData(Map<String, dynamic> collections);
-
-  /// returns whole collection
-  Future<Map<String, dynamic>> getCollectionData(String collectionName);
-
-  /// returns whole database
-  Future<Map<String, Map<String, dynamic>>> getAllData();
 }

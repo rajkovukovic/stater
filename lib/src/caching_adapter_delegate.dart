@@ -1,6 +1,4 @@
-import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/storage_options.dart';
-import 'package:stater/src/transaction/operation/operation.dart';
+import 'package:stater/stater.dart';
 
 abstract class CachingStorageDelegate extends StorageDelegate {
   @override

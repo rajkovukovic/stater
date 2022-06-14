@@ -1,13 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:stater/src/converters.dart';
-import 'package:stater/src/document_reference.dart';
-import 'package:stater/src/document_snapshot.dart';
-import 'package:stater/src/query.dart';
-import 'package:stater/src/query_snapshot.dart';
-import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/storage_options.dart';
+import 'package:stater/stater.dart';
 
 class RestDelegate extends CascadableStorageDelegate {
   RestDelegate({

@@ -1,10 +1,7 @@
 import 'package:meta/meta.dart';
-import 'package:stater/src/converters.dart';
-import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/storage_options.dart';
 import 'package:stater/src/utils/convert_document_snapshot.dart';
+import 'package:stater/stater.dart';
 
-import 'document_snapshot.dart';
 
 @immutable
 class DocumentReference<ID extends Object?, T extends Object?> {

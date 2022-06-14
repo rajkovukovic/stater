@@ -1,14 +1,7 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
-import 'package:stater/src/converters.dart';
-import 'package:stater/src/document_reference.dart';
-import 'package:stater/src/document_snapshot.dart';
-import 'package:stater/src/query.dart';
-import 'package:stater/src/query_snapshot.dart';
-import 'package:stater/src/storage.dart';
-import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/storage_options.dart';
+import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
 /// in-RAM StorageDelegate used for super fast operations
@@ -17,11 +10,11 @@ class InMemoryDelegate extends StorageDelegate {
 
   InMemoryDelegate(Map<String, Map<String, dynamic>> cache) : _cache = cache;
 
-  static FutureOr<InMemoryDelegate> fromClonedData(
-    QuickStorageDelegate delegate,
-  ) async {
-    return InMemoryDelegate(await delegate.getAllData());
-  }
+  // static FutureOr<InMemoryDelegate> fromClonedData(
+  //   QuickStorageDelegate delegate,
+  // ) async {
+  //   return InMemoryDelegate(await delegate.getAllData());
+  // }
 
   Map<String, Map<String, dynamic>> get data => _cache;
 
@@ -138,19 +131,5 @@ class InMemoryDelegate extends StorageDelegate {
         ...documentData
       };
     }
-  }
-}
-
-class InMemoryStorage extends Storage {
-  InMemoryStorage([Map<String, Map<String, dynamic>>? cache])
-      : super(InMemoryDelegate(cache ?? {}));
-
-  InMemoryStorage.fromDelegate(InMemoryDelegate delegate) : super(delegate);
-
-  static FutureOr<InMemoryStorage> fromClonedData(
-    QuickStorageDelegate delegate,
-  ) async {
-    final cloned = await InMemoryDelegate.fromClonedData(delegate);
-    return InMemoryStorage.fromDelegate(cloned);
   }
 }

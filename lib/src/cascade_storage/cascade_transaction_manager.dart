@@ -4,7 +4,7 @@ import 'package:async/async.dart';
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:stater/src/cascade_storage/exclusive_transaction.dart';
-import 'package:stater/src/storage_delegate.dart';
+import 'package:stater/src/delegate/cascadable_storage_delegate.dart';
 import 'package:stater/src/transaction/transaction.dart';
 import 'package:stater/src/transaction/transaction_manager.dart';
 import 'package:stater/src/transaction/transaction_processor.dart';

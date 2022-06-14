@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:stater/src/document_reference.dart';
-import 'package:stater/src/storage.dart';
-import 'package:stater/src/storage_delegate.dart';
+import 'package:stater/stater.dart';
 
 class TransactionStoringDelegate {
   final Future<List<Map<String, dynamic>>?> Function() readTransactions;

@@ -1,11 +1,9 @@
 import 'package:meta/meta.dart';
-import 'package:stater/src/collection_reference.dart';
-import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/storage_options.dart';
+import 'package:stater/stater.dart';
 
-class Storage {
+class Storage<D extends StorageDelegate> {
   @protected
-  final StorageDelegate delegate;
+  final D delegate;
 
   Storage(this.delegate);
 
