@@ -29,6 +29,8 @@ abstract class StorageDelegate {
     required ID documentId,
   });
 
+  /// performs specific list of operations that can not be described using
+  /// the existing CRUD operations
   Future serviceRequest(String serviceName, dynamic params) {
     throw 'classes derived from StorageDelegate should implement serviceRequest'
         'method. Did you forget to implement it?';
@@ -154,4 +156,39 @@ abstract class CascadableStorageDelegate extends StorageDelegate {
     // required this.doesMatchQuery,
     // this.generateCompareFromQuery,
   });
+}
+
+abstract class QuickStorageDelegate extends StorageDelegate {
+  /// removes all documents and all collections
+  Future<void> removeAllCollections();
+
+  /// removes a collection and all its documents
+  Future<void> removeCollection(String collectionName);
+
+  /// removes all documents from a collection,
+  /// but leaves empty collection behind
+  Future<void> removeAllDocumentsInCollection(String collectionName);
+
+  /// inserts all [documents] to a collection and overwrites existing ones
+  Future<void> insertToCollection(
+    String collectionName,
+    Map<String, dynamic> documents,
+  );
+
+  /// removes all collection documents and inserts all from [documents] param
+  Future<void> replaceCollection(
+    String collectionName,
+    Map<String, dynamic> documents,
+  );
+
+  /// merges [collections] map into existing data
+  ///
+  /// existing documents will be overwritten
+  Future<void> insertData(Map<String, dynamic> collections);
+
+  /// returns whole collection
+  Future<Map<String, dynamic>> getCollectionData(String collectionName);
+
+  /// returns whole database
+  Future<Map<String, Map<String, dynamic>>> getAllData();
 }
