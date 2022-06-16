@@ -4,11 +4,11 @@ import 'operation.dart';
 
 /// Performs a non standard CRUD operation
 class ServiceRequestOperation extends Operation {
-  dynamic data;
+  dynamic params;
   String serviceName;
 
   ServiceRequestOperation({
-    required this.data,
+    required this.params,
     required this.serviceName,
     super.timestamp,
   });
@@ -18,7 +18,7 @@ class ServiceRequestOperation extends Operation {
 
   factory ServiceRequestOperation.fromMap(Map<String, dynamic> map) {
     return ServiceRequestOperation(
-      data: map['data'],
+      params: map['params'],
       serviceName: map['serviceName'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
     );
@@ -28,7 +28,7 @@ class ServiceRequestOperation extends Operation {
   Map<String, dynamic> toMap() {
     return {
       'changeType': changeType.name,
-      'data': data,
+      'params': params,
       'serviceName': serviceName,
       'timestamp': timestamp.millisecondsSinceEpoch,
     };

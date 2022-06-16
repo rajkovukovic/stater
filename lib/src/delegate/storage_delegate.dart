@@ -110,7 +110,7 @@ abstract class StorageDelegate {
     }
 
     if (operation is ServiceRequestOperation) {
-      return serviceRequest(operation.serviceName, operation.data);
+      return serviceRequest(operation.serviceName, operation.params);
     }
 
     throw 'performOperation does not implement an action when '

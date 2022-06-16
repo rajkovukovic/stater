@@ -1,4 +1,4 @@
-import 'package:stater/src/delegate/storage_delegate.dart';
+import 'package:stater/stater.dart';
 
 abstract class CascadableStorageDelegate extends StorageDelegate {
   final String id;

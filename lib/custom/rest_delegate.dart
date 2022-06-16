@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:stater/stater.dart';
+import 'package:uuid/uuid.dart';
 
 class RestDelegate extends CascadableStorageDelegate {
   RestDelegate({
@@ -162,5 +163,44 @@ class RestDelegate extends CascadableStorageDelegate {
         .patch('$endpoint/$collectionName/$documentId',
             data: documentData, options: requestOptions)
         .then((response) => response.data);
+  }
+
+  @override
+  Future serviceRequest(String serviceName, dynamic params) async {
+    switch (serviceName) {
+      case 'createManyTodos':
+        final int createCount = params;
+
+        final Iterable<Map<String, dynamic>> existingTodos = await Dio()
+            .get('$endpoint/todos')
+            .then((response) => response.data);
+
+        final existingNames = existingTodos.fold<Set<String>>(
+            {},
+            (acc, todo) =>
+                acc..add(todo['name'].replaceAll(RegExp(r"\s+"), "")));
+
+        int nextTodoNumber = 1;
+
+        for (var i = 0; i < createCount; i++) {
+          while (existingNames.contains('todo$nextTodoNumber')) {
+            nextTodoNumber++;
+          }
+
+          final todo = {'name': 'Todo $nextTodoNumber', 'completed': false};
+
+          await addDocument(
+            collectionName: 'todos',
+            documentData: todo,
+            documentId: const Uuid().v4(),
+          );
+
+          nextTodoNumber++;
+        }
+
+        break;
+      default:
+        throw 'RestDelegate does not support serviceRequest "$serviceName"';
+    }
   }
 }

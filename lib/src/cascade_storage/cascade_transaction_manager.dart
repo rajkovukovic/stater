@@ -22,6 +22,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   late Map<CascadableStorageDelegate, TransactionProcessor> processorMap;
 
   bool _isInit = false;
+
   late CancelableOperation? _cancelInit;
 
   /// future for reading of previouslySavedTransactionState
@@ -65,9 +66,11 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     initFuture = Future.wait([
       transactionStoringDelegate.readTransactions(),
       transactionStoringDelegate.readProcessedState(),
-    ]).then(_completeInit);
+    ]);
 
     _cancelInit = CancelableOperation.fromFuture(initFuture);
+
+    _cancelInit?.then((_) => _completeInit);
   }
 
   void destroy() {
@@ -153,7 +156,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       _transactionStateHasUnsavedChanges = true;
     } else {
       // wait for a short while before writing
-      // it may arrive more saveTransactionState requests
+      // more saveTransactionState requests may arrive
       // within next few microseconds
       // and we want to aggregate them into one write operation
       Future.delayed(const Duration(milliseconds: 1)).then((_) {

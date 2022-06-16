@@ -18,8 +18,7 @@ class Storage<D extends StorageDelegate> {
     );
   }
 
-  Future request(String requestName, dynamic params) {
-    throw 'Storage.request method should be overridden in classes'
-        'that extends Storage class';
+  Future serviceRequest(String serviceName, dynamic params) {
+    return delegate.serviceRequest(serviceName, params);
   }
 }

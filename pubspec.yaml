@@ -22,6 +22,7 @@ dependencies:
   meta: ^1.7.0
   rxdart: ^0.27.3
   uuid: ^3.0.6
+  fast_immutable_collections: ^7.4.1
 
 dev_dependencies:
   flutter_test:

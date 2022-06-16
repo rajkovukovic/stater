@@ -43,9 +43,11 @@ class _TodosScreenWithConvertersState extends State<TodosScreenWithConverters> {
     return TodosScreenWrapper(
       completedFilter: completedFilter,
       newTodoCard: _buildNewTodoCard(),
-      onCreateNewPressed: () => setState(() {
+      onCreateOnePressed: () => setState(() {
         newTodo = Todo(id: const Uuid().v4(), name: '');
       }),
+      onCreateManyPressed: _handleCreateMany,
+      onRemoveAllPressed: _handleRemoveAll,
       onQueryChanged: _handleQueryChanged,
       onReload: _reloadData,
       searchTerm: searchTerm,
@@ -127,12 +129,27 @@ class _TodosScreenWithConvertersState extends State<TodosScreenWithConverters> {
     documents = query.get().then((snapshot) => snapshot.docs);
   }
 
-  void _handleQueryChanged(
-      {bool? completedFilter, required String searchTerm}) {
+  void _handleQueryChanged({
+    bool? completedFilter,
+    required String searchTerm,
+  }) {
     this.completedFilter = completedFilter;
     this.searchTerm = searchTerm;
     setState(() => _setUpStreams());
   }
 
   void _reloadData() => setState(() => _setUpStreams());
+
+  void _handleCreateMany() {
+    documents = widget.storage
+        .serviceRequest('createManyTodos', 3)
+        .then((_) => Future.delayed(const Duration(milliseconds: 1000)))
+        .then((_) => []);
+
+    documents.then((_) => setState(() => _setUpStreams()));
+
+    setState(() {});
+  }
+
+  void _handleRemoveAll() {}
 }

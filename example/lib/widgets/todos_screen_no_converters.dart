@@ -44,7 +44,7 @@ class _TodosScreenNoConvertersState extends State<TodosScreenNoConverters> {
       appBarColor: Colors.grey,
       completedFilter: completedFilter,
       newTodoCard: _buildNewTodoCard(),
-      onCreateNewPressed: () => setState(() {
+      onCreateOnePressed: () => setState(() {
         newTodo = Todo(id: const Uuid().v4(), name: '');
       }),
       onQueryChanged: _handleQueryChanged,

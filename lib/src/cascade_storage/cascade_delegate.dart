@@ -237,14 +237,28 @@ class CascadeDelegate extends StorageDelegate {
     options = const StorageOptions(),
   }) async {
     if (documentData != null) {
-      _transactionManager.addTransaction(ExclusiveTransaction(operations: [
-        UpdateOperation(
-          collectionName: collectionName,
-          documentId: documentId.toString(),
-          data: documentData,
-        )
-      ]));
+      _transactionManager.addTransaction(
+        ExclusiveTransaction(operations: [
+          UpdateOperation(
+            collectionName: collectionName,
+            documentId: documentId.toString(),
+            data: documentData,
+          )
+        ]),
+      );
     }
+  }
+
+  @override
+  Future serviceRequest(String serviceName, dynamic params) async {
+    _transactionManager.addTransaction(
+      ExclusiveTransaction(operations: [
+        ServiceRequestOperation(
+          serviceName: serviceName,
+          params: params,
+        )
+      ]),
+    );
   }
 
   /// writes this DocumentSnapshot.document to all the delegates

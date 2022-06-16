@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:stater_example/widgets/todo_popup_button.dart';
 
 import 'tri_state_selector.dart';
 
@@ -8,9 +9,11 @@ class TodosScreenWrapper extends StatefulWidget {
     this.completedFilter,
     super.key,
     this.newTodoCard,
-    this.onCreateNewPressed,
+    this.onCreateOnePressed,
+    this.onCreateManyPressed,
     this.onQueryChanged,
     this.onReload,
+    this.onRemoveAllPressed,
     this.searchTerm = '',
     required this.todoBuilder,
     required this.todosFuture,
@@ -22,7 +25,11 @@ class TodosScreenWrapper extends StatefulWidget {
 
   final Widget? newTodoCard;
 
-  final void Function()? onCreateNewPressed;
+  final void Function()? onCreateOnePressed;
+
+  final void Function()? onCreateManyPressed;
+
+  final void Function()? onRemoveAllPressed;
 
   final void Function({bool? completedFilter, required String searchTerm})?
       onQueryChanged;
@@ -97,8 +104,11 @@ class _TodosScreenWrapper extends State<TodosScreenWrapper> {
           IconButton(
               onPressed: widget.onReload,
               icon: const Icon(Icons.replay_outlined)),
-          IconButton(
-              onPressed: widget.onCreateNewPressed, icon: const Icon(Icons.add))
+          TodoPopupButton(
+            onCreateOnePressed: widget.onCreateOnePressed,
+            onCreateManyPressed: widget.onCreateManyPressed,
+            onRemoveAllPressed: widget.onRemoveAllPressed,
+          ),
         ],
       ),
       body: FutureBuilder<dynamic>(
@@ -142,7 +152,7 @@ class _TodosScreenWrapper extends State<TodosScreenWrapper> {
                     ? Padding(
                         padding: const EdgeInsets.all(32),
                         child: ElevatedButton(
-                            onPressed: widget.onCreateNewPressed,
+                            onPressed: widget.onCreateOnePressed,
                             child: const Text('Create First Todo')),
                       )
                     : null;

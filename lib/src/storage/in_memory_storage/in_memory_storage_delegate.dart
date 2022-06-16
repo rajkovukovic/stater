@@ -1,14 +1,33 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
 /// in-RAM StorageDelegate used for super fast operations
 class InMemoryDelegate extends StorageDelegate {
-  final Map<String, Map<String, dynamic>> _cache;
+  IMap<String, IMap<String, dynamic>> _cache;
 
-  InMemoryDelegate(Map<String, Map<String, dynamic>> cache) : _cache = cache;
+  InMemoryDelegate(Map<String, Map<String, dynamic>> cache)
+      : _cache = IMap.fromEntries(
+          cache.entries.map(
+            ((collectionEntry) => MapEntry(
+                  collectionEntry.key,
+                  IMap.fromEntries(
+                    collectionEntry.value.entries.map(
+                      (docEntry) => MapEntry(
+                          docEntry.key,
+                          docEntry is Map
+                              ? docEntry.value.lock
+                              : docEntry.value),
+                    ),
+                  ),
+                )),
+          ),
+        );
+
+  InMemoryDelegate.fromImmutableData(this._cache);
 
   // static FutureOr<InMemoryDelegate> fromClonedData(
   //   QuickStorageDelegate delegate,
@@ -16,7 +35,21 @@ class InMemoryDelegate extends StorageDelegate {
   //   return InMemoryDelegate(await delegate.getAllData());
   // }
 
-  Map<String, Map<String, dynamic>> get data => _cache;
+  Map<String, Map<String, dynamic>> get data =>
+      Map.fromEntries(_cache.entries.map(
+        (collectionEntry) => MapEntry(
+          collectionEntry.key,
+          Map.fromEntries(collectionEntry.value.entries.map(
+            (docEntry) => MapEntry(
+                docEntry.key,
+                docEntry.value is IMap
+                    ? docEntry.value.unlockLazy
+                    : docEntry.value),
+          )),
+        ),
+      ));
+
+  IMap<String, IMap<String, dynamic>> get immutableData => _cache;
 
   @override
   Future<DocumentSnapshot<ID, T>>
@@ -51,7 +84,10 @@ class InMemoryDelegate extends StorageDelegate {
   }) async {
     final collection = _cache[collectionName];
 
-    collection?.remove(documentId);
+    if (collection != null && collection.containsKey(documentId.toString())) {
+      _cache =
+          _cache.add(collectionName, collection.remove(documentId.toString()));
+    }
   }
 
   @override
@@ -67,7 +103,7 @@ class InMemoryDelegate extends StorageDelegate {
 
     return Future.value(DocumentSnapshot(
       documentId,
-      data,
+      data is IMap ? data.unlockLazy : data,
       DocumentReference(
         collectionName: collectionName,
         documentId: documentId,
@@ -86,7 +122,7 @@ class InMemoryDelegate extends StorageDelegate {
     final docs = collection?.entries.mapIndexed((int index, entry) {
       return DocumentSnapshot<ID, T>(
         entry.key as ID,
-        entry.value,
+        entry.value is IMap ? entry.value.unlockLazy : entry.value,
         DocumentReference<ID, T>(
           collectionName: query.collectionName,
           documentId: entry.key as ID,
@@ -106,9 +142,10 @@ class InMemoryDelegate extends StorageDelegate {
     required T documentData,
     options = const StorageOptions(),
   }) async {
-    final collection = _cache[collectionName];
+    final collection = _cache[collectionName] ?? IMap();
 
-    collection?[documentId.toString()] = documentData;
+    _cache = _cache.add(
+        collectionName, collection.add(documentId.toString(), documentData));
   }
 
   @override
@@ -126,10 +163,10 @@ class InMemoryDelegate extends StorageDelegate {
       throw 'InMemoryDelegate.update: '
           'there is no doc to update (id=$documentId)';
     } else {
-      collection?[documentId.toString()] = <String, Object?>{
-        ...existing,
-        ...documentData
-      };
+      _cache = _cache.add(
+          collectionName,
+          collection!.add(documentId.toString(),
+              <String, Object?>{...existing, ...documentData}));
     }
   }
 }
