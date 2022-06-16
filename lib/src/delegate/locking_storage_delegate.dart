@@ -75,7 +75,7 @@ class LockingStorageDelegate implements StorageDelegate {
       // the _operationQueue to the _operationsBeingProcessed
       if (transactionsBeingProcessed.last.canBePerformedInParallel) {
         while (transactionQueue.isNotEmpty &&
-            transactionsBeingProcessed.first.canBePerformedInParallel) {
+            transactionQueue.first.canBePerformedInParallel) {
           transactionsBeingProcessed.add(transactionQueue.removeAt(0));
         }
       }
@@ -102,13 +102,17 @@ class LockingStorageDelegate implements StorageDelegate {
   }
 
   @protected
-  Future requestConcurrentOperation(Future Function() operation) {
+  Future requestConcurrentOperation(
+    Future Function() operation, [
+    dynamic debugData,
+  ]) {
     final completer = Completer();
 
     transactionQueue.add(DelegateOperation(
         completer: completer,
         canBePerformedInParallel: true,
-        performer: operation));
+        performer: operation,
+        debugData: debugData));
 
     executeFromQueue();
 
@@ -116,13 +120,17 @@ class LockingStorageDelegate implements StorageDelegate {
   }
 
   @protected
-  Future requestLockingOperation(Future Function() operation) {
+  Future requestLockingOperation(
+    Future Function() operation, [
+    dynamic debugData,
+  ]) {
     final completer = Completer();
 
     transactionQueue.add(DelegateOperation(
         completer: completer,
         canBePerformedInParallel: false,
-        performer: operation));
+        performer: operation,
+        debugData: debugData));
 
     executeFromQueue();
 
@@ -137,12 +145,14 @@ class LockingStorageDelegate implements StorageDelegate {
     ID? documentId,
     options = const StorageOptions(),
   }) {
-    return requestLockingOperation(() => delegate.addDocument<ID, T>(
-          collectionName: collectionName,
-          documentData: documentData,
-          documentId: documentId,
-          options: options,
-        )).then((r) => r);
+    return requestLockingOperation(
+        () => delegate.addDocument<ID, T>(
+              collectionName: collectionName,
+              documentData: documentData,
+              documentId: documentId,
+              options: options,
+            ),
+        {'caller': 'addDocument'}).then((r) => r);
   }
 
   @override
@@ -161,15 +171,20 @@ class LockingStorageDelegate implements StorageDelegate {
   Future<DocumentSnapshot<ID, T>>
       getDocument<ID extends Object?, T extends Object?>(
           {required String collectionName, required ID documentId}) {
-    return requestConcurrentOperation(() => delegate.getDocument<ID, T>(
-        collectionName: collectionName, documentId: documentId)).then((r) => r);
+    return requestConcurrentOperation(
+      () => delegate.getDocument<ID, T>(
+          collectionName: collectionName, documentId: documentId),
+      {'caller': 'getDocument'},
+    ).then((r) => r);
   }
 
   @override
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
       Query<ID, T> query) {
-    return requestConcurrentOperation(() => delegate.getQuery<ID, T>(query))
-        .then((r) => r);
+    return requestConcurrentOperation(
+      () => delegate.getQuery<ID, T>(query),
+      {'caller': 'getQuery'},
+    ).then((r) => r);
   }
 
   @override
@@ -187,10 +202,11 @@ class LockingStorageDelegate implements StorageDelegate {
     doOperationsInParallel = false,
     options = const StorageOptions(),
   }) {
-    return requestLockingOperation(() => delegate.performTransaction(
-        transaction,
-        doOperationsInParallel: doOperationsInParallel,
-        options: options));
+    return requestLockingOperation(
+      () => delegate.performTransaction(transaction,
+          doOperationsInParallel: doOperationsInParallel, options: options),
+      {'caller': 'performTransaction', 'transaction': transaction},
+    );
   }
 
   @override
@@ -232,10 +248,12 @@ class DelegateOperation {
   final Future Function() performer;
   final bool canBePerformedInParallel;
   final Completer completer;
+  final dynamic debugData;
 
   DelegateOperation({
     required this.performer,
     required this.canBePerformedInParallel,
     required this.completer,
+    this.debugData,
   });
 }

@@ -1,4 +1,3 @@
-import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:stater/stater.dart';
 
 class CascadeCachingDelegate extends LockingStorageDelegate {
@@ -6,43 +5,55 @@ class CascadeCachingDelegate extends LockingStorageDelegate {
   final Future<dynamic> _uncommittedTransactionsFuture;
   Error? _initError;
   dynamic _initErrorStackTrace;
+  final InMemoryDelegate Function(Map<String, Map<String, dynamic>>)
+      _innerDelegateCreator;
 
   CascadeCachingDelegate({
     required Future<dynamic> dataFuture,
     required Future<dynamic> uncommittedTransactionsFuture,
+    InMemoryDelegate Function(Map<String, Map<String, dynamic>>)?
+        innerDelegateCreator,
   })  : _dataFuture = dataFuture,
         _uncommittedTransactionsFuture = uncommittedTransactionsFuture,
-        super(InMemoryDelegate.fromImmutableData(IMap())) {
+        _innerDelegateCreator =
+            innerDelegateCreator ?? ((data) => InMemoryDelegate(data)),
+        super((innerDelegateCreator ?? ((data) => InMemoryDelegate(data)))(
+            <String, Map<String, dynamic>>{})) {
     /// start by adding CascadeCachingDelegate initialization
     /// as a blocking transaction to the transactionQueue
     /// so any incoming transactions initiated by the user
     /// can not be started until the init process is completed
-    requestLockingOperation(() {
-      return Future.wait([_dataFuture, _uncommittedTransactionsFuture])
-          .then((dataAndTransactions) {
-        final data = dataAndTransactions.first;
+    requestLockingOperation(
+      () {
+        return Future.wait([_dataFuture, _uncommittedTransactionsFuture])
+            .then((dataAndTransactions) {
+          final data = dataAndTransactions.first;
 
-        final transactions = dataAndTransactions.last;
+          final transactions = dataAndTransactions.last;
 
-        replaceDelegate(InMemoryDelegate(data));
+          replaceDelegate(_innerDelegateCreator(data));
 
-        // save any transactions arrived during init process
-        final transactionsArrivedDuringInit = [...transactionQueue];
+          // save any transactions arrived during init process
+          final transactionsArrivedDuringInit = [...transactionQueue];
 
-        // clear operation queue
-        transactionQueue.clear();
+          // clear operation queue
+          transactionQueue.clear();
 
-        // add all transactions from _uncommittedTransactionsFuture
-        // to the transactionQueue
-        transactions.forEach(performTransaction);
+          // add all transactions from _uncommittedTransactionsFuture
+          // to the transactionQueue
+          transactions.forEach(performTransaction);
 
-        // return transactionsArrivedDuringInit to the transactionQueue
-        transactionQueue.addAll(transactionsArrivedDuringInit);
-      });
-    }).catchError((error, stackTrace) {
-      _initError = error;
-      _initErrorStackTrace = stackTrace;
-    });
+          // return transactionsArrivedDuringInit to the transactionQueue
+          transactionQueue.addAll(transactionsArrivedDuringInit);
+        });
+      },
+      {'caller': 'CascadeCachingDelegate.init'},
+    ).catchError(
+      (error, stackTrace) {
+        _initError = error;
+        _initErrorStackTrace = stackTrace;
+      },
+    );
   }
 
   @override

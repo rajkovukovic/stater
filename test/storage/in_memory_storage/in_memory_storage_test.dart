@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stater/stater.dart';
 
-import '../../test_helpers.dart';
+import '../../test_helpers/generate_sample_data.dart';
 
 void main() {
   test('make sure InMemoryStorage can read an existing document', () async {
