@@ -1,14 +1,12 @@
 // ignore_for_file: avoid_print
 
+import 'dart:async';
+
 import 'package:async/async.dart';
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
-import 'package:stater/src/cascade_storage/exclusive_transaction.dart';
-import 'package:stater/src/delegate/cascadable_storage_delegate.dart';
-import 'package:stater/src/transaction/transaction.dart';
-import 'package:stater/src/transaction/transaction_manager.dart';
-import 'package:stater/src/transaction/transaction_processor.dart';
-import 'package:stater/src/transaction/transaction_storing_delegate.dart';
+import 'package:stater/src/cascade_storage/cascade_caching_delegate.dart';
+import 'package:stater/stater.dart';
 
 class CascadeTransactionManager<T extends ExclusiveTransaction>
     extends TransactionManager<T> {
@@ -21,12 +19,14 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   @protected
   late Map<CascadableStorageDelegate, TransactionProcessor> processorMap;
 
-  bool _isInit = false;
+  /// in-memory delegate that performs all transactions on
+  /// cached DB data that is going to be used when user reads data
+  /// from collections
+  @protected
+  late CascadeCachingDelegate cachingDelegate;
 
-  late CancelableOperation? _cancelInit;
-
-  /// future for reading of previouslySavedTransactionState
-  late final Future<void> initFuture;
+  @protected
+  late CancelableOperation<List<dynamic>> initFuture;
 
   /// are there any changes in the transaction state that need to be saved
   bool _transactionStateHasUnsavedChanges = false;
@@ -34,9 +34,13 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   /// is there a write operation of transaction state in progress
   bool _isWritingTransactionState = false;
 
+  @protected
+  ServiceRequestProcessorFactory? serviceRequestProcessorFactory;
+
   CascadeTransactionManager({
     required this.delegates,
     required this.transactionStoringDelegate,
+    this.serviceRequestProcessorFactory,
   }) {
     final idDuplicates = delegates
         .fold<Map<String, int>>({}, (acc, delegate) {
@@ -61,40 +65,64 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
     processorMap = {};
 
-    listeners.add(_handleTransactionListChange);
+    initFuture = CancelableOperation.fromFuture(
+      Future.wait([
+        transactionStoringDelegate.readTransactions(),
+        transactionStoringDelegate.readProcessedState(),
+      ]),
+    );
 
-    initFuture = Future.wait([
-      transactionStoringDelegate.readTransactions(),
-      transactionStoringDelegate.readProcessedState(),
-    ]);
+    final cachingDelegateData = Completer();
 
-    _cancelInit = CancelableOperation.fromFuture(initFuture);
+    cachingDelegate = CascadeCachingDelegate(
+      dataFuture: cachingDelegateData.future,
+      serviceRequestProcessorFactory: serviceRequestProcessorFactory,
+    );
 
-    _cancelInit?.then((_) => _completeInit);
-  }
-
-  void destroy() {
-    listeners.remove(_handleTransactionListChange);
-    if (!_isInit) {
-      _cancelInit?.cancel();
-    } else {
-      // cancel all transactions currently being processed by a processor
-      for (var processor in processorMap.values) {
-        processor.cancelCurrentTransaction();
-      }
-    }
-  }
-
-  void _completeInit(List<dynamic> transactionsAndState) {
-    if (!_isInit) {
-      _cancelInit = null;
-
+    // post init set-up
+    initFuture.then((List<dynamic> transactionsAndState) {
       final storedTransaction =
           Transaction.fromListOfMap(transactionsAndState[0] ?? []);
 
       final storedTransactionsState =
-          fromStoredTransactionsState(transactionsAndState[1]);
+          fromStoredTransactionsState(transactionsAndState[1] ?? {});
 
+      if (storedTransaction.isNotEmpty) {
+        transactionQueue = [
+          ...storedTransaction.cast<T>(),
+          ...transactionQueue,
+        ];
+      }
+
+      /// forward all transactions (stored + arrived during the initialization)
+      /// to the cachingDelegate
+      for (var transaction in transactionQueue) {
+        cachingDelegate.performTransaction(transaction);
+      }
+
+      /// fill cachingDelegate initialState from one of [delegates]
+      final sourceDataDelegateIndex = delegates
+          .lastIndexWhere((delegate) => delegate is QuickStorageDelegate);
+
+      if (sourceDataDelegateIndex < 0) {
+        throw 'CascadeDelegate.init: at least one child delegate must '
+            'implement QuickStorageDelegate interface.\n'
+            'This delegate will be used as to spawn in-memory cache';
+      }
+
+      final sourceDataDelegate =
+          delegates[sourceDataDelegateIndex] as QuickStorageDelegate;
+
+      sourceDataDelegate
+          .getAllData()
+          .then(cachingDelegateData.complete)
+          .catchError(cachingDelegateData.completeError);
+
+      // TODO: sourceDataDelegate should not be used by a processor
+      // TODO: until sourceDataDelegate.getAllData is completed
+      // TODO: to prevent writing new data before the reading is completed
+
+      /// create processors
       processorMap = Map.fromEntries(
         delegates.map(
           (delegate) => MapEntry(
@@ -107,31 +135,46 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
         ),
       );
 
-      if (storedTransaction.isNotEmpty) {
-        transactionQueue = [
-          ...storedTransaction.cast<T>(),
-          ...transactionQueue,
-        ];
-      }
-
       if (transactionQueue.isNotEmpty) {
         notifyListeners(TransactionManagerUpdateAdd(transactionQueue));
 
         // there may be some transactions coming from the transaction storage or
         // some transactions may have arrived during the initialization,
-        // so let's start committing
+        // so let's start processing the transactionQueue
         _employProcessors();
       }
+    });
+  }
 
-      _isInit = true;
+  void destroy() {
+    listeners.remove(_handleTransactionListChange);
+
+    initFuture.cancel();
+
+    // cancel all transactions currently being processed by a processor
+    for (var processor in processorMap.values) {
+      processor.cancelCurrentTransaction();
     }
+    // and clear processorMap
+    processorMap.clear();
   }
 
   @override
   void notifyListeners(TransactionManagerUpdate<T> update) {
-    if (_isInit) {
-      super.notifyListeners(update);
+    if (update is TransactionManagerUpdateAdd) {
+      for (var transaction in (update as TransactionManagerUpdateAdd).added) {
+        cachingDelegate.performTransaction(transaction);
+      }
+    } else {
+      throw 'CascadeTransactionManager.notifyListeners can only forward added '
+          'transactions to the "cachingDelegate". '
+          'Not sure how to handle update of type "${update.runtimeType}"';
     }
+
+    if (initFuture.isCompleted) {
+      _handleTransactionListChange(update);
+    }
+    super.notifyListeners(update);
   }
 
   T? _findNextUncompletedTransaction(

@@ -17,7 +17,7 @@ class RestStorage extends Storage {
             operations: [
               CreateOperation(
                 data: response.data,
-                documentId: response.data['id'],
+                documentId: response.data['_id'],
                 collectionName: 'todos',
               )
             ],

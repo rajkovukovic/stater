@@ -1,9 +1,10 @@
 import 'package:stater/stater.dart';
 import 'package:stater_example/state/does_todo_match_query.dart';
+import 'package:uuid/uuid.dart';
 
 final restDelegate = RestDelegate(
   id: 'rest-server-mongodb',
-  endpoint: 'http://localhost:3030',
+  endpoint: 'http://192.168.0.13:3030',
 );
 
 final localStorageDelegate = GetStorageDelegate(
@@ -14,6 +15,47 @@ final localStorageDelegate = GetStorageDelegate(
 const queryMatcher = JsonQueryMatcher({
   'todos': doesTodoMatchQuery,
 });
+
+ServiceRequestProcessor serviceRequestProcessorFactory(
+    StorageDelegate delegate) {
+  final storage = Storage(delegate);
+
+  return (String serviceName, dynamic params) async {
+    switch (serviceName) {
+      case 'createManyTodos':
+        final int createCount = params;
+
+        final todosCollection = storage.collection('todos');
+
+        final existingTodos = (await todosCollection.get()).docs;
+
+        final existingNames = existingTodos.fold<Set<String>>(
+            {},
+            (acc, doc) => acc
+              ..add((doc.data() as Map<String, dynamic>)['name']
+                  .replaceAll(RegExp(r"\s+"), "")));
+
+        int nextTodoNumber = 1;
+
+        for (var i = 0; i < createCount; i++) {
+          while (existingNames.contains('todo$nextTodoNumber')) {
+            nextTodoNumber++;
+          }
+
+          final todo = {'name': 'Todo $nextTodoNumber', 'completed': false};
+          await todosCollection.add(
+            todo,
+            documentId: const Uuid().v4(),
+          );
+
+          nextTodoNumber++;
+        }
+        break;
+      default:
+        throw 'RestDelegate does not support serviceRequest "$serviceName"';
+    }
+  };
+}
 
 final state = CascadeStorage(
   primaryDelegate: restDelegate,
@@ -26,6 +68,7 @@ final state = CascadeStorage(
     transactionsKey: 'transactions',
     transactionsStateKey: 'processedTransactions',
   ),
+  serviceRequestProcessorFactory: serviceRequestProcessorFactory,
   queryMatcher: queryMatcher,
 );
 

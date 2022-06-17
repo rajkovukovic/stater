@@ -12,9 +12,13 @@ class CascadeStorage<ID extends Object?> extends Storage {
     required List<CascadableStorageDelegate>? cachingDelegates,
     required TransactionStoringDelegate transactionStoringDelegate,
     JsonQueryMatcher? queryMatcher,
-  }) : super(CascadeDelegate(
-            primaryDelegate: primaryDelegate,
-            cachingDelegates: cachingDelegates,
-            transactionStoringDelegate: transactionStoringDelegate,
-            queryMatcher: queryMatcher));
+    ServiceRequestProcessorFactory? serviceRequestProcessorFactory,
+  }) : super(
+          CascadeDelegate(
+              primaryDelegate: primaryDelegate,
+              cachingDelegates: cachingDelegates,
+              transactionStoringDelegate: transactionStoringDelegate,
+              queryMatcher: queryMatcher,
+              serviceRequestProcessorFactory: serviceRequestProcessorFactory),
+        );
 }

@@ -171,14 +171,15 @@ class RestDelegate extends CascadableStorageDelegate {
       case 'createManyTodos':
         final int createCount = params;
 
-        final Iterable<Map<String, dynamic>> existingTodos = await Dio()
+        final Iterable<dynamic> existingTodos = await Dio()
             .get('$endpoint/todos')
-            .then((response) => response.data);
+            .then((response) => response.data['data']);
 
         final existingNames = existingTodos.fold<Set<String>>(
             {},
             (acc, todo) =>
-                acc..add(todo['name'].replaceAll(RegExp(r"\s+"), "")));
+                acc
+              ..add(todo['name'].toLowerCase().replaceAll(RegExp(r"\s+"), "")));
 
         int nextTodoNumber = 1;
 
@@ -187,7 +188,10 @@ class RestDelegate extends CascadableStorageDelegate {
             nextTodoNumber++;
           }
 
-          final todo = {'name': 'Todo $nextTodoNumber', 'completed': false};
+          final Map<String, dynamic> todo = {
+            'name': 'Todo $nextTodoNumber',
+            'completed': false
+          };
 
           await addDocument(
             collectionName: 'todos',

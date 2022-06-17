@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:stater/stater.dart';
 
-/// Add locking mechanism to StorageDelegate, so all write operations will
-/// delay read operations.
+/// Add locking mechanism to StorageDelegate, so read operations can not be
+/// processed while there is a write operation in progress.
 ///
 /// Write operations are executed sequentially.
 ///
-/// Read operations can be performed in parallel.
+/// Neighboring read operations are performed in parallel.
 ///
 /// ```
 /// _operationQueue = [
@@ -31,6 +31,10 @@ class LockingStorageDelegate implements StorageDelegate {
   final List<DelegateOperation> transactionsBeingProcessed = [];
 
   LockingStorageDelegate(this.delegate);
+
+  destroy() {
+    transactionQueue.clear();
+  }
 
   /// USE WITH CAUTION !!!
   ///

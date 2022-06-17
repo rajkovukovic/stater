@@ -2,30 +2,22 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-/// in-RAM StorageDelegate used for super fast operations
-class InMemoryDelegate extends StorageDelegate {
+abstract class CachingDelegate {
+  late Map<String, Map<String, dynamic>> data;
+
+  late IMap<String, IMap<String, dynamic>> immutableData;
+}
+
+/// in-RAM StorageDelegate, usually used for data caching
+class InMemoryDelegate extends StorageDelegate implements CachingDelegate {
   IMap<String, IMap<String, dynamic>> _cache;
 
   InMemoryDelegate(Map<String, Map<String, dynamic>> cache)
-      : _cache = IMap.fromEntries(
-          cache.entries.map(
-            ((collectionEntry) => MapEntry(
-                  collectionEntry.key,
-                  IMap.fromEntries(
-                    collectionEntry.value.entries.map(
-                      (docEntry) => MapEntry(
-                          docEntry.key,
-                          docEntry is Map
-                              ? docEntry.value.lock
-                              : docEntry.value),
-                    ),
-                  ),
-                )),
-          ),
-        );
+      : _cache = _dataFromMutableData(cache);
 
   InMemoryDelegate.fromImmutableData(this._cache);
 
@@ -35,6 +27,23 @@ class InMemoryDelegate extends StorageDelegate {
   //   return InMemoryDelegate(await delegate.getAllData());
   // }
 
+  static IMap<String, IMap<String, dynamic>> _dataFromMutableData(
+          Map<String, Map<String, dynamic>> mutableData) =>
+      IMap.fromEntries(
+        mutableData.entries.map(
+          ((collectionEntry) => MapEntry(
+                collectionEntry.key,
+                IMap.fromEntries(
+                  collectionEntry.value.entries.map(
+                    (docEntry) => MapEntry(docEntry.key,
+                        docEntry is Map ? docEntry.value.lock : docEntry.value),
+                  ),
+                ),
+              )),
+        ),
+      );
+
+  @override
   Map<String, Map<String, dynamic>> get data =>
       Map.fromEntries(_cache.entries.map(
         (collectionEntry) => MapEntry(
@@ -49,7 +58,18 @@ class InMemoryDelegate extends StorageDelegate {
         ),
       ));
 
+  @override
+  set data(Map<String, Map<String, dynamic>> value) {
+    _cache = _dataFromMutableData(value);
+  }
+
+  @override
   IMap<String, IMap<String, dynamic>> get immutableData => _cache;
+
+  @override
+  set immutableData(IMap<String, IMap<String, dynamic>> value) {
+    _cache = value;
+  }
 
   @override
   Future<DocumentSnapshot<ID, T>>
@@ -168,5 +188,53 @@ class InMemoryDelegate extends StorageDelegate {
           collection!.add(documentId.toString(),
               <String, Object?>{...existing, ...documentData}));
     }
+  }
+}
+
+typedef ServiceRequestProcessor = Future Function(
+    String serviceName, dynamic params);
+
+typedef ServiceRequestProcessorFactory = ServiceRequestProcessor Function(
+    StorageDelegate);
+
+class LockingInMemoryDelegate extends LockingStorageDelegate
+    implements CachingDelegate {
+  LockingInMemoryDelegate(
+    Map<String, Map<String, dynamic>> cache, {
+    this.serviceRequestProcessorFactory,
+  }) : super(InMemoryDelegate(cache));
+
+  @protected
+  late ServiceRequestProcessorFactory? serviceRequestProcessorFactory;
+
+  @protected
+  late ServiceRequestProcessor? serviceRequestProcessor =
+      serviceRequestProcessorFactory?.call(delegate);
+
+  @override
+  Future serviceRequest(String serviceName, params) {
+    if (serviceRequestProcessor != null) {
+      return serviceRequestProcessor!(serviceName, params);
+    } else {
+      return super.serviceRequest(serviceName, params);
+    }
+  }
+
+  @override
+  Map<String, Map<String, dynamic>> get data =>
+      (delegate as InMemoryDelegate).data;
+
+  @override
+  set data(Map<String, Map<String, dynamic>> value) {
+    (delegate as InMemoryDelegate).data = value;
+  }
+
+  @override
+  IMap<String, IMap<String, dynamic>> get immutableData =>
+      (delegate as InMemoryDelegate).immutableData;
+
+  @override
+  set immutableData(IMap<String, IMap<String, dynamic>> value) {
+    (delegate as InMemoryDelegate).immutableData = value;
   }
 }

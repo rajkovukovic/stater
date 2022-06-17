@@ -24,11 +24,13 @@ abstract class StorageDelegate {
     required ID documentId,
   });
 
-  /// performs specific list of operations that can not be described using
+  /// performs specific operation(s) that can not be described using
   /// the existing CRUD operations
   Future serviceRequest(String serviceName, dynamic params) {
-    throw 'classes derived from StorageDelegate should implement serviceRequest'
-        'method. Did you forget to implement it?';
+    throw Exception(
+        'classes derived from StorageDelegate should implement serviceRequest '
+        'method. Did you forget to implement it?\n'
+        'Exception detected in class of type "$runtimeType"');
   }
 
   /// Reads the document

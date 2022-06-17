@@ -220,7 +220,7 @@ class GetStorageDelegate extends CascadableStorageDelegate
       case 'createManyTodos':
         final int createCount = params;
 
-        final Iterable<Map<String, dynamic>> existingTodos =
+        final Iterable<dynamic> existingTodos =
             (await getCollectionBox('todos')).getValues();
 
         final existingNames = existingTodos.fold<Set<String>>(

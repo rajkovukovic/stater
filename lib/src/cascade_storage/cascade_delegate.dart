@@ -8,21 +8,26 @@ class CascadeDelegate extends StorageDelegate {
   late final CascadeTransactionManager<ExclusiveTransaction>
       _transactionManager;
   late final JsonQueryMatcher _queryMatcher;
+  late final ServiceRequestProcessorFactory? _serviceRequestProcessorFactory;
 
   CascadeDelegate({
     required CascadableStorageDelegate primaryDelegate,
     required List<CascadableStorageDelegate>? cachingDelegates,
     required TransactionStoringDelegate transactionStoringDelegate,
     JsonQueryMatcher? queryMatcher,
+    ServiceRequestProcessorFactory? serviceRequestProcessorFactory,
   }) {
     _delegates = [
       primaryDelegate,
       if (cachingDelegates != null) ...cachingDelegates,
     ];
 
+    _serviceRequestProcessorFactory = serviceRequestProcessorFactory;
+
     _transactionManager = CascadeTransactionManager(
       delegates: _delegates,
       transactionStoringDelegate: transactionStoringDelegate,
+      serviceRequestProcessorFactory: _serviceRequestProcessorFactory,
     );
 
     _queryMatcher = queryMatcher ?? JsonQueryMatcher.empty();
