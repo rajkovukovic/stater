@@ -1,6 +1,8 @@
+import 'package:stater/stater.dart';
+
 /// has methods for adding and removing collections of data
 /// and methods for adding or removing multiple collections
-abstract class QuickStorageDelegate {
+abstract class RootAccessStorage extends Storage {
   /// removes all documents and all collections
   Future<void> removeAllCollections();
 

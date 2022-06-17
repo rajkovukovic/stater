@@ -14,15 +14,15 @@ import 'package:stater/stater.dart';
 /// _operationQueue = [
 ///   DelegateOperation(getDocument, ...)
 ///   DelegateOperation(getQuery, ...)
-///   DelegateOperation(setDocument,  ...)
-///   DelegateOperation(deleteDocument,  ...)
+///   DelegateOperation(setDocument, ...)
+///   DelegateOperation(deleteDocument, ...)
 /// ]
 /// // first batch to execute will contain getDocument and getQuery
 /// // second batch will contain setDocument
 /// // third batch will contain deleteDocument
 /// ```
-class LockingStorageDelegate implements StorageDelegate {
-  StorageDelegate delegate;
+class LockingStorage extends Storage {
+  Storage delegate;
 
   @protected
   final List<DelegateOperation> transactionQueue = [];
@@ -30,7 +30,7 @@ class LockingStorageDelegate implements StorageDelegate {
   @protected
   final List<DelegateOperation> transactionsBeingProcessed = [];
 
-  LockingStorageDelegate(this.delegate);
+  LockingStorage(this.delegate);
 
   destroy() {
     transactionQueue.clear();
@@ -44,7 +44,7 @@ class LockingStorageDelegate implements StorageDelegate {
   /// there may be unexpected behavior, because pending operations will be
   /// executed against new delegate.
   @protected
-  replaceDelegate(StorageDelegate delegate) {
+  replaceDelegate(Storage delegate) {
     this.delegate = delegate;
   }
 

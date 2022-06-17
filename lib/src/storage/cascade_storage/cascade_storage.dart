@@ -3,17 +3,17 @@ import 'package:stater/stater.dart';
 bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutStorageWithCacheAddDocument = false;
 
-class CascadeDelegate extends StorageDelegate {
-  late final List<CascadableStorageDelegate> _delegates;
+class CascadeStorage extends Storage {
+  late final List<CascadableStorage> _delegates;
   late final CascadeTransactionManager<ExclusiveTransaction>
       _transactionManager;
   late final JsonQueryMatcher _queryMatcher;
   late final ServiceRequestProcessorFactory? _serviceRequestProcessorFactory;
 
-  CascadeDelegate({
-    required CascadableStorageDelegate primaryDelegate,
-    required List<CascadableStorageDelegate>? cachingDelegates,
-    required TransactionStoringDelegate transactionStoringDelegate,
+  CascadeStorage({
+    required CascadableStorage primaryDelegate,
+    required List<CascadableStorage>? cachingDelegates,
+    required TransactionStorer transactionStoringDelegate,
     JsonQueryMatcher? queryMatcher,
     ServiceRequestProcessorFactory? serviceRequestProcessorFactory,
   }) {
@@ -349,7 +349,7 @@ class CascadeDelegate extends StorageDelegate {
           };
 
   Iterable<ExclusiveTransaction> uncommittedTransactionsForDelegate(
-      CascadableStorageDelegate delegate) {
+      CascadableStorage delegate) {
     final completedTransactionsIds =
         _transactionManager.completedTransactionsIds(delegate) ?? {};
 
@@ -365,7 +365,7 @@ class CascadeDelegate extends StorageDelegate {
           T extends dynamic>({
     required String collectionName,
     required DocumentSnapshot<ID, T> documentSnapshot,
-    required CascadableStorageDelegate sourceDelegate,
+    required CascadableStorage sourceDelegate,
   }) {
     final uncommittedTransactions =
         uncommittedTransactionsForDelegate(sourceDelegate);
@@ -395,7 +395,7 @@ class CascadeDelegate extends StorageDelegate {
     required String collectionName,
     required QuerySnapshot<ID, dynamic> querySnapshot,
     required Query<ID, T> query,
-    required CascadableStorageDelegate sourceDelegate,
+    required CascadableStorage sourceDelegate,
   }) {
     final uncommittedTransactions =
         uncommittedTransactionsForDelegate(sourceDelegate);

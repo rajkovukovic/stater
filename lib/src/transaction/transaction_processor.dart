@@ -1,14 +1,13 @@
 import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
-import 'package:stater/src/delegate/cascadable_storage_delegate.dart';
-import 'package:stater/src/transaction/transaction.dart';
+import 'package:stater/stater.dart';
 
 const _retrySequencesInMilliseconds = [1000, 2000, 5000];
 
 /// Processes a transaction and retires forever
 class TransactionProcessor {
-  final CascadableStorageDelegate delegate;
+  final CascadableStorage delegate;
   final Set<String> completedTransactionIds;
 
   Transaction? currentTransaction;

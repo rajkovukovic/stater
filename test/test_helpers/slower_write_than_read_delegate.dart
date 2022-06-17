@@ -3,7 +3,7 @@ import 'package:stater/stater.dart';
 const _readDuration = Duration(milliseconds: 50);
 const _writeDuration = Duration(milliseconds: 100);
 
-class SlowerWriteThanReadDelegate extends InMemoryDelegate {
+class SlowerWriteThanReadDelegate extends InMemoryStorage {
   SlowerWriteThanReadDelegate(super.cache);
 
   @override

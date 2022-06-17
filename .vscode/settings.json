@@ -13,6 +13,7 @@
 		"Cascadable",
 		"firestore",
 		"rxdart",
+		"Storer",
 		"todos"
 	]
 }

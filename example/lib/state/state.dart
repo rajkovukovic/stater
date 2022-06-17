@@ -16,10 +16,7 @@ const queryMatcher = JsonQueryMatcher({
   'todos': doesTodoMatchQuery,
 });
 
-ServiceRequestProcessor serviceRequestProcessorFactory(
-    StorageDelegate delegate) {
-  final storage = Storage(delegate);
-
+ServiceRequestProcessor serviceRequestProcessorFactory(Storage storage) {
   return (String serviceName, dynamic params) async {
     switch (serviceName) {
       case 'createManyTodos':
@@ -62,8 +59,8 @@ final state = CascadeStorage(
   cachingDelegates: [
     localStorageDelegate,
   ],
-  transactionStoringDelegate: TransactionStoringDelegate.fromDelegate(
-    delegate: localStorageDelegate,
+  transactionStoringDelegate: TransactionStorer.fromDelegate(
+    storage: localStorageDelegate,
     collectionName: 'uncommitted',
     transactionsKey: 'transactions',
     transactionsStateKey: 'processedTransactions',

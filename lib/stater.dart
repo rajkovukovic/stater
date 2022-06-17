@@ -1,29 +1,23 @@
 library stater;
 
-
-export 'custom/local_delegate.dart';
 export 'custom/local_storage.dart';
-export 'custom/rest_delegate.dart';
 export 'custom/rest_storage.dart';
-export 'src/cascade_storage/cascade_delegate.dart';
-export 'src/cascade_storage/cascade_storage.dart';
-export 'src/cascade_storage/cascade_transaction_manager.dart';
-export 'src/cascade_storage/exclusive_transaction.dart';
-export 'src/cascade_storage/json_query_matcher.dart';
 export 'src/collection_reference.dart';
 export 'src/converters.dart';
-export 'src/delegate/cascadable_storage_delegate.dart';
-export 'src/delegate/locking_storage_delegate.dart';
-export 'src/delegate/quick_storage_delegate.dart';
-export 'src/delegate/storage_delegate.dart';
 export 'src/document_reference.dart';
 export 'src/document_snapshot.dart';
 export 'src/query.dart';
 export 'src/query_document_snapshot.dart';
 export 'src/query_snapshot.dart';
 export 'src/queryable.dart';
+export 'src/storage/cascade_storage/cascadable_storage.dart';
+export 'src/storage/cascade_storage/cascade_storage.dart';
+export 'src/storage/cascade_storage/cascade_transaction_manager.dart';
+export 'src/storage/cascade_storage/exclusive_transaction.dart';
+export 'src/storage/cascade_storage/json_query_matcher.dart';
 export 'src/storage/in_memory_storage/in_memory_storage.dart';
-export 'src/storage/in_memory_storage/in_memory_storage_delegate.dart';
+export 'src/storage/interfaces/root_access_storage.dart';
+export 'src/storage/locking_storage.dart';
 export 'src/storage/storage.dart';
 export 'src/storage/storage_options.dart';
 export 'src/transaction/operation/operation.dart';

@@ -34,7 +34,7 @@ void main() {
       'to start until a write operation is completed', () async {
     final slowWrite = SlowerWriteThanReadDelegate(generateSampleData());
 
-    final lockingDelegate = LockingStorageDelegate(slowWrite);
+    final lockingDelegate = LockingStorage(slowWrite);
 
     final writeFuture = lockingDelegate.addDocument(
         collectionName: 'todos',

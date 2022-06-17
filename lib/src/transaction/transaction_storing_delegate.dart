@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:stater/stater.dart';
 
-class TransactionStoringDelegate {
+class TransactionStorer {
   final Future<List<Map<String, dynamic>>?> Function() readTransactions;
   final Future<Map<String, dynamic>?> Function() readProcessedState;
   final Future<dynamic> Function(List<Map<String, dynamic>>) writeTransactions;
   final Future<dynamic> Function(Map<String, dynamic>) writeProcessedState;
 
-  TransactionStoringDelegate({
+  TransactionStorer({
     required this.readTransactions,
     required this.readProcessedState,
     required this.writeTransactions,
@@ -26,11 +26,11 @@ class TransactionStoringDelegate {
     ]);
   }
 
-  factory TransactionStoringDelegate.fromDocumentReferences({
+  factory TransactionStorer.fromDocumentReferences({
     required DocumentReference transactionsDocRef,
     required DocumentReference processedStateDocRef,
   }) {
-    return TransactionStoringDelegate(
+    return TransactionStorer(
       readTransactions: () => transactionsDocRef.get().then((snapshot) =>
           (snapshot.data() as List<dynamic>? ?? [])
               .cast<Map<String, dynamic>>()),
@@ -43,16 +43,15 @@ class TransactionStoringDelegate {
     );
   }
 
-  factory TransactionStoringDelegate.fromDelegate({
-    required StorageDelegate delegate,
+  factory TransactionStorer.fromDelegate({
+    required Storage storage,
     required String collectionName,
     required String transactionsKey,
     required String transactionsStateKey,
   }) {
-    final storage = Storage(delegate);
     final collection = storage.collection(collectionName);
 
-    return TransactionStoringDelegate.fromDocumentReferences(
+    return TransactionStorer.fromDocumentReferences(
       transactionsDocRef: collection.doc(transactionsKey),
       processedStateDocRef: collection.doc(transactionsStateKey),
     );

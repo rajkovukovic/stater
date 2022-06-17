@@ -9,7 +9,7 @@ class Query<ID extends Object?, T extends Object?> {
       this.options = const StorageOptions(),
       this.converters});
 
-  final StorageDelegate delegate;
+  final Storage delegate;
   final String collectionName;
   final List<CompareOperation> compareOperations;
   final StorageOptions options;

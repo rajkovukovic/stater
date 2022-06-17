@@ -1,6 +1,6 @@
 import 'package:stater/stater.dart';
 
-class CascadeCachingDelegate extends LockingStorageDelegate {
+class CascadeCachingDelegate extends LockingStorage {
   final Future<dynamic> _dataFuture;
   final Future<dynamic> _uncommittedTransactionsFuture;
   Error? _initError;

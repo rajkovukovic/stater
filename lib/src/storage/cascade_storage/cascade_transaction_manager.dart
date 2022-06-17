@@ -5,19 +5,20 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
-import 'package:stater/src/cascade_storage/cascade_caching_delegate.dart';
 import 'package:stater/stater.dart';
+
+import 'cascade_caching_delegate.dart';
 
 class CascadeTransactionManager<T extends ExclusiveTransaction>
     extends TransactionManager<T> {
   @protected
-  final List<CascadableStorageDelegate> delegates;
+  final List<CascadableStorage> delegates;
 
   @protected
-  final TransactionStoringDelegate transactionStoringDelegate;
+  final TransactionStorer transactionStoringDelegate;
 
   @protected
-  late Map<CascadableStorageDelegate, TransactionProcessor> processorMap;
+  late Map<CascadableStorage, TransactionProcessor> processorMap;
 
   /// in-memory delegate that performs all transactions on
   /// cached DB data that is going to be used when user reads data
@@ -101,17 +102,17 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       }
 
       /// fill cachingDelegate initialState from one of [delegates]
-      final sourceDataDelegateIndex = delegates
-          .lastIndexWhere((delegate) => delegate is QuickStorageDelegate);
+      final sourceDataDelegateIndex =
+          delegates.lastIndexWhere((delegate) => delegate is RootAccessStorage);
 
       if (sourceDataDelegateIndex < 0) {
         throw 'CascadeDelegate.init: at least one child delegate must '
-            'implement QuickStorageDelegate interface.\n'
+            'implement RootAccessStorage interface.\n'
             'This delegate will be used as to spawn in-memory cache';
       }
 
       final sourceDataDelegate =
-          delegates[sourceDataDelegateIndex] as QuickStorageDelegate;
+          delegates[sourceDataDelegateIndex] as RootAccessStorage;
 
       sourceDataDelegate
           .getAllData()
@@ -347,7 +348,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     listeners.clear();
   }
 
-  Set<String>? completedTransactionsIds(CascadableStorageDelegate delegate) {
+  Set<String>? completedTransactionsIds(CascadableStorage delegate) {
     return processorMap[delegate]?.completedTransactionIds;
   }
 }
@@ -359,7 +360,7 @@ Map<String, Set<String>> fromStoredTransactionsState(
 }
 
 Map<String, dynamic> toStoredTransactionsState(
-    Map<CascadableStorageDelegate, TransactionProcessor> processorMap) {
+    Map<CascadableStorage, TransactionProcessor> processorMap) {
   return processorMap.map(
       (key, value) => MapEntry(key.id, value.completedTransactionIds.toList()));
 }
