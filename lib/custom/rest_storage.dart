@@ -4,8 +4,8 @@ import 'package:dio/dio.dart';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-class RestDelegate extends CascadableStorage {
-  RestDelegate({
+class RestStorage extends CascadableStorage {
+  RestStorage({
     required this.endpoint,
     required super.id,
   });
@@ -18,7 +18,7 @@ class RestDelegate extends CascadableStorage {
 
   @override
   Future<DocumentSnapshot<ID, T>?>
-      addDocument<ID extends Object?, T extends Object?>({
+      internalAddDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required T documentData,
     ID? documentId,
@@ -47,7 +47,7 @@ class RestDelegate extends CascadableStorage {
   }
 
   @override
-  Future<void> deleteDocument<ID extends Object?>({
+  Future<void> internalDeleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -67,7 +67,7 @@ class RestDelegate extends CascadableStorage {
 
   @override
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends Object?>({
+      internalGetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
   }) async {
@@ -77,7 +77,8 @@ class RestDelegate extends CascadableStorage {
   }
 
   @override
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
+  Future<QuerySnapshot<ID, T>>
+      internalGetQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, [
     Converters<ID, T>? converters,
   ]) async {
@@ -137,7 +138,7 @@ class RestDelegate extends CascadableStorage {
   // }
 
   @override
-  Future<void> setDocument<ID extends Object?, T extends Object?>({
+  Future<void> internalSetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     required T documentData,
@@ -153,7 +154,7 @@ class RestDelegate extends CascadableStorage {
   }
 
   @override
-  Future<void> updateDocument<ID extends Object?>({
+  Future<void> internalUpdateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     required Map<String, dynamic> documentData,
@@ -166,7 +167,7 @@ class RestDelegate extends CascadableStorage {
   }
 
   @override
-  Future serviceRequest(String serviceName, dynamic params) async {
+  Future internalServiceRequest(String serviceName, dynamic params) async {
     switch (serviceName) {
       case 'createManyTodos':
         final int createCount = params;

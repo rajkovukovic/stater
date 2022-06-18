@@ -64,7 +64,7 @@ class TransactionProcessor {
     }
 
     final stream = RetryStream(
-      () => Stream.fromFuture(delegate.performTransaction(transaction))
+      () => Stream.fromFuture(delegate.internalPerformTransaction(transaction))
           .onErrorResume((_, __) => getRetryDelay()),
       retryCount,
     );

@@ -1,19 +1,25 @@
+import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 
-const _readDuration = Duration(milliseconds: 50);
-const _writeDuration = Duration(milliseconds: 100);
+class DelayedStorage extends InMemoryStorage {
+  Duration readDelay;
+  Duration writeDelay;
 
-class SlowerWriteThanReadDelegate extends InMemoryStorage {
-  SlowerWriteThanReadDelegate(super.cache);
+  DelayedStorage({
+    required Map<String, Map<String, dynamic>> cache,
+    required this.readDelay,
+    required this.writeDelay,
+  }) : super(cache);
 
   @override
+  @protected
   Future<DocumentSnapshot<ID, T>>
-      addDocument<ID extends Object?, T extends Object?>(
+      internalAddDocument<ID extends Object?, T extends Object?>(
           {required String collectionName,
           required T documentData,
           ID? documentId,
           options = const StorageOptions()}) async {
-    return super.addDocument(
+    return super.internalAddDocument(
         collectionName: collectionName,
         documentData: documentData,
         documentId: documentId,
@@ -21,14 +27,15 @@ class SlowerWriteThanReadDelegate extends InMemoryStorage {
   }
 
   @override
-  Future<void> deleteDocument<ID extends Object?>({
+  @protected
+  Future<void> internalDeleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
   }) async {
-    await Future.delayed(_writeDuration);
+    await Future.delayed(writeDelay);
 
-    return super.deleteDocument(
+    return super.internalDeleteDocument(
       collectionName: collectionName,
       documentId: documentId,
       options: options,
@@ -36,38 +43,42 @@ class SlowerWriteThanReadDelegate extends InMemoryStorage {
   }
 
   @override
+  @protected
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends Object?>(
+      internalGetDocument<ID extends Object?, T extends Object?>(
           {required String collectionName,
           required ID documentId,
           options = const StorageOptions()}) async {
-    await Future.delayed(_readDuration);
+    await Future.delayed(readDelay);
 
-    return super.getDocument<ID, T>(
+    return super.internalGetDocument<ID, T>(
         collectionName: collectionName,
         documentId: documentId,
         options: options);
   }
 
   @override
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-      Query<ID, T> query,
-      [Converters<ID, T>? converters]) async {
-    await Future.delayed(_readDuration);
+  @protected
+  Future<QuerySnapshot<ID, T>>
+      internalGetQuery<ID extends Object?, T extends Object?>(
+          Query<ID, T> query,
+          [Converters<ID, T>? converters]) async {
+    await Future.delayed(readDelay);
 
-    return super.getQuery(query, converters);
+    return super.internalGetQuery(query, converters);
   }
 
   @override
-  Future<void> setDocument<ID extends Object?, T extends Object?>({
+  @protected
+  Future<void> internalSetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     required T documentData,
     options = const StorageOptions(),
   }) async {
-    await Future.delayed(_writeDuration);
+    await Future.delayed(writeDelay);
 
-    return super.setDocument(
+    return super.internalSetDocument(
         collectionName: collectionName,
         documentId: documentId,
         documentData: documentData,
@@ -75,15 +86,16 @@ class SlowerWriteThanReadDelegate extends InMemoryStorage {
   }
 
   @override
-  Future<void> updateDocument<ID extends Object?>({
+  @protected
+  Future<void> internalUpdateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     required Map<String, dynamic> documentData,
     options = const StorageOptions(),
   }) async {
-    await Future.delayed(_writeDuration);
+    await Future.delayed(writeDelay);
 
-    return super.updateDocument(
+    return super.internalUpdateDocument(
       collectionName: collectionName,
       documentId: documentId,
       documentData: documentData,

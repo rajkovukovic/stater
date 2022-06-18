@@ -27,7 +27,9 @@ class Query<ID extends Object?, T extends Object?> {
   ///
   /// returns a Future that resolves to QuerySnapshot
   Future<QuerySnapshot<ID, T>> get() =>
-      delegate.getQuery<ID, Object?>(this).then((QuerySnapshot querySnapshot) =>
+      delegate
+      .internalGetQuery<ID, Object?>(this)
+      .then((QuerySnapshot querySnapshot) =>
           convertQuerySnapshot(querySnapshot.cast<ID, Map<String, dynamic>>(),
               converters: converters));
 

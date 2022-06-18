@@ -2,12 +2,11 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
-import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-/// in-RAM StorageDelegate, usually used for data caching
-class InMemoryStorage extends Storage implements HasCacheStorage {
+/// in-RAM Storage, usually used for data caching
+class InMemoryStorage extends Storage implements StorageHasCache {
   IMap<String, IMap<String, dynamic>> _cache;
 
   InMemoryStorage(Map<String, Map<String, dynamic>> cache)
@@ -67,7 +66,7 @@ class InMemoryStorage extends Storage implements HasCacheStorage {
 
   @override
   Future<DocumentSnapshot<ID, T>>
-      addDocument<ID extends Object?, T extends Object?>({
+      internalAddDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required T documentData,
     ID? documentId,
@@ -75,7 +74,7 @@ class InMemoryStorage extends Storage implements HasCacheStorage {
   }) {
     final notNullDocumentId = documentId ?? const Uuid().v4() as ID;
 
-    return setDocument(
+    return internalSetDocument(
       collectionName: collectionName,
       documentId: documentId,
       documentData: documentData,
@@ -91,7 +90,7 @@ class InMemoryStorage extends Storage implements HasCacheStorage {
   }
 
   @override
-  Future<void> deleteDocument<ID extends Object?>({
+  Future<void> internalDeleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -106,7 +105,7 @@ class InMemoryStorage extends Storage implements HasCacheStorage {
 
   @override
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends Object?>({
+      internalGetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -127,7 +126,8 @@ class InMemoryStorage extends Storage implements HasCacheStorage {
   }
 
   @override
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
+  Future<QuerySnapshot<ID, T>>
+      internalGetQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, [
     Converters<ID, T>? converters,
   ]) async {
@@ -150,7 +150,7 @@ class InMemoryStorage extends Storage implements HasCacheStorage {
   }
 
   @override
-  Future<void> setDocument<ID extends Object?, T extends Object?>({
+  Future<void> internalSetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     required T documentData,
@@ -163,7 +163,7 @@ class InMemoryStorage extends Storage implements HasCacheStorage {
   }
 
   @override
-  Future<void> updateDocument<ID extends Object?>({
+  Future<void> internalUpdateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     required Map<String, dynamic> documentData,
@@ -190,45 +190,3 @@ typedef ServiceRequestProcessor = Future Function(
 
 typedef ServiceRequestProcessorFactory = ServiceRequestProcessor Function(
     Storage);
-
-class LockingInMemoryDelegate extends LockingStorage
-    implements HasCacheStorage {
-  LockingInMemoryDelegate(
-    Map<String, Map<String, dynamic>> cache, {
-    this.serviceRequestProcessorFactory,
-  }) : super(InMemoryStorage(cache));
-
-  @protected
-  late ServiceRequestProcessorFactory? serviceRequestProcessorFactory;
-
-  @protected
-  late ServiceRequestProcessor? serviceRequestProcessor =
-      serviceRequestProcessorFactory?.call(delegate);
-
-  @override
-  Future serviceRequest(String serviceName, params) {
-    if (serviceRequestProcessor != null) {
-      return serviceRequestProcessor!(serviceName, params);
-    } else {
-      return super.serviceRequest(serviceName, params);
-    }
-  }
-
-  @override
-  Map<String, Map<String, dynamic>> get data =>
-      (delegate as InMemoryStorage).data;
-
-  @override
-  set data(Map<String, Map<String, dynamic>> value) {
-    (delegate as InMemoryStorage).data = value;
-  }
-
-  @override
-  IMap<String, IMap<String, dynamic>> get immutableData =>
-      (delegate as InMemoryStorage).immutableData;
-
-  @override
-  set immutableData(IMap<String, IMap<String, dynamic>> value) {
-    (delegate as InMemoryStorage).immutableData = value;
-  }
-}

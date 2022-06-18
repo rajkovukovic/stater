@@ -2,12 +2,12 @@ import 'package:stater/stater.dart';
 import 'package:stater_example/state/does_todo_match_query.dart';
 import 'package:uuid/uuid.dart';
 
-final restDelegate = RestDelegate(
+final restStorage = RestStorage(
   id: 'rest-server-mongodb',
   endpoint: 'http://192.168.0.13:3030',
 );
 
-final localStorageDelegate = GetStorageDelegate(
+final localStorageDelegate = LocalStorage(
   id: 'get-storage',
   storagePrefix: 'DB',
 );
@@ -54,20 +54,22 @@ ServiceRequestProcessor serviceRequestProcessorFactory(Storage storage) {
   };
 }
 
-final state = CascadeStorage(
-  primaryDelegate: restDelegate,
-  cachingDelegates: [
-    localStorageDelegate,
-  ],
-  transactionStoringDelegate: TransactionStorer.fromDelegate(
-    storage: localStorageDelegate,
-    collectionName: 'uncommitted',
-    transactionsKey: 'transactions',
-    transactionsStateKey: 'processedTransactions',
-  ),
-  serviceRequestProcessorFactory: serviceRequestProcessorFactory,
-  queryMatcher: queryMatcher,
-);
+final state = restStorage;
+
+// final state = CascadeStorage(
+//   primaryDelegate: restDelegate,
+//   cachingDelegates: [
+//     localStorageDelegate,
+//   ],
+//   transactionStoringDelegate: TransactionStorer.fromDelegate(
+//     storage: localStorageDelegate,
+//     collectionName: 'uncommitted',
+//     transactionsKey: 'transactions',
+//     transactionsStateKey: 'processedTransactions',
+//   ),
+//   serviceRequestProcessorFactory: serviceRequestProcessorFactory,
+//   queryMatcher: queryMatcher,
+// );
 
 // final localData = {'photos': {}};
 
