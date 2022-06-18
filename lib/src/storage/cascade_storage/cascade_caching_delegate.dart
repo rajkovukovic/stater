@@ -32,7 +32,7 @@ class CascadeCachingDelegate extends LockingStorage {
           final transactions = dataAndTransactions.last;
 
           // now we have initial data, let's use it in innerDelegate
-          (delegate as CachingDelegate).data = data;
+          (delegate as HasCacheStorage).data = data;
 
           // save any transactions arrived during init process
           final transactionsArrivedDuringInit = [...transactionQueue];

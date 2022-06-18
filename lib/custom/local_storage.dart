@@ -7,7 +7,7 @@ import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
 class GetStorageDelegate extends CascadableStorage
-    implements RootAccessStorage {
+    implements HasRootAccessStorage {
   GetStorageDelegate({
     // required super.doesMatchQuery,
     // super.generateCompareFromQuery,

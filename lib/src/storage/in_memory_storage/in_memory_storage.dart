@@ -6,14 +6,8 @@ import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-abstract class CachingDelegate {
-  late Map<String, Map<String, dynamic>> data;
-
-  late IMap<String, IMap<String, dynamic>> immutableData;
-}
-
 /// in-RAM StorageDelegate, usually used for data caching
-class InMemoryStorage extends Storage implements CachingDelegate {
+class InMemoryStorage extends Storage implements HasCacheStorage {
   IMap<String, IMap<String, dynamic>> _cache;
 
   InMemoryStorage(Map<String, Map<String, dynamic>> cache)
@@ -198,7 +192,7 @@ typedef ServiceRequestProcessorFactory = ServiceRequestProcessor Function(
     Storage);
 
 class LockingInMemoryDelegate extends LockingStorage
-    implements CachingDelegate {
+    implements HasCacheStorage {
   LockingInMemoryDelegate(
     Map<String, Map<String, dynamic>> cache, {
     this.serviceRequestProcessorFactory,
