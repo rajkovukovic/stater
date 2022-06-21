@@ -1,4 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
+
+import 'package:stater/src/transaction/operation/get_document_operation.dart';
+import 'package:stater/src/transaction/operation/get_query_operation.dart';
 
 import 'create_operation.dart';
 import 'delete_operation.dart';
@@ -12,41 +16,62 @@ export 'create_operation.dart';
 export 'delete_operation.dart';
 export 'operation_type.dart';
 export 'operation_with_document_id.dart';
+export 'read_operation.dart';
 export 'service_request_operation.dart';
 export 'set_operation.dart';
 export 'update_operation.dart';
 
 /// abstract base Operation
 ///
-/// all other Operations extend this class
+/// all other Operations are derived from this class
 abstract class Operation {
   late final DateTime timestamp;
 
   Operation({
+    this.completer,
     DateTime? timestamp,
   }) {
     this.timestamp = timestamp ?? DateTime.now();
   }
 
-  OperationType get changeType;
+  /// Will be called when operation is successfully completed.
+  ///
+  /// Will NOT be called in case of operation failure.
+  Completer? completer;
+
+  OperationType get operationType;
 
   Map<String, dynamic> toMap();
 
-  factory Operation.fromMap(Map<String, dynamic> map) {
-    final changeType = operationTypeFromString(map['changeType']);
-    switch (changeType) {
+  factory Operation.fromMap(
+    Map<String, dynamic> map, {
+    Completer? completer,
+  }) {
+    final operationType = operationTypeFromString(map['operationType']);
+    switch (operationType) {
       case OperationType.create:
-        return CreateOperation.fromMap(map);
+        return CreateOperation.fromMap(map, completer: completer);
+
       case OperationType.delete:
-        return DeleteOperation.fromMap(map);
+        return DeleteOperation.fromMap(map, completer: completer);
+
+      case OperationType.getDocument:
+        return GetDocumentOperation.fromMap(map, completer: completer);
+
+      case OperationType.getQuery:
+        return GetQueryOperation.fromMap(map, completer: completer);
+
       case OperationType.set:
-        return SetOperation.fromMap(map);
+        return SetOperation.fromMap(map, completer: completer);
+
       case OperationType.update:
-        return UpdateOperation.fromMap(map);
+        return UpdateOperation.fromMap(map, completer: completer);
+
       case OperationType.serviceRequest:
-        return ServiceRequestOperation.fromMap(map);
+        return ServiceRequestOperation.fromMap(map, completer: completer);
+
       default:
-        throw 'Operation.fromMap does not have implemented $changeType';
+        throw 'Operation.fromMap does not have implemented $operationType';
     }
   }
 

@@ -1,5 +1,7 @@
 import 'package:stater/stater.dart';
 
+import 'cascade_transaction_manager.dart';
+
 bool ignoreCascadeDelegateAddDocumentWarning = false;
 bool _warnedAboutStorageWithCacheAddDocument = false;
 
@@ -36,7 +38,7 @@ class CascadeStorage extends Storage {
   /// creates a new document
   @override
   Future<DocumentSnapshot<ID, T>?>
-      addDocument<ID extends Object?, T extends dynamic>({
+      internalAddDocument<ID extends Object?, T extends dynamic>({
     required String collectionName,
     required T documentData,
     ID? documentId,
@@ -71,7 +73,7 @@ class CascadeStorage extends Storage {
         _delegates.sublist(1).forEach((delegate) {
           delegate.setDocument(
             collectionName: collectionName,
-            documentId: snapshot!.id,
+            documentId: snapshot.id,
             documentData: documentData,
             options: options,
           );
@@ -112,7 +114,7 @@ class CascadeStorage extends Storage {
 
   /// deletes the document
   @override
-  Future<void> deleteDocument<ID extends Object?>({
+  Future<void> internalDeleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -128,7 +130,7 @@ class CascadeStorage extends Storage {
   /// Reads the document
   @override
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends dynamic>({
+      internalGetDocument<ID extends Object?, T extends dynamic>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -155,7 +157,8 @@ class CascadeStorage extends Storage {
 
   /// Reads the documents
   @override
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends dynamic>(
+  Future<QuerySnapshot<ID, T>>
+      internalGetQuery<ID extends Object?, T extends dynamic>(
       Query<ID, T> query,
       [Converters<ID, T>? converters]) {
     // TODO: should we refactor to use ```for ... { await ... }``` ?
@@ -214,7 +217,7 @@ class CascadeStorage extends Storage {
   /// Sets data on the document, overwriting any existing data. If the document
   /// does not yet exist, it will be created.
   @override
-  Future<void> setDocument<ID extends Object?, T extends dynamic>({
+  Future<void> internalSetDocument<ID extends Object?, T extends dynamic>({
     required String collectionName,
     required ID documentId,
     required T documentData,
@@ -235,7 +238,7 @@ class CascadeStorage extends Storage {
   ///
   /// If no document exists yet, the update will fail.
   @override
-  Future<void> updateDocument<ID extends Object?>({
+  Future<void> internalUpdateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     Map<String, dynamic>? documentData,
@@ -255,7 +258,7 @@ class CascadeStorage extends Storage {
   }
 
   @override
-  Future serviceRequest(String serviceName, dynamic params) async {
+  Future internalServiceRequest(String serviceName, dynamic params) async {
     _transactionManager.addTransaction(
       ExclusiveTransaction(operations: [
         ServiceRequestOperation(

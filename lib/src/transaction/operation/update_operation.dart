@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'operation_type.dart';
@@ -19,6 +20,7 @@ class UpdateOperation extends OperationWithDocumentId {
   Map<String, dynamic> data;
 
   UpdateOperation({
+    super.completer,
     required this.data,
     required super.documentId,
     required super.collectionName,
@@ -26,9 +28,12 @@ class UpdateOperation extends OperationWithDocumentId {
   });
 
   @override
-  get changeType => OperationType.update;
+  get operationType => OperationType.update;
 
-  factory UpdateOperation.fromMap(Map<String, dynamic> map) {
+  factory UpdateOperation.fromMap(
+    Map<String, dynamic> map, {
+    Completer? completer,
+  }) {
     return UpdateOperation(
       collectionName: map['collectionName'],
       data: map['data'],
@@ -40,7 +45,7 @@ class UpdateOperation extends OperationWithDocumentId {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'changeType': changeType.name,
+      'operationType': operationType.name,
       'collectionName': collectionName,
       'data': data,
       'documentId': documentId,

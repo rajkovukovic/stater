@@ -104,7 +104,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       /// fill cachingDelegate initialState from one of [delegates]
       final sourceDataDelegateIndex =
           delegates
-          .lastIndexWhere((delegate) => delegate is HasRootAccessStorage);
+          .lastIndexWhere((delegate) => delegate is StorageHasRootAccess);
 
       if (sourceDataDelegateIndex < 0) {
         throw 'CascadeDelegate.init: at least one child delegate must '
@@ -113,7 +113,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       }
 
       final sourceDataDelegate =
-          delegates[sourceDataDelegateIndex] as HasRootAccessStorage;
+          delegates[sourceDataDelegateIndex] as StorageHasRootAccess;
 
       sourceDataDelegate
           .getAllData()

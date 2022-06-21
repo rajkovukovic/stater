@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'operation.dart';
@@ -8,15 +9,19 @@ class ServiceRequestOperation extends Operation {
   String serviceName;
 
   ServiceRequestOperation({
+    super.completer,
     required this.params,
     required this.serviceName,
     super.timestamp,
   });
 
   @override
-  get changeType => OperationType.serviceRequest;
+  get operationType => OperationType.serviceRequest;
 
-  factory ServiceRequestOperation.fromMap(Map<String, dynamic> map) {
+  factory ServiceRequestOperation.fromMap(
+    Map<String, dynamic> map, {
+    Completer? completer,
+  }) {
     return ServiceRequestOperation(
       params: map['params'],
       serviceName: map['serviceName'],
@@ -27,7 +32,7 @@ class ServiceRequestOperation extends Operation {
   @override
   Map<String, dynamic> toMap() {
     return {
-      'changeType': changeType.name,
+      'operationType': operationType.name,
       'params': params,
       'serviceName': serviceName,
       'timestamp': timestamp.millisecondsSinceEpoch,

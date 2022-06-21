@@ -1,34 +1,30 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'collection_operation.dart';
-import 'operation_type.dart';
+import 'package:stater/stater.dart';
 
-/// Creates a document in a collection
-class CreateOperation extends CollectionOperation {
-  final String? documentId;
-  Map<String, dynamic> data;
+/// Read a document from a collection
+class GetDocumentOperation extends CollectionOperation with ReadOperation {
+  final String documentId;
 
-  CreateOperation({
-    super.completer,
-    this.documentId,
-    required this.data,
+  GetDocumentOperation({
     required super.collectionName,
+    super.completer,
+    required this.documentId,
     super.timestamp,
   });
 
   @override
-  get operationType => OperationType.create;
+  get operationType => OperationType.getDocument;
 
-  factory CreateOperation.fromMap(
+  factory GetDocumentOperation.fromMap(
     Map<String, dynamic> map, {
     Completer? completer,
   }) {
-    return CreateOperation(
+    return GetDocumentOperation(
       completer: completer,
       documentId: map['documentId'],
       collectionName: map['collectionName'],
-      data: map['data'],
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
     );
   }
@@ -39,11 +35,10 @@ class CreateOperation extends CollectionOperation {
       'documentId': documentId,
       'operationType': operationType.name,
       'collectionName': collectionName,
-      'data': data,
       'timestamp': timestamp.millisecondsSinceEpoch,
     };
   }
 
-  factory CreateOperation.fromJson(String source) =>
-      CreateOperation.fromMap(json.decode(source));
+  factory GetDocumentOperation.fromJson(String source) =>
+      GetDocumentOperation.fromMap(json.decode(source));
 }

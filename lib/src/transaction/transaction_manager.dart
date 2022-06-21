@@ -72,7 +72,7 @@ class TransactionManager<T extends Transaction> {
         if (operation is OperationWithDocumentId &&
             operation.collectionName == collectionName &&
             operation.documentId == documentId) {
-          switch (operation.changeType) {
+          switch (operation.operationType) {
             case OperationType.create:
               if (!skipCreateOperations) {
                 throw 'applyTransactionsToEntity: do you want to use '
@@ -96,8 +96,8 @@ class TransactionManager<T extends Transaction> {
               }
               break;
             default:
-              throw 'applyTransactionsToEntity: switch case of "${operation.changeType}" '
-                  'is not implemented';
+              throw 'applyTransactionsToEntity: switch case of '
+                  '"${operation.operationType}" is not implemented';
           }
         }
       }

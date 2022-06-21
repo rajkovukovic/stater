@@ -7,7 +7,8 @@ abstract class CollectionOperation extends Operation {
   final String collectionName;
 
   CollectionOperation({
-    DateTime? timestamp,
+    super.completer,
     required this.collectionName,
+    DateTime? timestamp,
   }) : super(timestamp: timestamp);
 }

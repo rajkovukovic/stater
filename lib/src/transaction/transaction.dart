@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-
 class Transaction {
   final List<Operation> operations;
   final String id;
@@ -16,6 +15,14 @@ class Transaction {
       'id': id,
       'operations': operations.map((x) => x.toMap()).toList(),
     };
+  }
+
+  Transaction cloneWithoutReadOperations() {
+    return Transaction(
+      id: id,
+      operations:
+          operations.where((operation) => operation is! ReadOperation).toList(),
+    );
   }
 
   factory Transaction.fromMap(Map<String, dynamic> map) {
@@ -33,8 +40,8 @@ class Transaction {
         );
 
       default:
-        throw 'Transaction.fromMap does not have implemented '
-            'Transaction of type "$transactionType"';
+        throw 'Transaction.fromMap does not know hot to create '
+            'a Transaction of type "$transactionType"';
     }
   }
 
