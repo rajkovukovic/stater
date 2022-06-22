@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
@@ -13,9 +14,7 @@ class RestStorage extends Storage with CascadableStorage {
     this.id = id ?? 'restStorage@(${const Uuid().v4()})';
   }
 
-  static const String idKey = '_id';
-  static final requestOptions =
-      Options(receiveTimeout: 5000, sendTimeout: 5000);
+  static const String idKey = 'id';
 
   final String endpoint;
 
@@ -29,21 +28,26 @@ class RestStorage extends Storage with CascadableStorage {
     options = const StorageOptions(),
   }) {
     if (documentId != null) {
-      documentData = <String, dynamic>{
+      documentData = {
         if (documentData != null) ...(documentData as Map),
         idKey: documentId,
       } as T;
     }
 
-    return Dio()
-        .post('$endpoint/$collectionName',
-            data: documentData, options: requestOptions)
-        .then((response) {
-      final data = response.data;
+    return http.post(
+      Uri.parse('$endpoint/$collectionName'),
+      body: jsonEncode(documentData),
+      headers: {'content-type': 'application/json'},
+    ).then((response) {
+      final data = jsonDecode(response.body);
+      if (data is! Map) {
+        throw 'RestStorage.internalAddDocument expects response of type '
+            'Map<String, dynamic>.\nGot "${data.runtimeType}" instead.';
+      }
       final id = data[idKey] ?? '';
       return DocumentSnapshot(
         id,
-        data,
+        data as dynamic,
         DocumentReference(
             collectionName: collectionName, documentId: id, delegate: this),
       );
@@ -57,8 +61,7 @@ class RestStorage extends Storage with CascadableStorage {
     required ID documentId,
     options = const StorageOptions(),
   }) {
-    return Dio().delete('$endpoint/$collectionName/$documentId',
-        options: requestOptions);
+    return http.delete(Uri.parse('$endpoint/$collectionName/$documentId'));
   }
 
   // @override
@@ -78,9 +81,18 @@ class RestStorage extends Storage with CascadableStorage {
     required ID documentId,
     options = const StorageOptions(),
   }) async {
-    return Dio()
-        .get('$endpoint/$collectionName/$documentId', options: requestOptions)
-        .then((response) => response.data);
+    final response =
+        await http.get(Uri.parse('$endpoint/$collectionName/$documentId'));
+
+    final data = jsonDecode(response.body);
+
+    return DocumentSnapshot(
+        documentId,
+        data.cast<ID, T>(),
+        DocumentReference(
+            collectionName: collectionName,
+            documentId: documentId,
+            delegate: this));
   }
 
   @override
@@ -117,26 +129,29 @@ class RestStorage extends Storage with CascadableStorage {
       queryParameters[operation.field.toString()] = operation.valueToCompareTo;
     }
 
-    return Dio()
-        .get('$endpoint/${query.collectionName}',
-            queryParameters: queryParameters, options: requestOptions)
-        .then(
-          (response) => QuerySnapshot(
-            (response.data['data'] as Iterable)
-                .map(
-                  (element) => DocumentSnapshot<ID, T>(
-                    element?[idKey] as ID ?? '' as ID,
-                    element,
-                    DocumentReference(
-                      collectionName: query.collectionName,
-                      documentId: element?[idKey] as ID ?? '' as ID,
-                      delegate: this,
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        );
+    final response = await http.get(
+      Uri.parse('$endpoint/${query.collectionName}'
+          '?q=${jsonEncode(queryParameters)}'),
+      headers: {'content-type': 'application/json'},
+    );
+
+    final data = jsonDecode(response.body);
+
+    return QuerySnapshot(
+      (data as Iterable)
+          .map(
+            (element) => DocumentSnapshot<ID, T>(
+              element?[idKey] as ID ?? '' as ID,
+              element,
+              DocumentReference(
+                collectionName: query.collectionName,
+                documentId: element?[idKey] as ID ?? '' as ID,
+                delegate: this,
+              ),
+            ),
+          )
+          .toList(),
+    );
   }
 
   // @override
@@ -156,12 +171,11 @@ class RestStorage extends Storage with CascadableStorage {
     options = const StorageOptions(),
     Converters<ID, T>? converters,
   }) async {
-    // return Future.value();
-
-    return Dio()
-        .put('$endpoint/$collectionName/$documentId',
-            data: documentData, options: requestOptions)
-        .then((response) => response.data);
+    await http.put(
+      Uri.parse('$endpoint/$collectionName'),
+      body: jsonEncode(documentData),
+      headers: {'content-type': 'application/json'},
+    );
   }
 
   @override
@@ -172,52 +186,20 @@ class RestStorage extends Storage with CascadableStorage {
     required Map<String, dynamic> documentData,
     options = const StorageOptions(),
   }) async {
-    return Dio()
-        .patch('$endpoint/$collectionName/$documentId',
-            data: documentData, options: requestOptions)
-        .then((response) => response.data);
+    await http.patch(
+      Uri.parse('$endpoint/$collectionName'),
+      body: jsonEncode(documentData),
+      headers: {'content-type': 'application/json'},
+    );
   }
 
   @override
   @protected
   Future internalServiceRequest(String serviceName, dynamic params) async {
-    switch (serviceName) {
-      case 'createManyTodos':
-        final int createCount = params;
-
-        final Iterable<dynamic> existingTodos = await Dio()
-            .get('$endpoint/todos')
-            .then((response) => response.data['data']);
-
-        final existingNames = existingTodos.fold<Set<String>>(
-            {},
-            (acc, todo) => acc
-              ..add(todo['name'].toLowerCase().replaceAll(RegExp(r"\s+"), "")));
-
-        int nextTodoNumber = 1;
-
-        for (var i = 0; i < createCount; i++) {
-          while (existingNames.contains('todo$nextTodoNumber')) {
-            nextTodoNumber++;
-          }
-
-          final Map<String, dynamic> todo = {
-            'name': 'Todo $nextTodoNumber',
-            'completed': false
-          };
-
-          await addDocument(
-            collectionName: 'todos',
-            documentData: todo,
-            documentId: const Uuid().v4(),
-          );
-
-          nextTodoNumber++;
-        }
-
-        break;
-      default:
-        throw 'RestDelegate does not support serviceRequest "$serviceName"';
-    }
+    return http.post(
+      Uri.parse('$endpoint/api/serviceRequest/$serviceName'),
+      body: jsonEncode(params),
+      headers: {'content-type': 'application/json'},
+    );
   }
 }

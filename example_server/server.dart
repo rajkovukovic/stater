@@ -46,11 +46,13 @@ Future main() async {
 // Router instance to handler requests.
 final _router = shelf_router.Router()
   ..post('/api/replaceCollection/<collectionName>', _replaceCollectionHandler)
+  ..post('/api/serviceRequest/<serviceName>', _serviceRequestHandler)
   ..put('/api/<collectionName>/<documentId>', _setDocumentHandler)
+  ..post('/api/<collectionName>', _createDocumentHandler)
   ..patch('/api/<collectionName>/<documentId>', _updateDocumentHandler)
   ..delete('/api/<collectionName>/<documentId>', _deleteDocumentHandler)
   ..get('/api/<collectionName>/<documentId>', _getDocumentHandler)
-  ..get('/api/<collectionName>', _getQueryHandler)
+  ..get('/api/<collectionNameWithQuery>', _getQueryHandler)
   ..get('/*', (_) => Response.notFound('404'));
 
 final jsonFileStorage = JsonFileStorage();
@@ -118,6 +120,45 @@ Future<Response> _setDocumentHandler(
   );
 }
 
+Future<Response> _createDocumentHandler(
+  Request request,
+  String collectionName,
+) async {
+  if (collectionName.isEmpty) {
+    return Response.badRequest(
+        body: 'Can not read collectionName from the request');
+  }
+
+  final jsonData = await request.readAsString(Encoding.getByName('utf8'));
+
+  var data = jsonDecode(jsonData);
+
+  if (data is! Map) {
+    return Response.badRequest(body: 'data must be a map');
+  }
+
+  final documentData = data.cast<String, dynamic>();
+  String? documentId;
+
+  print(jsonEncode(documentData));
+
+  if (data['id'] != null) {
+    documentId = data['id'].toString();
+    data.remove('id');
+  }
+
+  data = await jsonFileStorage.internalAddDocument(
+    collectionName: collectionName,
+    documentData: documentData,
+    documentId: documentId,
+  );
+
+  return Response.ok(
+    const JsonEncoder.withIndent('  ').convert(data),
+    headers: {'content-type': 'application/json'},
+  );
+}
+
 Future<Response> _updateDocumentHandler(
   Request request,
   String collectionName,
@@ -177,9 +218,16 @@ Future<Response> _deleteDocumentHandler(
 }
 
 Future<Response> _getQueryHandler(
-  request,
+  Request request,
   String collectionName,
 ) async {
+  const queryMatcher = '?q=';
+  final queryJsonEncoded = (request.requestedUri.toString().split(queryMatcher)
+        ..removeAt(0))
+      .join(queryMatcher);
+  final queryJson = Uri.decodeComponent(queryJsonEncoded);
+  final query = queryJson.trim().isEmpty ? {} : jsonDecode(queryJson);
+
   final docs =
       await jsonFileStorage.internalGetQuery(collectionName: collectionName);
 
@@ -213,4 +261,34 @@ Future<Response> _replaceCollectionHandler(
       collectionName: collectionName, data: data.cast());
 
   return Response.ok('Success');
+}
+
+Future<Response> _serviceRequestHandler(
+  Request request,
+  String serviceName,
+) async {
+  final jsonData = await request.readAsString(Encoding.getByName('utf8'));
+
+  final data = jsonDecode(jsonData);
+
+  switch (serviceName) {
+    // case 'createManyTodos':
+    //   if (data is! List) {
+    //     return Response.badRequest(
+    //         body: 'Data must be a hash map where the documentId is map key.\n'
+    //             'Example:\n'
+    //             '{\n'
+    //             '  "todo1_id": {\n'
+    //             '    "name": "Todo 1",\n'
+    //             '    "completed": false\n'
+    //             '  }\n'
+    //             '}');
+    //   } else {
+    //     await jsonFileStorage.internalSetDocument(
+    //         collectionName: 'todos', data: data.cast());
+    //   }
+    default:
+      return Response.badRequest(
+          body: 'This server does not support serviceRequest "$serviceName"');
+  }
 }

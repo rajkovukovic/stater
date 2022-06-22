@@ -24,7 +24,7 @@ class JsonFileStorage {
 
     await collectionData.saveData();
 
-    return documentData;
+    return {...documentData, 'id': id};
   }
 
   /// deletes the document

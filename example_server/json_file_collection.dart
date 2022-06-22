@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart';
+
 class JsonFileCollection {
   late final Future _initFuture;
   late Map<String, Map<String, dynamic>> data = {};
   final String collectionName;
 
-  static String filePath(collectionName) => './data/$collectionName.json';
+  static String filePath(collectionName) =>
+      '${dirname(Platform.script.toFilePath())}/data/$collectionName.json';
 
   JsonFileCollection(this.collectionName) {
     _init();
