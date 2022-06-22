@@ -12,6 +12,7 @@
 		"autofocus",
 		"Cascadable",
 		"firestore",
+		"mockito",
 		"rxdart",
 		"Storer",
 		"todos"
