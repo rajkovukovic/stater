@@ -3,13 +3,7 @@ import 'dart:convert';
 
 import 'package:stater/src/transaction/operation/get_document_operation.dart';
 import 'package:stater/src/transaction/operation/get_query_operation.dart';
-
-import 'create_operation.dart';
-import 'delete_operation.dart';
-import 'operation_type.dart';
-import 'service_request_operation.dart';
-import 'set_operation.dart';
-import 'update_operation.dart';
+import 'package:stater/stater.dart';
 
 export 'collection_operation.dart';
 export 'create_operation.dart';
@@ -24,20 +18,18 @@ export 'update_operation.dart';
 /// abstract base Operation
 ///
 /// all other Operations are derived from this class
-abstract class Operation {
+abstract class Operation with HasNullableCompleter {
   late final DateTime timestamp;
 
+  /// [completer] will be called when operation is successfully completed.
+  /// [completer] will NOT be called in case of operation failure.
   Operation({
-    this.completer,
+    Completer? completer,
     DateTime? timestamp,
   }) {
+    this.completer = completer;
     this.timestamp = timestamp ?? DateTime.now();
   }
-
-  /// Will be called when operation is successfully completed.
-  ///
-  /// Will NOT be called in case of operation failure.
-  Completer? completer;
 
   OperationType get operationType;
 

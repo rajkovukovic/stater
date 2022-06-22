@@ -16,6 +16,7 @@ export 'src/storage/cascade_storage/cascadable_storage.dart';
 export 'src/storage/cascade_storage/exclusive_transaction.dart';
 export 'src/storage/cascade_storage/json_query_matcher.dart';
 export 'src/storage/in_memory_storage/in_memory_storage.dart';
+export 'src/storage/interfaces/has_completer.dart';
 export 'src/storage/interfaces/storage_has_cache.dart';
 export 'src/storage/interfaces/storage_has_root_access.dart';
 export 'src/storage/storage.dart';

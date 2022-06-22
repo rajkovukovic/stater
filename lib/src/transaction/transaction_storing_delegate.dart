@@ -43,13 +43,14 @@ class TransactionStorer {
     );
   }
 
-  factory TransactionStorer.fromDelegate({
-    required Storage storage,
-    required String collectionName,
-    required String transactionsKey,
-    required String transactionsStateKey,
+  factory TransactionStorer.fromStorage(
+    Storage storage, {
+    String collectionName = 'uncommitted',
+    String transactionsKey = 'transactions',
+    String transactionsStateKey = 'transactionsState',
   }) {
-    final collection = storage.collection(collectionName);
+    final collection =
+        storage.collection('$internalCollectionPrefix$collectionName');
 
     return TransactionStorer.fromDocumentReferences(
       transactionsDocRef: collection.doc(transactionsKey),
@@ -57,3 +58,8 @@ class TransactionStorer {
     );
   }
 }
+
+const internalCollectionPrefix = '__internal__';
+
+bool isInternalCollection(String collectionName) =>
+    collectionName.startsWith(internalCollectionPrefix);

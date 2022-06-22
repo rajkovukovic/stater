@@ -17,10 +17,13 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   @protected
   final TransactionStorer transactionStoringDelegate;
 
+  /// Holds a map of all TransactionProcessors.
+  /// Every storage (primary + caching ones) has
+  /// exactly one TransactionProcessor
   @protected
   late Map<CascadableStorage, TransactionProcessor> processorMap;
 
-  /// in-memory delegate that performs all transactions on
+  /// in-memory Storage that performs all transactions on
   /// cached DB data that is going to be used when user reads data
   /// from collections
   @protected
@@ -77,16 +80,18 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
     cachingDelegate = CascadeCachingDelegate(
       dataFuture: cachingDelegateData.future,
+      uncommittedTransactionsFuture: Future.value([]),
       serviceRequestProcessorFactory: serviceRequestProcessorFactory,
     );
 
-    // post init set-up
+    // after successful fetchingUncommittedTransactionsFromPreviousSession
+    // continue with the setup of transaction processing
     initFuture.then((List<dynamic> transactionsAndState) {
       final storedTransaction =
-          Transaction.fromListOfMap(transactionsAndState[0] ?? []);
+          Transaction.fromListOfMap(transactionsAndState[0]);
 
       final storedTransactionsState =
-          fromStoredTransactionsState(transactionsAndState[1] ?? {});
+          fromStoredTransactionsState(transactionsAndState[1]);
 
       if (storedTransaction.isNotEmpty) {
         transactionQueue = [
@@ -97,19 +102,19 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
       /// forward all transactions (stored + arrived during the initialization)
       /// to the cachingDelegate
-      for (var transaction in transactionQueue) {
-        cachingDelegate.performTransaction(transaction);
-      }
+      // TODO: fix this
+      // for (var transaction in transactionQueue) {
+      //   cachingDelegate.performTransaction(transaction);
+      // }
 
       /// fill cachingDelegate initialState from one of [delegates]
-      final sourceDataDelegateIndex =
-          delegates
+      final sourceDataDelegateIndex = delegates
           .lastIndexWhere((delegate) => delegate is StorageHasRootAccess);
 
       if (sourceDataDelegateIndex < 0) {
-        throw 'CascadeDelegate.init: at least one child delegate must '
-            'implement RootAccessStorage interface.\n'
-            'This delegate will be used as to spawn in-memory cache';
+        throw 'CascadeTransactionManager.init: at least one child delegate must '
+            'implement StorageHasRootAccess interface.\n'
+            'This delegate will be used to spawn in-memory cache storage';
       }
 
       final sourceDataDelegate =
@@ -130,7 +135,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
           (delegate) => MapEntry(
             delegate,
             TransactionProcessor(
-                delegate: delegate,
+                storage: delegate,
                 completedTransactionIds:
                     storedTransactionsState[delegate.id] ?? {}),
           ),
@@ -154,9 +159,10 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     initFuture.cancel();
 
     // cancel all transactions currently being processed by a processor
-    for (var processor in processorMap.values) {
-      processor.cancelCurrentTransaction();
-    }
+    // TODO: fix this
+    // for (var processor in processorMap.values) {
+    //   processor.cancelCurrentTransaction();
+    // }
     // and clear processorMap
     processorMap.clear();
   }
@@ -186,7 +192,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     for (var transaction in transactionQueue) {
       if (mustBeBeforeTransaction == transaction) break;
 
-      if (!transaction.excludeDelegateWithIds.contains(processor.delegate.id) &&
+      if (!transaction.excludeDelegateWithIds.contains(processor.storage.id) &&
           !processor.completedTransactionIds.contains(transaction.id)) {
         return transaction;
       }
@@ -241,7 +247,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
         bool processorHasCompletedFirstTransaction(processor) {
           bool result = firstTransaction.excludeDelegateWithIds
-                  .contains(processor.delegate.id) ||
+                  .contains(processor.storage.id) ||
               processor.completedTransactionIds.contains(firstTransaction.id);
           return result;
         }

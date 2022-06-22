@@ -4,7 +4,7 @@ import 'package:uuid/uuid.dart';
 
 final restStorage = RestStorage(
   id: 'rest-server-mongodb',
-  endpoint: 'http://192.168.0.13:3030',
+  endpoint: 'http://192.168.0.11:3030',
 );
 
 final localStorageDelegate = LocalStorage(

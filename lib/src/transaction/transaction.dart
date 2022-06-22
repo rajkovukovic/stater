@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-class Transaction {
+class Transaction with HasNullableCompleter {
   final List<Operation> operations;
   final String id;
 

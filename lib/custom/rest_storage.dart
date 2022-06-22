@@ -1,14 +1,17 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-class RestStorage extends CascadableStorage {
+class RestStorage extends Storage with CascadableStorage {
   RestStorage({
     required this.endpoint,
-    required super.id,
-  });
+    String? id,
+  }) {
+    this.id = id ?? 'restStorage@(${const Uuid().v4()})';
+  }
 
   static const String idKey = '_id';
   static final requestOptions =
@@ -17,6 +20,7 @@ class RestStorage extends CascadableStorage {
   final String endpoint;
 
   @override
+  @protected
   Future<DocumentSnapshot<ID, T>?>
       internalAddDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
@@ -47,6 +51,7 @@ class RestStorage extends CascadableStorage {
   }
 
   @override
+  @protected
   Future<void> internalDeleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
@@ -66,10 +71,12 @@ class RestStorage extends CascadableStorage {
   // }
 
   @override
+  @protected
   Future<DocumentSnapshot<ID, T>>
       internalGetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
+    options = const StorageOptions(),
   }) async {
     return Dio()
         .get('$endpoint/$collectionName/$documentId', options: requestOptions)
@@ -77,11 +84,13 @@ class RestStorage extends CascadableStorage {
   }
 
   @override
+  @protected
   Future<QuerySnapshot<ID, T>>
       internalGetQuery<ID extends Object?, T extends Object?>(
-    Query<ID, T> query, [
+    Query<ID, T> query, {
     Converters<ID, T>? converters,
-  ]) async {
+    StorageOptions options = const StorageOptions(),
+  }) async {
     // var fakeId = 'fake-rest' as ID;
     // return Future.value(QuerySnapshot([
     //   DocumentSnapshot(
@@ -131,6 +140,7 @@ class RestStorage extends CascadableStorage {
   }
 
   // @override
+  @protected
   // Stream<QuerySnapshot<ID, T>>
   //     querySnapshots<ID extends Object?, T extends Object?>(
   //         Query<ID, T> query) {
@@ -138,6 +148,7 @@ class RestStorage extends CascadableStorage {
   // }
 
   @override
+  @protected
   Future<void> internalSetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
@@ -154,6 +165,7 @@ class RestStorage extends CascadableStorage {
   }
 
   @override
+  @protected
   Future<void> internalUpdateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
@@ -167,6 +179,7 @@ class RestStorage extends CascadableStorage {
   }
 
   @override
+  @protected
   Future internalServiceRequest(String serviceName, dynamic params) async {
     switch (serviceName) {
       case 'createManyTodos':

@@ -1,5 +1,4 @@
 import 'package:meta/meta.dart';
-import 'package:stater/src/transaction/operation/operation.dart';
 import 'package:stater/src/transaction/transaction.dart';
 
 class TransactionManager<T extends Transaction> {
@@ -56,54 +55,6 @@ class TransactionManager<T extends Transaction> {
       transactionQueue = nextQueue;
       notifyListeners(TransactionManagerUpdateRemove(removed));
     }
-  }
-
-  dynamic applyTransactionsToEntity<ID extends Object?>({
-    required String collectionName,
-    required ID documentId,
-    required Map<String, dynamic>? data,
-    Iterable<T>? useThisTransactions,
-    bool skipCreateOperations = false,
-  }) {
-    Map<String, dynamic>? nextData = data;
-
-    for (var transaction in useThisTransactions ?? transactionQueue) {
-      for (var operation in transaction.operations) {
-        if (operation is OperationWithDocumentId &&
-            operation.collectionName == collectionName &&
-            operation.documentId == documentId) {
-          switch (operation.operationType) {
-            case OperationType.create:
-              if (!skipCreateOperations) {
-                throw 'applyTransactionsToEntity: do you want to use '
-                    '"skipCreateOperations: true" parameter';
-              }
-              break;
-            case OperationType.delete:
-              nextData = null;
-              break;
-            case OperationType.set:
-              nextData = {...(operation as SetOperation).data};
-              break;
-            case OperationType.update:
-              if (nextData == null) {
-                throw 'Trying to apply update operation to null document';
-              } else {
-                nextData = {
-                  ...nextData,
-                  ...(operation as UpdateOperation).data
-                };
-              }
-              break;
-            default:
-              throw 'applyTransactionsToEntity: switch case of '
-                  '"${operation.operationType}" is not implemented';
-          }
-        }
-      }
-    }
-
-    return nextData;
   }
 
   @protected

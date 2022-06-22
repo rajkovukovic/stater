@@ -12,7 +12,7 @@ class ExclusiveTransaction extends Transaction {
 
   factory ExclusiveTransaction.fromMap(Map<String, dynamic> map) {
     return ExclusiveTransaction(
-      id: map['_id'],
+      id: map['id'],
       excludeDelegateWithIds: Set.from(map['excludeDelegateWithIds'] ?? []),
       operations: List<Operation>.from(
           map['operations']?.map((x) => Operation.fromMap(x))),

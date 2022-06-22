@@ -6,7 +6,8 @@ import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
 /// in-RAM Storage, usually used for data caching
-class InMemoryStorage extends Storage implements StorageHasCache {
+class InMemoryStorage extends Storage
+    implements StorageHasCache, StorageHasRootAccess {
   IMap<String, IMap<String, dynamic>> _cache;
 
   InMemoryStorage(Map<String, Map<String, dynamic>> cache)
@@ -128,9 +129,10 @@ class InMemoryStorage extends Storage implements StorageHasCache {
   @override
   Future<QuerySnapshot<ID, T>>
       internalGetQuery<ID extends Object?, T extends Object?>(
-    Query<ID, T> query, [
+    Query<ID, T> query, {
     Converters<ID, T>? converters,
-  ]) async {
+    StorageOptions options = const StorageOptions(),
+  }) async {
     final collection = _cache[query.collectionName];
 
     final docs = collection?.entries.mapIndexed((int index, entry) {
@@ -174,7 +176,7 @@ class InMemoryStorage extends Storage implements StorageHasCache {
     final existing = collection?[documentId.toString()];
 
     if (existing == null) {
-      throw 'InMemoryDelegate.update: '
+      throw 'InMemoryStorage.update: '
           'there is no doc to update (id=$documentId)';
     } else {
       _cache = _cache.add(
@@ -182,6 +184,55 @@ class InMemoryStorage extends Storage implements StorageHasCache {
           collection!.add(documentId.toString(),
               <String, Object?>{...existing, ...documentData}));
     }
+  }
+
+  @override
+  Future<Map<String, Map<String, dynamic>>> getAllData() {
+    return Future.value(data);
+  }
+
+  @override
+  Future<Map<String, dynamic>> getCollectionData(String collectionName) {
+    // TODO: implement getCollectionData
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> insertData(Map<String, dynamic> collections) {
+    // TODO: implement insertData
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> insertToCollection(
+      String collectionName, Map<String, dynamic> documents) {
+    // TODO: implement insertToCollection
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> removeAllCollections() {
+    // TODO: implement removeAllCollections
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> removeAllDocumentsInCollection(String collectionName) {
+    // TODO: implement removeAllDocumentsInCollection
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> removeCollection(String collectionName) {
+    // TODO: implement removeCollection
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> replaceCollection(
+      String collectionName, Map<String, dynamic> documents) {
+    // TODO: implement replaceCollection
+    throw UnimplementedError();
   }
 }
 

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:meta/meta.dart';
+import 'package:stater/src/transaction/operation/get_document_operation.dart';
+import 'package:stater/src/transaction/operation/get_query_operation.dart';
 import 'package:stater/stater.dart';
 
 class Storage {
@@ -43,6 +45,17 @@ class Storage {
       internalGetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
+    options = const StorageOptions(),
+  }) {
+    throw 'Not implemented';
+  }
+
+  /// Reads the document
+  @protected
+  Future<QuerySnapshot<ID, T>>
+      internalGetQuery<ID extends Object?, T extends Object?>(
+    Query<ID, T> query, {
+    StorageOptions options = const StorageOptions(),
   }) {
     throw 'Not implemented';
   }
@@ -55,14 +68,6 @@ class Storage {
         'classes derived from StorageDelegate should implement serviceRequest '
         'method. Did you forget to implement it?\n'
         'Exception detected in class of type "$runtimeType"');
-  }
-
-  /// Reads the document
-  @protected
-  Future<QuerySnapshot<ID, T>>
-      internalGetQuery<ID extends Object?, T extends Object?>(
-          Query<ID, T> query) {
-    throw 'Not implemented';
   }
 
   /// Notifies of document updates at this location.
@@ -110,48 +115,84 @@ class Storage {
   Future internalPerformOperation(
     Operation operation, {
     options = const StorageOptions(),
-  }) {
-    if (operation is CreateOperation) {
-      return internalAddDocument(
-        collectionName: operation.collectionName,
-        documentData: operation.data,
-        documentId: operation.documentId,
-        options: options,
-      );
-    }
+  }) async {
+    final completer = Completer();
+    dynamic operationResult;
 
-    if (operation is DeleteOperation) {
-      return internalDeleteDocument(
-        collectionName: operation.collectionName,
-        documentId: operation.documentId,
-        options: options,
-      );
-    }
+    try {
+      if (operation is CreateOperation) {
+        operationResult = await internalAddDocument(
+          collectionName: operation.collectionName,
+          documentData: operation.data,
+          documentId: operation.documentId,
+          options: options,
+        );
 
-    if (operation is SetOperation) {
-      return internalSetDocument(
-        collectionName: operation.collectionName,
-        documentId: operation.documentId,
-        documentData: operation.data,
-        options: options,
-      );
-    }
+        return completer.complete(operationResult);
+      }
 
-    if (operation is UpdateOperation) {
-      return internalUpdateDocument(
-        collectionName: operation.collectionName,
-        documentId: operation.documentId,
-        documentData: operation.data,
-        options: options,
-      );
-    }
+      if (operation is DeleteOperation) {
+        await internalDeleteDocument(
+          collectionName: operation.collectionName,
+          documentId: operation.documentId,
+          options: options,
+        );
 
-    if (operation is ServiceRequestOperation) {
-      return internalServiceRequest(operation.serviceName, operation.params);
-    }
+        return completer.complete(operationResult);
+      }
 
-    throw 'performOperation does not implement an action when '
-        'operation type is ${operation.runtimeType}';
+      if (operation is GetDocumentOperation) {
+        operationResult = await internalGetDocument(
+          collectionName: operation.collectionName,
+          documentId: operation.documentId,
+        );
+
+        return completer.complete(operationResult);
+      }
+
+      if (operation is GetQueryOperation) {
+        operationResult = await internalGetQuery(operation.query);
+
+        return completer.complete(operationResult);
+      }
+
+      if (operation is SetOperation) {
+        await internalSetDocument(
+          collectionName: operation.collectionName,
+          documentId: operation.documentId,
+          documentData: operation.data,
+          options: options,
+        );
+
+        return completer.complete(operationResult);
+      }
+
+      if (operation is UpdateOperation) {
+        await internalUpdateDocument(
+          collectionName: operation.collectionName,
+          documentId: operation.documentId,
+          documentData: operation.data,
+          options: options,
+        );
+
+        return completer.complete(operationResult);
+      }
+
+      if (operation is ServiceRequestOperation) {
+        operationResult = await internalServiceRequest(
+          operation.serviceName,
+          operation.params,
+        );
+
+        return completer.complete(operationResult);
+      }
+
+      throw 'performOperation does not implement an action when '
+          'operation type is ${operation.runtimeType}';
+    } catch (error, stackTrace) {
+      completer.completeError(error, stackTrace);
+      return Future.error(error);
+    }
   }
 
   @protected
@@ -184,10 +225,10 @@ class Storage {
   final LockingStrategy lockingStrategy = LockingStrategy.onlyWritingLocks;
 
   @protected
-  final List<DelegateOperation> transactionQueue = [];
+  final List<QueueOperation> transactionQueue = [];
 
   @protected
-  final List<DelegateOperation> transactionsBeingProcessed = [];
+  final List<QueueOperation> transactionsBeingProcessed = [];
 
   destroy() {
     // should we try to stop running transactions?
@@ -260,7 +301,7 @@ class Storage {
   ]) {
     final completer = Completer();
 
-    transactionQueue.add(DelegateOperation(
+    transactionQueue.add(QueueOperation(
         completer: completer,
         canBePerformedInParallel: true,
         performer: operation,
@@ -278,7 +319,7 @@ class Storage {
   ]) {
     final completer = Completer();
 
-    transactionQueue.add(DelegateOperation(
+    transactionQueue.add(QueueOperation(
         completer: completer,
         canBePerformedInParallel: false,
         performer: operation,
@@ -321,8 +362,11 @@ class Storage {
 
   @nonVirtual
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends Object?>(
-          {required String collectionName, required ID documentId}) {
+      getDocument<ID extends Object?, T extends Object?>({
+    required String collectionName,
+    required ID documentId,
+    options = const StorageOptions(),
+  }) {
     return requestConcurrentOperation(
       () => delegate.internalGetDocument<ID, T>(
           collectionName: collectionName, documentId: documentId),
@@ -332,7 +376,9 @@ class Storage {
 
   @nonVirtual
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-      Query<ID, T> query) {
+    Query<ID, T> query, {
+    options = const StorageOptions(),
+  }) {
     return requestConcurrentOperation(
       () => delegate.internalGetQuery<ID, T>(query),
       {'caller': 'getQuery'},
@@ -396,13 +442,13 @@ class Storage {
   }
 }
 
-class DelegateOperation {
+class QueueOperation {
   final Future Function() performer;
   final bool canBePerformedInParallel;
   final Completer completer;
   final dynamic debugData;
 
-  DelegateOperation({
+  QueueOperation({
     required this.performer,
     required this.canBePerformedInParallel,
     required this.completer,

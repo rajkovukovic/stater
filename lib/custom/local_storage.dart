@@ -3,21 +3,27 @@ import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
+class LocalStorage extends Storage
+    with CascadableStorage
+    implements StorageHasRootAccess {
   LocalStorage({
     // required super.doesMatchQuery,
     // super.generateCompareFromQuery,
-    required super.id,
+    String? id,
     required this.storagePrefix,
-  });
+  }) {
+    this.id = id ?? 'localStorage@(${const Uuid().v4()})';
+  }
 
   final String storagePrefix;
 
   Future<GetStorage> _getExistingCollectionsBox() async {
-    final storageName = '$storagePrefix:__internal__existingCollections__';
+    final storageName =
+        '$storagePrefix:${internalCollectionPrefix}existingCollections';
 
     await GetStorage.init(storageName);
 
@@ -28,12 +34,14 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
     return _getExistingCollectionsBox().then((box) => box.getKeys());
   }
 
-  Future<void> _makeSureCollectionExists(String collection) async {
-    final box = await _getExistingCollectionsBox();
+  Future<void> _makeSureCollectionExists(String collectionName) async {
+    if (!isInternalCollection(collectionName)) {
+      final box = await _getExistingCollectionsBox();
 
-    final existingCollections = Set.from(box.getKeys());
-    if (!existingCollections.contains(collection)) {
-      box.write(collection, true);
+      final existingCollections = Set.from(box.getKeys());
+      if (!existingCollections.contains(collectionName)) {
+        box.write(collectionName, true);
+      }
     }
   }
 
@@ -49,8 +57,9 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
+  @protected
   Future<DocumentSnapshot<ID, T>>
-      addDocument<ID extends Object?, T extends Object?>({
+      internalAddDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required T documentData,
     ID? documentId,
@@ -74,7 +83,8 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
-  Future<void> deleteDocument<ID extends Object?>({
+  @protected
+  Future<void> internalDeleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -85,6 +95,7 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   // @override
+  @protected
   // Stream<DocumentSnapshot<ID, T>>
   //     documentSnapshots<ID extends Object?, T extends Object?>(
   //         String collection, ID documentId) {
@@ -116,8 +127,9 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   // }
 
   @override
+  @protected
   Future<DocumentSnapshot<ID, T>>
-      getDocument<ID extends Object?, T extends Object?>({
+      internalGetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -138,10 +150,13 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
-  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-    Query<ID, T> query, [
+  @protected
+  Future<QuerySnapshot<ID, T>>
+      internalGetQuery<ID extends Object?, T extends Object?>(
+    Query<ID, T> query, {
     Converters<ID, T>? converters,
-  ]) async {
+    StorageOptions options = const StorageOptions(),
+  }) async {
     final collection = query.collectionName;
 
     final storage = await getCollectionBox(collection);
@@ -175,6 +190,7 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   // @override
+  @protected
   // Stream<QuerySnapshot<ID, T>>
   //     querySnapshots<ID extends Object?, T extends Object?>(
   //         Query<ID, T> query) {
@@ -183,7 +199,8 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   // }
 
   @override
-  Future<void> setDocument<ID extends Object?, T extends Object?>({
+  @protected
+  Future<void> internalSetDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     required T documentData,
@@ -195,7 +212,8 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
-  Future<void> updateDocument<ID extends Object?>({
+  @protected
+  Future<void> internalUpdateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     required Map<String, dynamic> documentData,
@@ -214,7 +232,8 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
-  Future serviceRequest(String serviceName, dynamic params) async {
+  @protected
+  Future internalServiceRequest(String serviceName, dynamic params) async {
     switch (serviceName) {
       case 'createManyTodos':
         final int createCount = params;
@@ -250,6 +269,7 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
+  @protected
   Future<Map<String, Map<String, dynamic>>> getAllData() async {
     final existingCollections = List.from(await _getExistingCollections());
 
@@ -264,6 +284,7 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
+  @protected
   Future<Map<String, dynamic>> getCollectionData(String collectionName) async {
     final storage = await getCollectionBox(collectionName);
 
@@ -279,12 +300,14 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
+  @protected
   Future<void> insertData(Map<String, dynamic> collections) {
     return Future.wait(collections.entries
         .map((entry) => insertToCollection(entry.key, entry.value)));
   }
 
   @override
+  @protected
   Future<void> insertToCollection(
       String collectionName, Map<String, dynamic> documents) async {
     final storage = await getCollectionBox(collectionName);
@@ -296,6 +319,7 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
+  @protected
   Future<void> removeAllCollections() async {
     final existingCollections = await _getExistingCollections();
 
@@ -304,6 +328,7 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
+  @protected
   Future<void> removeAllDocumentsInCollection(String collectionName) async {
     final storage = await getCollectionBox(collectionName);
 
@@ -311,6 +336,7 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
+  @protected
   Future<void> removeCollection(String collectionName) async {
     final clearCollection = removeAllDocumentsInCollection(collectionName);
 
@@ -321,6 +347,7 @@ class LocalStorage extends CascadableStorage implements StorageHasRootAccess {
   }
 
   @override
+  @protected
   Future<void> replaceCollection(
       String collectionName, Map<String, dynamic> documents) async {
     await removeAllDocumentsInCollection(collectionName);

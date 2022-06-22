@@ -3,7 +3,8 @@ class JsonQueryMatcher {
 
   const JsonQueryMatcher(this.matchersMap);
 
-  Function? get(String collectionName) => matchersMap[collectionName];
+  Function? byCollectionName(String collectionName) =>
+      matchersMap[collectionName];
 
   factory JsonQueryMatcher.empty() {
     return const JsonQueryMatcher({});

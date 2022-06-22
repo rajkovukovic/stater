@@ -23,6 +23,7 @@ dependencies:
   rxdart: ^0.27.3
   uuid: ^3.0.6
   fast_immutable_collections: ^7.4.1
+  mockito: ^5.2.0
 
 dev_dependencies:
   flutter_test:
