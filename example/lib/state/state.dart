@@ -4,7 +4,7 @@ import 'package:uuid/uuid.dart';
 
 final restStorage = RestStorage(
   id: 'rest-server-mongodb',
-  endpoint: 'http://192.168.0.11:3030',
+  endpoint: 'http://192.168.0.11:54123/api',
 );
 
 final localStorageDelegate = LocalStorage(
@@ -40,6 +40,7 @@ ServiceRequestProcessor serviceRequestProcessorFactory(Storage storage) {
           }
 
           final todo = {'name': 'Todo $nextTodoNumber', 'completed': false};
+
           await todosCollection.add(
             todo,
             documentId: const Uuid().v4(),

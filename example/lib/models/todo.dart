@@ -13,7 +13,7 @@ class Todo {
 
   Map<String, dynamic> toJson() {
     return {
-      '_id': id,
+      'id': id,
       'name': name,
       'completed': completed,
     };
@@ -21,7 +21,7 @@ class Todo {
 
   factory Todo.fromJson(Map<String, dynamic> map) {
     return Todo(
-      id: map['_id'] ?? '',
+      id: map['id'],
       name: map['name'] ?? '',
       completed: map['completed'] ?? false,
     );

@@ -24,7 +24,8 @@ Future main() async {
       // First, serve files from the 'public' directory
       // .add(_staticHandler)
       // If a corresponding file is not found, send requests to a `Router`
-      .add(_router);
+      .add(_router)
+      .add((request) => Response.notFound('404', headers: headersWithCors()));
 
   // See https://pub.dev/documentation/shelf/latest/shelf_io/serve.html
   final server = await shelf_io.serve(
@@ -46,14 +47,14 @@ Future main() async {
 // Router instance to handler requests.
 final _router = shelf_router.Router()
   ..post('/api/replaceCollection/<collectionName>', _replaceCollectionHandler)
-  ..post('/api/serviceRequest/<serviceName>', _serviceRequestHandler)
+  ..post('/api/services/<serviceName>', _serviceHandler)
   ..put('/api/<collectionName>/<documentId>', _setDocumentHandler)
   ..post('/api/<collectionName>', _createDocumentHandler)
   ..patch('/api/<collectionName>/<documentId>', _updateDocumentHandler)
   ..delete('/api/<collectionName>/<documentId>', _deleteDocumentHandler)
   ..get('/api/<collectionName>/<documentId>', _getDocumentHandler)
   ..get('/api/<collectionNameWithQuery>', _getQueryHandler)
-  ..get('/*', (_) => Response.notFound('404'));
+  ..get('/*', (_) => Response.notFound('404', headers: headersWithCors()));
 
 final jsonFileStorage = JsonFileStorage();
 
@@ -64,12 +65,16 @@ Future<Response> _getDocumentHandler(
 ) async {
   if (collectionName.isEmpty) {
     return Response.badRequest(
-        body: 'Can not read collectionName from the request');
+      body: 'Can not read collectionName from the request',
+      headers: headersWithCors(),
+    );
   }
 
   if (documentId.isEmpty) {
     return Response.badRequest(
-        body: 'Can not read documentId from the request');
+      body: 'Can not read documentId from the request',
+      headers: headersWithCors(),
+    );
   }
 
   final document = await jsonFileStorage.internalGetDocument(
@@ -80,9 +85,12 @@ Future<Response> _getDocumentHandler(
   return document != null
       ? Response.ok(
           const JsonEncoder.withIndent('  ').convert(document),
-          headers: {'content-type': 'application/json'},
+          headers: headersWithCors({'content-type': 'application/json'}),
         )
-      : Response.notFound('document not found');
+      : Response.notFound(
+          'document not found',
+          headers: headersWithCors(),
+        );
 }
 
 Future<Response> _setDocumentHandler(
@@ -92,12 +100,16 @@ Future<Response> _setDocumentHandler(
 ) async {
   if (collectionName.isEmpty) {
     return Response.badRequest(
-        body: 'Can not read collectionName from the request');
+      body: 'Can not read collectionName from the request',
+      headers: headersWithCors(),
+    );
   }
 
   if (documentId.isEmpty) {
     return Response.badRequest(
-        body: 'Can not read documentId from the request');
+      body: 'Can not read documentId from the request',
+      headers: headersWithCors(),
+    );
   }
 
   final jsonData = await request.readAsString(Encoding.getByName('utf8'));
@@ -105,7 +117,10 @@ Future<Response> _setDocumentHandler(
   final data = jsonDecode(jsonData);
 
   if (data is! Map) {
-    return Response.badRequest(body: 'data must be a map');
+    return Response.badRequest(
+      body: 'data must be a map',
+      headers: headersWithCors(),
+    );
   }
 
   await jsonFileStorage.internalSetDocument(
@@ -116,7 +131,7 @@ Future<Response> _setDocumentHandler(
 
   return Response.ok(
     const JsonEncoder.withIndent('  ').convert(data),
-    headers: {'content-type': 'application/json'},
+    headers: headersWithCors({'content-type': 'application/json'}),
   );
 }
 
@@ -126,7 +141,9 @@ Future<Response> _createDocumentHandler(
 ) async {
   if (collectionName.isEmpty) {
     return Response.badRequest(
-        body: 'Can not read collectionName from the request');
+      body: 'Can not read collectionName from the request',
+      headers: headersWithCors(),
+    );
   }
 
   final jsonData = await request.readAsString(Encoding.getByName('utf8'));
@@ -134,7 +151,10 @@ Future<Response> _createDocumentHandler(
   var data = jsonDecode(jsonData);
 
   if (data is! Map) {
-    return Response.badRequest(body: 'data must be a map');
+    return Response.badRequest(
+      body: 'data must be a map',
+      headers: headersWithCors(),
+    );
   }
 
   final documentData = data.cast<String, dynamic>();
@@ -155,7 +175,7 @@ Future<Response> _createDocumentHandler(
 
   return Response.ok(
     const JsonEncoder.withIndent('  ').convert(data),
-    headers: {'content-type': 'application/json'},
+    headers: headersWithCors({'content-type': 'application/json'}),
   );
 }
 
@@ -166,12 +186,16 @@ Future<Response> _updateDocumentHandler(
 ) async {
   if (collectionName.isEmpty) {
     return Response.badRequest(
-        body: 'Can not read collectionName from the request');
+      body: 'Can not read collectionName from the request',
+      headers: headersWithCors(),
+    );
   }
 
   if (documentId.isEmpty) {
     return Response.badRequest(
-        body: 'Can not read documentId from the request');
+      body: 'Can not read documentId from the request',
+      headers: headersWithCors(),
+    );
   }
 
   final jsonData = await request.readAsString(Encoding.getByName('utf8'));
@@ -179,7 +203,10 @@ Future<Response> _updateDocumentHandler(
   final data = jsonDecode(jsonData);
 
   if (data is! Map) {
-    return Response.badRequest(body: 'data must be a map');
+    return Response.badRequest(
+      body: 'data must be a map',
+      headers: headersWithCors(),
+    );
   }
 
   await jsonFileStorage.internalUpdateDocument(
@@ -190,7 +217,7 @@ Future<Response> _updateDocumentHandler(
 
   return Response.ok(
     const JsonEncoder.withIndent('  ').convert(data),
-    headers: {'content-type': 'application/json'},
+    headers: headersWithCors({'content-type': 'application/json'}),
   );
 }
 
@@ -201,12 +228,16 @@ Future<Response> _deleteDocumentHandler(
 ) async {
   if (collectionName.isEmpty) {
     return Response.badRequest(
-        body: 'Can not read collectionName from the request');
+      body: 'Can not read collectionName from the request',
+      headers: headersWithCors(),
+    );
   }
 
   if (documentId.isEmpty) {
     return Response.badRequest(
-        body: 'Can not read documentId from the request');
+      body: 'Can not read documentId from the request',
+      headers: headersWithCors(),
+    );
   }
 
   await jsonFileStorage.internalDeleteDocument(
@@ -214,7 +245,10 @@ Future<Response> _deleteDocumentHandler(
     documentId: documentId,
   );
 
-  return Response.ok('Success');
+  return Response.ok(
+    'Success',
+    headers: headersWithCors(),
+  );
 }
 
 Future<Response> _getQueryHandler(
@@ -233,7 +267,7 @@ Future<Response> _getQueryHandler(
 
   return Response.ok(
     const JsonEncoder.withIndent('  ').convert(docs),
-    headers: {'content-type': 'application/json'},
+    headers: headersWithCors({'content-type': 'application/json'}),
   );
 }
 
@@ -247,6 +281,7 @@ Future<Response> _replaceCollectionHandler(
 
   if (data is! Map) {
     return Response.badRequest(
+        headers: headersWithCors(),
         body: 'Data must be a hash map where the documentId is map key.\n'
             'Example:\n'
             '{\n'
@@ -260,10 +295,13 @@ Future<Response> _replaceCollectionHandler(
   await jsonFileStorage.internalReplaceCollection(
       collectionName: collectionName, data: data.cast());
 
-  return Response.ok('Success');
+  return Response.ok(
+    'Success',
+    headers: headersWithCors(),
+  );
 }
 
-Future<Response> _serviceRequestHandler(
+Future<Response> _serviceHandler(
   Request request,
   String serviceName,
 ) async {
@@ -272,23 +310,95 @@ Future<Response> _serviceRequestHandler(
   final data = jsonDecode(jsonData);
 
   switch (serviceName) {
-    // case 'createManyTodos':
-    //   if (data is! List) {
-    //     return Response.badRequest(
-    //         body: 'Data must be a hash map where the documentId is map key.\n'
-    //             'Example:\n'
-    //             '{\n'
-    //             '  "todo1_id": {\n'
-    //             '    "name": "Todo 1",\n'
-    //             '    "completed": false\n'
-    //             '  }\n'
-    //             '}');
-    //   } else {
-    //     await jsonFileStorage.internalSetDocument(
-    //         collectionName: 'todos', data: data.cast());
-    //   }
+    case 'createManyTodos':
+      if (data == null || (data is! List) || data.isEmpty) {
+        final message = '$serviceName requires a list of ids as a parameter\n'
+            'Got "${data.runtimeType}" instead.';
+
+        print(message);
+
+        return Response.badRequest(
+          headers: headersWithCors(),
+          body: message,
+        );
+      }
+
+      final List<String> newIds = data.cast<String>();
+
+      final existingTodos =
+          await jsonFileStorage.internalGetQuery(collectionName: 'todos');
+
+      final existingIds = existingTodos
+          .fold<Set<String>>({}, (acc, todo) => acc..add(todo['id']));
+
+      final conflictingIds = existingIds.intersection(newIds.toSet());
+
+      if (conflictingIds.isNotEmpty) {
+        final message = '$serviceName: ids ${conflictingIds.join(', ')}'
+            ' already exist in the database';
+
+        print(message);
+
+        return Response.badRequest(
+          headers: headersWithCors(),
+          body: message,
+        );
+      }
+
+      final existingNames = existingTodos.fold<Set<String>>(
+          {},
+          (acc, todo) => acc
+            ..add((todo['name'] as String)
+                .toLowerCase()
+                .replaceAll(RegExp(r"[^A-Za-z0-9]"), "")));
+
+      int nextTodoNumber = 1;
+
+      final createdTodos = [];
+
+      for (var todoId in newIds) {
+        while (existingNames.contains('todo$nextTodoNumber')) {
+          nextTodoNumber++;
+        }
+
+        final todo = {'name': 'Todo $nextTodoNumber', 'completed': false};
+
+        await jsonFileStorage.internalAddDocument(
+          collectionName: 'todos',
+          documentData: todo,
+          documentId: todoId,
+        );
+
+        nextTodoNumber++;
+
+        createdTodos.add({...todo, 'id': todoId});
+      }
+
+      print('createdTodos');
+      print(jsonEncode(createdTodos));
+
+      return Response.ok(
+        jsonEncode(createdTodos),
+        headers: headersWithCors(),
+      );
     default:
+      final message =
+          'This server does not support serviceRequest "$serviceName"';
+
+      print(message);
+
       return Response.badRequest(
-          body: 'This server does not support serviceRequest "$serviceName"');
+        headers: headersWithCors(),
+        body: message,
+      );
   }
+}
+
+Map<String, Object> headersWithCors([Map<String, Object> headers = const {}]) {
+  return {
+    ...headers,
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+    'Access-Control-Allow-Headers': 'Origin, Content-Type',
+  };
 }

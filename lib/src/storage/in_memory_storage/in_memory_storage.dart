@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 
 /// in-RAM Storage, usually used for data caching
 class InMemoryStorage extends Storage
+    with CascadableStorage
     implements StorageHasCache, StorageHasRootAccess {
   IMap<String, IMap<String, dynamic>> _cache;
 

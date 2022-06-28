@@ -115,7 +115,7 @@ class _TodosScreenWrapper extends State<TodosScreenWrapper> {
         future: widget.todosFuture,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            throw snapshot.error!;
+            Center(child: Text(snapshot.error!.toString()));
           }
 
           Widget? messageWidget;

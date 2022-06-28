@@ -28,7 +28,7 @@ class RestStorage extends Storage with CascadableStorage {
     options = const StorageOptions(),
   }) {
     if (documentId != null) {
-      documentData = {
+      documentData = <String, dynamic>{
         if (documentData != null) ...(documentData as Map),
         idKey: documentId,
       } as T;
@@ -172,7 +172,7 @@ class RestStorage extends Storage with CascadableStorage {
     Converters<ID, T>? converters,
   }) async {
     await http.put(
-      Uri.parse('$endpoint/$collectionName'),
+      Uri.parse('$endpoint/$collectionName/$documentId'),
       body: jsonEncode(documentData),
       headers: {'content-type': 'application/json'},
     );
@@ -187,7 +187,7 @@ class RestStorage extends Storage with CascadableStorage {
     options = const StorageOptions(),
   }) async {
     await http.patch(
-      Uri.parse('$endpoint/$collectionName'),
+      Uri.parse('$endpoint/$collectionName/$documentId'),
       body: jsonEncode(documentData),
       headers: {'content-type': 'application/json'},
     );
@@ -196,10 +196,19 @@ class RestStorage extends Storage with CascadableStorage {
   @override
   @protected
   Future internalServiceRequest(String serviceName, dynamic params) async {
-    return http.post(
-      Uri.parse('$endpoint/api/serviceRequest/$serviceName'),
-      body: jsonEncode(params),
-      headers: {'content-type': 'application/json'},
-    );
+    switch (serviceName) {
+      case 'removeAllTodos':
+        return http.post(
+          Uri.parse('$endpoint/replaceCollection/todos'),
+          body: jsonEncode({}),
+          headers: {'content-type': 'application/json'},
+        );
+      default:
+        return http.post(
+          Uri.parse('$endpoint/services/$serviceName'),
+          body: jsonEncode(params),
+          headers: {'content-type': 'application/json'},
+        );
+    }
   }
 }

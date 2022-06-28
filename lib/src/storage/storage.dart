@@ -5,7 +5,7 @@ import 'package:stater/src/transaction/operation/get_document_operation.dart';
 import 'package:stater/src/transaction/operation/get_query_operation.dart';
 import 'package:stater/stater.dart';
 
-class Storage {
+abstract class Storage {
   CollectionReference<ID, T> collection<ID extends Object?, T extends Object?>(
     String collectionName, {
     options = const StorageOptions(),
@@ -25,9 +25,7 @@ class Storage {
     required T documentData,
     ID? documentId,
     options = const StorageOptions(),
-  }) {
-    throw 'Not implemented';
-  }
+  });
 
   /// deletes the document
   @protected
@@ -35,9 +33,7 @@ class Storage {
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
-  }) {
-    throw 'Not implemented';
-  }
+  });
 
   /// Reads the document
   @protected
@@ -46,9 +42,7 @@ class Storage {
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
-  }) {
-    throw 'Not implemented';
-  }
+  });
 
   /// Reads the document
   @protected
@@ -56,9 +50,7 @@ class Storage {
       internalGetQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, {
     StorageOptions options = const StorageOptions(),
-  }) {
-    throw 'Not implemented';
-  }
+  });
 
   /// performs specific operation(s) that can not be described using
   /// the existing CRUD operations
@@ -93,9 +85,7 @@ class Storage {
     required ID documentId,
     required T documentData,
     options = const StorageOptions(),
-  }) {
-    throw 'Not implemented';
-  }
+  });
 
   /// Updates data on the document. Data will be merged with any existing
   /// document data.
@@ -107,9 +97,7 @@ class Storage {
     required ID documentId,
     required Map<String, dynamic> documentData,
     options = const StorageOptions(),
-  }) {
-    throw 'Not implemented';
-  }
+  });
 
   @protected
   Future internalPerformOperation(

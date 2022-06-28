@@ -4,15 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stater/src/storage/cascade_storage/cascade_storage.dart';
 import 'package:stater/stater.dart';
 
-import '../../test_helpers/delayed_storage.dart';
 import '../../test_helpers/generate_sample_data.dart';
 import '../../test_helpers/puppet_storage.dart';
 
 void main() {
-  test('can create CascadeStorage using fakeLocalStorage and fakeRestStorage',
+  test('can create CascadeStorage using inMemoryStorage and restStorage',
       () async {
-    final fakeLocalStorage = createFakeLocalStorage();
-    final fakeRestStorage = createFakeRestStorage();
+    final fakeLocalStorage = createLocalStorage();
+    final fakeRestStorage = createRestStorage();
     final transactionStorer = TransactionStorer(
       readTransactions: () => Future.value(generateSampleTransactionsAsJson()),
       readProcessedState: () => Future.value({}),
@@ -40,8 +39,6 @@ void main() {
 
       await Future.delayed(const Duration(milliseconds: 1000));
 
-      await Future.delayed(const Duration(milliseconds: 1000));
-
       expect(
         cascadeStorage.transactionManager.transactionQueue.length,
         counter - 1,
@@ -56,11 +53,8 @@ void main() {
   });
 }
 
-DelayedStorage createFakeLocalStorage() => DelayedStorage(
-    id: 'localStorage',
-    cache: generateSampleData(),
-    readDelay: const Duration(milliseconds: 15),
-    writeDelay: const Duration(milliseconds: 30));
+InMemoryStorage createLocalStorage() =>
+    InMemoryStorage(generateSampleData())..id = 'localStorage';
 
-PuppetStorage createFakeRestStorage() =>
+PuppetStorage createRestStorage() =>
     PuppetStorage(id: 'restStorage', cache: generateSampleData());
