@@ -21,14 +21,14 @@ class CascadeStorage extends Storage {
   late final JsonQueryMatcher queryMatcher;
 
   @protected
-  late final ServiceRequestProcessorFactory? serviceRequestProcessorFactory;
+  late final ServiceProcessorFactory? serviceProcessorFactory;
 
   CascadeStorage({
     required CascadableStorage primaryDelegate,
     required List<CascadableStorage>? cachingDelegates,
     required TransactionStorer transactionStoringDelegate,
     JsonQueryMatcher? queryMatcher,
-    this.serviceRequestProcessorFactory,
+    this.serviceProcessorFactory,
   }) {
     delegates = [
       primaryDelegate,
@@ -38,7 +38,7 @@ class CascadeStorage extends Storage {
     transactionManager = CascadeTransactionManager(
       delegates: delegates,
       transactionStoringDelegate: transactionStoringDelegate,
-      serviceRequestProcessorFactory: serviceRequestProcessorFactory,
+      serviceProcessorFactory: serviceProcessorFactory,
     );
 
     this.queryMatcher = queryMatcher ?? JsonQueryMatcher.empty();

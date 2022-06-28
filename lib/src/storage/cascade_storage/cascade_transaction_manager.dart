@@ -39,12 +39,12 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   bool _isWritingTransactionState = false;
 
   @protected
-  ServiceRequestProcessorFactory? serviceRequestProcessorFactory;
+  ServiceProcessorFactory? serviceProcessorFactory;
 
   CascadeTransactionManager({
     required this.delegates,
     required this.transactionStoringDelegate,
-    this.serviceRequestProcessorFactory,
+    this.serviceProcessorFactory,
   }) {
     final idDuplicates = delegates
         .fold<Map<String, int>>({}, (acc, delegate) {
@@ -81,7 +81,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     cachingDelegate = CascadeCachingDelegate(
       dataFuture: cachingDelegateData.future,
       uncommittedTransactionsFuture: Future.value([]),
-      serviceRequestProcessorFactory: serviceRequestProcessorFactory,
+      serviceProcessorFactory: serviceProcessorFactory,
     );
 
     // after successful fetchingUncommittedTransactionsFromPreviousSession

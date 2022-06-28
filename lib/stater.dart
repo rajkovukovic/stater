@@ -11,7 +11,7 @@ export 'src/query_document_snapshot.dart';
 export 'src/query_snapshot.dart';
 export 'src/queryable.dart';
 export 'src/storage/cascade_storage/cascadable_storage.dart';
-// export 'src/storage/cascade_storage/cascade_storage.dart';
+export 'src/storage/cascade_storage/cascade_storage.dart';
 // export 'src/storage/cascade_storage/cascade_transaction_manager.dart';
 export 'src/storage/cascade_storage/exclusive_transaction.dart';
 export 'src/storage/cascade_storage/json_query_matcher.dart';

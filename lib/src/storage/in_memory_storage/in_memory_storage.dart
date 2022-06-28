@@ -237,8 +237,8 @@ class InMemoryStorage extends Storage
   }
 }
 
-typedef ServiceRequestProcessor = Future Function(
+typedef ServiceProcessor = Future Function(
     String serviceName, dynamic params);
 
-typedef ServiceRequestProcessorFactory = ServiceRequestProcessor Function(
+typedef ServiceProcessorFactory = ServiceProcessor Function(
     Storage);

@@ -9,7 +9,7 @@ class CascadeCachingDelegate extends InMemoryStorage {
   CascadeCachingDelegate({
     required Future<dynamic> dataFuture,
     required Future<dynamic> uncommittedTransactionsFuture,
-    ServiceRequestProcessorFactory? serviceRequestProcessorFactory,
+    ServiceProcessorFactory? serviceProcessorFactory,
   })  : _dataFuture = dataFuture,
         _uncommittedTransactionsFuture = uncommittedTransactionsFuture,
         super({}) {
