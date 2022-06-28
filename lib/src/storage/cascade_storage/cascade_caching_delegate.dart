@@ -60,8 +60,10 @@ class CascadeCachingDelegate extends InMemoryStorage {
       // so it can propagate to the UI
       for (var queueItem in transactionQueue) {
         queueItem.completer.completeError(
-            'CascadeCachingDelegate init failed with error: ${_initError.toString()}',
-            _initErrorStackTrace);
+          'CascadeCachingDelegate init failed with error: '
+          '${_initError.toString()}',
+          _initErrorStackTrace,
+        );
       }
       transactionQueue.clear();
       return Future.error(_initError!, _initErrorStackTrace);

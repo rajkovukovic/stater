@@ -1,17 +1,15 @@
 // ignore_for_file: invalid_use_of_protected_member
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stater/src/storage/cascade_storage/cascade_storage.dart';
 import 'package:stater/stater.dart';
 
 import '../../test_helpers/generate_sample_data.dart';
-import '../../test_helpers/puppet_storage.dart';
 
 void main() {
   test('can create CascadeStorage using inMemoryStorage and restStorage',
       () async {
-    final fakeLocalStorage = createLocalStorage();
-    final fakeRestStorage = createRestStorage();
+    final fakeLocalStorage = createFakeLocalStorage();
+    final fakeRestStorage = createFakeRestStorage();
     final transactionStorer = TransactionStorer(
       readTransactions: () => Future.value(generateSampleTransactionsAsJson()),
       readProcessedState: () => Future.value({}),
@@ -20,8 +18,8 @@ void main() {
     );
 
     final cascadeStorage = CascadeStorage(
-      primaryDelegate: fakeRestStorage,
-      cachingDelegates: [fakeLocalStorage],
+      primaryStorage: fakeRestStorage,
+      cachingStorages: [fakeLocalStorage],
       transactionStoringDelegate: transactionStorer,
     );
 
@@ -37,7 +35,7 @@ void main() {
     for (var counter = totalTransactions; counter > 0; counter++) {
       fakeRestStorage.performNextTransaction();
 
-      await Future.delayed(const Duration(milliseconds: 1000));
+      await Future.delayed(const Duration(milliseconds: 100));
 
       expect(
         cascadeStorage.transactionManager.transactionQueue.length,
@@ -48,13 +46,19 @@ void main() {
 
     expect(
       cascadeStorage.transactionManager.transactionQueue.length,
-      totalTransactions,
+      0,
     );
   });
 }
 
-InMemoryStorage createLocalStorage() =>
-    InMemoryStorage(generateSampleData())..id = 'localStorage';
+CascadableStorage createFakeLocalStorage() => DelayedStorage(
+      internalStorage: InMemoryStorage(generateSampleData()),
+      readDelay: const Duration(milliseconds: 50),
+      writeDelay: const Duration(milliseconds: 100),
+      id: 'localStorage',
+    );
 
-PuppetStorage createRestStorage() =>
-    PuppetStorage(id: 'restStorage', cache: generateSampleData());
+PuppetStorage createFakeRestStorage() => PuppetStorage(
+      internalStorage: InMemoryStorage(generateSampleData()),
+      id: 'puppetStorage',
+    );

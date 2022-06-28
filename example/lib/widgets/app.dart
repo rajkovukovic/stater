@@ -21,7 +21,8 @@ class App extends StatelessWidget {
       },
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        initialRoute: Routes.home,
+        // initialRoute: Routes.home,
+        initialRoute: Routes.withConverters,
         routes: {
           Routes.home: (context) => const HomeScreen(),
           Routes.withConverters: (context) =>

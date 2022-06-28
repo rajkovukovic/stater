@@ -7,7 +7,7 @@ import 'package:stater/stater.dart';
 
 import 'cascade_transaction_manager.dart';
 
-bool ignoreCascadeDelegateAddDocumentWarning = false;
+bool ignoreCascadeStorageAddDocumentWarning = false;
 bool _warnedAboutStorageWithCacheAddDocument = false;
 
 class CascadeStorage extends Storage {
@@ -24,15 +24,15 @@ class CascadeStorage extends Storage {
   late final ServiceProcessorFactory? serviceProcessorFactory;
 
   CascadeStorage({
-    required CascadableStorage primaryDelegate,
-    required List<CascadableStorage>? cachingDelegates,
+    required CascadableStorage primaryStorage,
+    required List<CascadableStorage>? cachingStorages,
     required TransactionStorer transactionStoringDelegate,
     JsonQueryMatcher? queryMatcher,
     this.serviceProcessorFactory,
   }) {
     delegates = [
-      primaryDelegate,
-      if (cachingDelegates != null) ...cachingDelegates,
+      primaryStorage,
+      if (cachingStorages != null) ...cachingStorages,
     ];
 
     transactionManager = CascadeTransactionManager(
@@ -64,7 +64,7 @@ class CascadeStorage extends Storage {
     // created won't have same id across all delegates which may cause
     // relation issues (like non existing foreign key)
     if (documentId == null) {
-      if (!ignoreCascadeDelegateAddDocumentWarning &&
+      if (!ignoreCascadeStorageAddDocumentWarning &&
           !_warnedAboutStorageWithCacheAddDocument) {
         // ignore: avoid_print
         print('Calling collection.add method is not recommended when using '
@@ -73,7 +73,7 @@ class CascadeStorage extends Storage {
             'You may want to use collection.doc(generateNewUniqueId()).set '
             'method instead.\n'
             'To disable this message set variable '
-            '"ignoreCascadeDelegateAddDocumentWarning" to true');
+            '"ignoreCascadeStorageAddDocumentWarning" to true');
         _warnedAboutStorageWithCacheAddDocument = true;
       }
 

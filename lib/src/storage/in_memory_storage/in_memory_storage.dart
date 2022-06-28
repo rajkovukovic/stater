@@ -11,8 +11,10 @@ class InMemoryStorage extends Storage
     implements StorageHasCache, StorageHasRootAccess {
   IMap<String, IMap<String, dynamic>> _cache;
 
-  InMemoryStorage(Map<String, Map<String, dynamic>> cache)
-      : _cache = _dataFromMutableData(cache);
+  InMemoryStorage(Map<String, Map<String, dynamic>> cache, {String? id})
+      : _cache = _dataFromMutableData(cache) {
+    this.id = id ?? 'inMemoryStorage@(${const Uuid().v4()})';
+  }
 
   InMemoryStorage.fromImmutableData(this._cache);
 
@@ -237,8 +239,6 @@ class InMemoryStorage extends Storage
   }
 }
 
-typedef ServiceProcessor = Future Function(
-    String serviceName, dynamic params);
+typedef ServiceProcessor = Future Function(String serviceName, dynamic params);
 
-typedef ServiceProcessorFactory = ServiceProcessor Function(
-    Storage);
+typedef ServiceProcessorFactory = ServiceProcessor Function(Storage);

@@ -1,13 +1,13 @@
 import 'package:stater/stater.dart';
 import 'package:stater_example/state/does_todo_match_query.dart';
-import 'package:uuid/uuid.dart';
+import 'package:stater_example/state/services/create_many_todos.dart';
 
 final restStorage = RestStorage(
-  id: 'rest-server-mongodb',
+  id: 'rest-server',
   endpoint: 'http://192.168.0.11:54123/api',
 );
 
-final localStorageDelegate = LocalStorage(
+final localStorage = LocalStorage(
   id: 'get-storage',
   storagePrefix: 'DB',
 );
@@ -20,53 +20,23 @@ ServiceProcessor serviceProcessorFactory(Storage storage) {
   return (String serviceName, dynamic params) async {
     switch (serviceName) {
       case 'createManyTodos':
-        final int createCount = params;
-
-        final todosCollection = storage.collection('todos');
-
-        final existingTodos = (await todosCollection.get()).docs;
-
-        final existingNames = existingTodos.fold<Set<String>>(
-            {},
-            (acc, doc) => acc
-              ..add((doc.data() as Map<String, dynamic>)['name']
-                  .replaceAll(RegExp(r"\s+"), "")));
-
-        int nextTodoNumber = 1;
-
-        for (var i = 0; i < createCount; i++) {
-          while (existingNames.contains('todo$nextTodoNumber')) {
-            nextTodoNumber++;
-          }
-
-          final todo = {'name': 'Todo $nextTodoNumber', 'completed': false};
-
-          await todosCollection.add(
-            todo,
-            documentId: const Uuid().v4(),
-          );
-
-          nextTodoNumber++;
-        }
-        break;
+        return createManyTodos(storage, params);
       default:
-        throw 'RestDelegate does not support serviceRequest "$serviceName"';
+        throw 'Service "$serviceName" is not supported in offline mode.\n'
+            'You can implement it in Storage.serviceProcessorFactory.';
     }
   };
 }
 
-final state = restStorage;
+// final state = restStorage;
 
-// final state = CascadeStorage(
-//   primaryDelegate: restStorage,
-//   cachingDelegates: [
-//     localStorageDelegate,
-//   ],
-//   transactionStoringDelegate:
-//       TransactionStorer.fromStorage(localStorageDelegate),
-//   serviceProcessorFactory: serviceProcessorFactory,
-//   queryMatcher: queryMatcher,
-// );
+final state = CascadeStorage(
+  primaryStorage: restStorage,
+  cachingStorages: [localStorage],
+  transactionStoringDelegate: TransactionStorer.fromStorage(localStorage),
+  serviceProcessorFactory: serviceProcessorFactory,
+  queryMatcher: queryMatcher,
+);
 
 // final localData = {'photos': {}};
 

@@ -1,50 +1,39 @@
-import 'dart:async';
-
 import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
+import 'package:uuid/uuid.dart';
 
-/// Completing of each operation is controlled from outside.
+/// Delegates all calls to it's internalStorage with a delay.
 ///
-/// Useful in testing. It is using InMemoryStorage under the hood.
-class PuppetStorage extends InMemoryStorage with CascadableStorage {
-  PuppetStorage({
-    required Map<String, Map<String, dynamic>> cache,
-    String id = 'puppetStorage',
-  }) : super(cache) {
-    this.id = id;
-  }
+/// Will delay every read operation for [readDelay]
+/// and every write operation for [writeDelay].
+///
+/// Useful for testing.
+class DelayedStorage extends Storage with CascadableStorage {
+  Duration readDelay;
+  Duration writeDelay;
+  Storage internalStorage;
 
-  final _completerQueue = <Completer>[];
-
-  Future<void> _requestCompleter() {
-    final completer = Completer();
-    _completerQueue.add(completer);
-    return completer.future;
-  }
-
-  bool hasPendingTransactions() => _completerQueue.isNotEmpty;
-
-  void performNextTransaction() {
-    if (_completerQueue.isEmpty) {
-      throw 'Transaction Queue is empty';
-    }
-
-    final completer = _completerQueue.removeAt(0);
-    completer.complete();
+  DelayedStorage({
+    required this.readDelay,
+    required this.writeDelay,
+    required this.internalStorage,
+    String? id,
+  }) {
+    this.id = id ?? 'restStorage@(${const Uuid().v4()})';
   }
 
   @override
   @protected
-  Future<DocumentSnapshot<ID, T>>
+  Future<DocumentSnapshot<ID, T>?>
       internalAddDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required T documentData,
     ID? documentId,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
-
-    return super.internalAddDocument(
+    /// await writeDelay already exist on internalSetDocument method
+    /// which will be called eventually by internalStorage.internalAddDocument
+    return internalStorage.internalAddDocument(
         collectionName: collectionName,
         documentData: documentData,
         documentId: documentId,
@@ -58,9 +47,9 @@ class PuppetStorage extends InMemoryStorage with CascadableStorage {
     required ID documentId,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await Future.delayed(writeDelay);
 
-    return super.internalDeleteDocument(
+    return internalStorage.internalDeleteDocument(
       collectionName: collectionName,
       documentId: documentId,
       options: options,
@@ -75,9 +64,9 @@ class PuppetStorage extends InMemoryStorage with CascadableStorage {
     required ID documentId,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await Future.delayed(readDelay);
 
-    return super.internalGetDocument<ID, T>(
+    return internalStorage.internalGetDocument<ID, T>(
         collectionName: collectionName,
         documentId: documentId,
         options: options);
@@ -88,29 +77,12 @@ class PuppetStorage extends InMemoryStorage with CascadableStorage {
   Future<QuerySnapshot<ID, T>>
       internalGetQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, {
-    Converters<ID, T>? converters,
+    // Converters<ID, T>? converters,
     StorageOptions options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await Future.delayed(readDelay);
 
-    return super
-        .internalGetQuery(query, converters: converters, options: options);
-  }
-
-  @override
-  @protected
-  Future<dynamic> internalPerformTransaction(
-    Transaction transaction, {
-    doOperationsInParallel = false,
-    options = const StorageOptions(),
-  }) async {
-    await _requestCompleter();
-
-    return super.internalPerformTransaction(
-      transaction,
-      doOperationsInParallel: doOperationsInParallel,
-      options: options,
-    );
+    return internalStorage.internalGetQuery(query, options: options);
   }
 
   @override
@@ -121,9 +93,9 @@ class PuppetStorage extends InMemoryStorage with CascadableStorage {
     required T documentData,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await Future.delayed(writeDelay);
 
-    return super.internalSetDocument(
+    return internalStorage.internalSetDocument(
         collectionName: collectionName,
         documentId: documentId,
         documentData: documentData,
@@ -138,9 +110,9 @@ class PuppetStorage extends InMemoryStorage with CascadableStorage {
     required Map<String, dynamic> documentData,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await Future.delayed(writeDelay);
 
-    return super.internalUpdateDocument(
+    return internalStorage.internalUpdateDocument(
       collectionName: collectionName,
       documentId: documentId,
       documentData: documentData,
