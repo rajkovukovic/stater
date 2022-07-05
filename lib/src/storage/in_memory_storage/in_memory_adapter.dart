@@ -6,8 +6,8 @@ import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
 /// in-RAM Storage, usually used for data caching
-class InMemoryStorage extends Storage
-    with CascadableStorage
+class InMemoryStorage extends StorageAdapter
+    with CascadableAdapter
     implements StorageHasCache, StorageHasRootAccess {
   IMap<String, IMap<String, dynamic>> _cache;
 
@@ -69,8 +69,8 @@ class InMemoryStorage extends Storage
   }
 
   @override
-  Future<DocumentSnapshot<ID, T>?>
-      internalAddDocument<ID extends Object?, T extends Object?>({
+  Future<DocumentSnapshot<ID, T>>
+      addDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required T documentData,
     ID? documentId,
@@ -78,7 +78,7 @@ class InMemoryStorage extends Storage
   }) {
     final notNullDocumentId = documentId ?? const Uuid().v4() as ID;
 
-    return internalSetDocument(
+    return setDocument(
       collectionName: collectionName,
       documentId: documentId,
       documentData: documentData,
@@ -94,7 +94,7 @@ class InMemoryStorage extends Storage
   }
 
   @override
-  Future<void> internalDeleteDocument<ID extends Object?>({
+  Future<void> deleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -109,7 +109,7 @@ class InMemoryStorage extends Storage
 
   @override
   Future<DocumentSnapshot<ID, T>>
-      internalGetDocument<ID extends Object?, T extends Object?>({
+      getDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -130,11 +130,9 @@ class InMemoryStorage extends Storage
   }
 
   @override
-  Future<QuerySnapshot<ID, T>>
-      internalGetQuery<ID extends Object?, T extends Object?>(
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, {
-    // Converters<ID, T>? converters,
-    StorageOptions options = const StorageOptions(),
+    options = const StorageOptions(),
   }) async {
     final collection = _cache[query.collectionName];
 
@@ -155,7 +153,7 @@ class InMemoryStorage extends Storage
   }
 
   @override
-  Future<void> internalSetDocument<ID extends Object?, T extends Object?>({
+  Future<void> setDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     required T documentData,
@@ -168,7 +166,7 @@ class InMemoryStorage extends Storage
   }
 
   @override
-  Future<void> internalUpdateDocument<ID extends Object?>({
+  Future<void> updateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     required Map<String, dynamic> documentData,
@@ -237,19 +235,39 @@ class InMemoryStorage extends Storage
     // TODO: implement replaceCollection
     throw UnimplementedError();
   }
-}
 
-class DelayedInMemoryStorage extends InMemoryStorage with DelayedStorageMixin {
-  DelayedInMemoryStorage(
-    super.cache, {
-    Duration? readDelay,
-    Duration? writeDelay,
-    super.id,
-  }) {
-    this.readDelay = readDelay ?? this.readDelay;
-    this.writeDelay = writeDelay ?? this.writeDelay;
+  @override
+  Future performOperation(Operation operation,
+      {options = const StorageOptions()}) {
+    // TODO: implement performOperation
+    throw UnimplementedError();
+  }
+
+  @override
+  Future performTransaction(Transaction transaction,
+      {doOperationsInParallel = false, options = const StorageOptions()}) {
+    // TODO: implement performTransaction
+    throw UnimplementedError();
+  }
+
+  @override
+  Future serviceRequest(String serviceName, params) {
+    // TODO: implement serviceRequest
+    throw UnimplementedError();
   }
 }
+
+// class DelayedInMemoryStorage extends InMemoryStorage with DelayedStorageMixin {
+//   DelayedInMemoryStorage(
+//     super.cache, {
+//     Duration? readDelay,
+//     Duration? writeDelay,
+//     super.id,
+//   }) {
+//     this.readDelay = readDelay ?? this.readDelay;
+//     this.writeDelay = writeDelay ?? this.writeDelay;
+//   }
+// }
 
 typedef ServiceProcessor = Future Function(String serviceName, dynamic params);
 

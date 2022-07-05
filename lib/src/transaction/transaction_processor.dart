@@ -7,7 +7,7 @@ const _retrySequencesInMilliseconds = [1000, 2000, 4000];
 
 /// Processes a transaction and retries forever
 class TransactionProcessor {
-  final CascadableStorage storage;
+  final CascadableAdapter storage;
   final Set<String> completedTransactionIds;
 
   Transaction? currentTransaction;

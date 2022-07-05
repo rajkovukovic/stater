@@ -1,8 +1,8 @@
-import 'package:stater/stater.dart';
+import 'package:stater/src/storage/storage_adapter.dart';
 
 /// has methods for adding and removing collections of data
 /// and methods for adding or removing multiple collections
-abstract class StorageHasRootAccess extends Storage {
+abstract class StorageHasRootAccess extends StorageAdapter {
   /// removes all documents and all collections
   Future<void> removeAllCollections();
 

@@ -13,7 +13,7 @@ class DocumentReference<ID extends Object?, T extends Object?> {
     this.converters,
   }) : id = documentId;
 
-  final Storage delegate;
+  final StorageAdapter delegate;
 
   final String collectionName;
 
