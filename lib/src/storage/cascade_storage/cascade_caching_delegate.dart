@@ -17,7 +17,7 @@ class CascadeCachingDelegate extends InMemoryStorage {
     /// as a blocking transaction to the transactionQueue
     /// so any incoming transactions, arrived during the init process,
     /// can not be started until the init process is completed
-    requestLockingOperation(
+    requestWriteOperation(
       () {
         return Future.wait([_dataFuture, _uncommittedTransactionsFuture])
             .then((dataAndTransactions) {
@@ -29,10 +29,10 @@ class CascadeCachingDelegate extends InMemoryStorage {
           this.data = data;
 
           // save any transactions arrived during init process
-          final transactionsArrivedDuringInit = [...transactionQueue];
+          final transactionsArrivedDuringInit = [...operationsQueue];
 
           // clear operation queue
-          transactionQueue.clear();
+          operationsQueue.clear();
 
           // add all transactions from _uncommittedTransactionsFuture
           // to the transactionQueue
@@ -41,7 +41,7 @@ class CascadeCachingDelegate extends InMemoryStorage {
           });
 
           // return transactionsArrivedDuringInit to the transactionQueue
-          transactionQueue.addAll(transactionsArrivedDuringInit);
+          operationsQueue.addAll(transactionsArrivedDuringInit);
         });
       },
       {'caller': 'CascadeCachingDelegate.init'},
@@ -58,14 +58,14 @@ class CascadeCachingDelegate extends InMemoryStorage {
     if (_initError != null) {
       // make all pending transactions throw _initError
       // so it can propagate to the UI
-      for (var queueItem in transactionQueue) {
+      for (var queueItem in operationsQueue) {
         queueItem.completer.completeError(
           'CascadeCachingDelegate init failed with error: '
           '${_initError.toString()}',
           _initErrorStackTrace,
         );
       }
-      transactionQueue.clear();
+      operationsQueue.clear();
       return Future.error(_initError!, _initErrorStackTrace);
     } else {
       return super.executeFromQueue();

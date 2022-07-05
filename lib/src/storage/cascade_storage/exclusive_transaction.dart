@@ -27,4 +27,18 @@ class ExclusiveTransaction extends Transaction {
       'type': 'ExclusiveTransaction',
     };
   }
+
+  @override
+  ExclusiveTransaction copyWith({
+    List<Operation>? operations,
+    String? id,
+    Set<String>? excludeDelegateWithIds,
+  }) {
+    return ExclusiveTransaction(
+      operations: operations ?? this.operations,
+      id: id ?? this.id,
+      excludeDelegateWithIds:
+          excludeDelegateWithIds ?? this.excludeDelegateWithIds,
+    );
+  }
 }

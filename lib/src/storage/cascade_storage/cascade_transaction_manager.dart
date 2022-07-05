@@ -32,6 +32,10 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   @protected
   late CancelableOperation<List<dynamic>> initFuture;
 
+  /// list of all transactions successfully processed by all Storage delegates
+  @protected
+  List<T> completedTransactions = List.unmodifiable(const []);
+
   /// are there any changes in the transaction state that need to be saved
   bool _transactionStateHasUnsavedChanges = false;
 
@@ -87,15 +91,15 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     // after successful fetchingUncommittedTransactionsFromPreviousSession
     // continue with the setup of transaction processing
     initFuture.then((List<dynamic> transactionsAndState) {
-      final storedTransaction =
+      final storedTransactions =
           Transaction.fromListOfMap(transactionsAndState[0]);
 
       final storedTransactionsState =
           fromStoredTransactionsState(transactionsAndState[1]);
 
-      if (storedTransaction.isNotEmpty) {
+      if (storedTransactions.isNotEmpty) {
         transactionQueue = [
-          ...storedTransaction.cast<T>(),
+          ...storedTransactions.cast<T>(),
           ...transactionQueue,
         ];
       }
@@ -216,7 +220,10 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
         _transactionStateHasUnsavedChanges = false;
 
         return transactionStoringDelegate.writeState(
-          transactions: Transaction.toListOfMap(transactionQueue),
+          transactions: Transaction.toListOfMap(transactionQueue
+              .map((transaction) => transaction.withoutReadOperations())
+              .where((transaction) => transaction.isNotEmpty())
+              .toList()),
           processedState: toStoredTransactionsState(processorMap),
         );
       }).then((_) {
@@ -263,6 +270,10 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
       final firstTransaction = transactionQueue.first;
 
+      completedTransactions = [...completedTransactions, firstTransaction];
+
+      print('\nremoving transaction "${firstTransaction.id}" from queue');
+
       processorMap.forEach((key, value) {
         value.completedTransactionIds.remove(firstTransaction.id);
       });
@@ -279,7 +290,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   /// if it has not been completed successfully by the primary processor
   void _employProcessors() {
     if (transactionQueue.isNotEmpty) {
-      T? primaryProcessorTransaction;
+      T? previousProcessorTransaction;
 
       delegates.forEachIndexed((index, delegate) {
         final isPrimaryProcessor = index == 0;
@@ -289,25 +300,29 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
         if (!processor.isPerformingTransaction) {
           final transaction = _findNextUncompletedTransaction(
             processor,
-            mustBeBeforeTransaction:
-                isPrimaryProcessor ? null : primaryProcessorTransaction,
+            mustBeBeforeTransaction: previousProcessorTransaction,
           );
 
           if (transaction != null) {
+            print(
+                '\nemploying: "${processor.storage.id}" with "${transaction.id}"');
+
             processor.performTransaction(
               transaction,
-              onSuccess: (_) {
+              onSuccess: (data) {
                 processor.completedTransactionIds.add(transaction.id);
+                // transaction.complete(data);
+                print(
+                    '\n"${processor.storage.id}" completed "${transaction.id}"');
                 _cleanUpCompletedTransaction();
                 _employProcessors();
               },
             );
-
-            if (isPrimaryProcessor) {
-              primaryProcessorTransaction = transaction;
-            }
           }
         }
+
+        previousProcessorTransaction =
+            processor.currentTransaction as T? ?? previousProcessorTransaction;
       });
     }
   }

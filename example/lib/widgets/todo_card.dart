@@ -80,11 +80,11 @@ class _TodoCardState extends State<TodoCard> {
           // A SlidableAction can have an icon and/or a label.
           SlidableAction(
             autoClose: true,
-            onPressed: (_) => {},
+            onPressed: (_) => widget.onDelete?.call(),
             backgroundColor: const Color(0xFFFE4A49),
             foregroundColor: Colors.white,
             icon: Icons.delete,
-            label: 'Slide all the way to delete',
+            label: 'Press or Slide all the way to delete',
           ),
         ],
       ),

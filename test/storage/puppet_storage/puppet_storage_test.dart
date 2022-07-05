@@ -9,9 +9,8 @@ void main() {
   test(
       'PuppetStorage does not perform a transaction if method '
       'performNextTransaction() is not called', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
-
-    final puppetStorage = PuppetStorage(internalStorage: inMemoryStorage);
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
 
     final todosCollection =
         puppetStorage.collection<String, Map<String, dynamic>>('todos');
@@ -24,13 +23,171 @@ void main() {
 
     expect(todo, null);
 
-    expect(puppetStorage.hasPendingTransactions(), true);
+    expect(puppetStorage.hasPendingTransactions, true);
+  });
+
+  test(
+      'PuppetStorage does not perform none of many transactions if method '
+      'performNextTransaction() is not called', () async {
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
+
+    final todosCollection =
+        puppetStorage.collection<String, Map<String, dynamic>>('todos');
+
+    /// get
+    DocumentSnapshot<String, Map<String, dynamic>>? todo;
+
+    todosCollection.doc('1').get().then((response) => todo = response);
+
+    /// update
+    bool isUpdated = false;
+
+    todosCollection
+        .doc('1')
+        .update({'name': 'updated'}).then((_) => isUpdated = true);
+
+    /// delete
+    bool isDeleted = false;
+
+    todosCollection.doc('1').delete().then((_) => isDeleted = true);
+
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    expect(todo, null);
+
+    expect(isUpdated, false);
+
+    expect(isDeleted, false);
+
+    expect(puppetStorage.hasPendingTransactions, true);
+  });
+
+  test(
+      'PuppetStorage does perform only one of many transactions if method '
+      'performNextTransaction() is called only once', () async {
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
+
+    final todosCollection =
+        puppetStorage.collection<String, Map<String, dynamic>>('todos');
+
+    /// get
+    DocumentSnapshot<String, Map<String, dynamic>>? todo;
+
+    todosCollection.doc('1').get().then((response) => todo = response);
+
+    /// update
+    bool isUpdated = false;
+
+    todosCollection
+        .doc('1')
+        .update({'name': 'updated'}).then((_) => isUpdated = true);
+
+    /// delete
+    bool isDeleted = false;
+
+    todosCollection.doc('1').delete().then((_) => isDeleted = true);
+
+    puppetStorage.performNextTransaction();
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(todo != null, true);
+
+    expect(isUpdated, false);
+
+    expect(isDeleted, false);
+
+    expect(puppetStorage.hasPendingTransactions, true);
+  });
+
+  test(
+      'PuppetStorage does perform only two of many transactions if method '
+      'performNextTransaction() is called only twice', () async {
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
+
+    final todosCollection =
+        puppetStorage.collection<String, Map<String, dynamic>>('todos');
+
+    /// get
+    DocumentSnapshot<String, Map<String, dynamic>>? todo;
+
+    todosCollection.doc('1').get().then((response) => todo = response);
+
+    /// update
+    bool isUpdated = false;
+
+    todosCollection
+        .doc('1')
+        .update({'name': 'updated'}).then((_) => isUpdated = true);
+
+    /// delete
+    bool isDeleted = false;
+
+    todosCollection.doc('1').delete().then((_) => isDeleted = true);
+
+    puppetStorage.performNextTransaction();
+    await Future.delayed(const Duration(milliseconds: 100));
+    puppetStorage.performNextTransaction();
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(todo != null, true);
+
+    expect(isUpdated, true);
+
+    expect(isDeleted, false);
+
+    expect(puppetStorage.hasPendingTransactions, true);
+
+    expect(puppetStorage.pendingTransactionsCount, 1);
+  });
+
+  test(
+      'PuppetStorage does perform 3 od 3 transactions if method '
+      'performNextTransaction() is called only 3 times', () async {
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
+
+    final todosCollection =
+        puppetStorage.collection<String, Map<String, dynamic>>('todos');
+
+    /// get
+    DocumentSnapshot<String, Map<String, dynamic>>? todo;
+
+    todosCollection.doc('1').get().then((response) => todo = response);
+
+    /// update
+    bool isUpdated = false;
+
+    todosCollection
+        .doc('1')
+        .update({'name': 'updated'}).then((_) => isUpdated = true);
+
+    /// delete
+    bool isDeleted = false;
+
+    todosCollection.doc('1').delete().then((_) => isDeleted = true);
+
+    puppetStorage.performNextTransaction();
+    await Future.delayed(const Duration(milliseconds: 100));
+    puppetStorage.performNextTransaction();
+    await Future.delayed(const Duration(milliseconds: 100));
+    puppetStorage.performNextTransaction();
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(todo != null, true);
+
+    expect(isUpdated, true);
+
+    expect(isDeleted, true);
+
+    expect(puppetStorage.hasPendingTransactions, false);
   });
 
   test('PuppetStorage can read an existing document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
-
-    final puppetStorage = PuppetStorage(internalStorage: inMemoryStorage);
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
 
     final todosCollection =
         puppetStorage.collection<String, Map<String, dynamic>>('todos');
@@ -49,13 +206,12 @@ void main() {
 
     expect(todo?.data()?['name'], 'Todo 1');
 
-    expect(puppetStorage.hasPendingTransactions(), false);
+    expect(puppetStorage.hasPendingTransactions, false);
   });
 
   test('PuppetStorage can delete an existing document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
-
-    final puppetStorage = PuppetStorage(internalStorage: inMemoryStorage);
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
 
     final todosCollection =
         puppetStorage.collection<String, Map<String, dynamic>>('todos');
@@ -70,7 +226,7 @@ void main() {
 
     expect(isDeleted, true);
 
-    expect(puppetStorage.hasPendingTransactions(), false);
+    expect(puppetStorage.hasPendingTransactions, false);
 
     /// verify document does not exist
 
@@ -84,9 +240,8 @@ void main() {
   });
 
   test('PuppetStorage can update an existing document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
-
-    final puppetStorage = PuppetStorage(internalStorage: inMemoryStorage);
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
 
     final todosCollection =
         puppetStorage.collection<String, Map<String, dynamic>>('todos');
@@ -103,7 +258,7 @@ void main() {
 
     expect(isUpdated, true);
 
-    expect(puppetStorage.hasPendingTransactions(), false);
+    expect(puppetStorage.hasPendingTransactions, false);
 
     /// verify document has been updated
 
@@ -123,9 +278,8 @@ void main() {
   });
 
   test('PuppetStorage can read all existing document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
-
-    final puppetStorage = PuppetStorage(internalStorage: inMemoryStorage);
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
 
     final todosCollection =
         puppetStorage.collection<String, Map<String, dynamic>>('todos');
@@ -142,13 +296,12 @@ void main() {
 
     expect(todos?.size, 1);
 
-    expect(puppetStorage.hasPendingTransactions(), false);
+    expect(puppetStorage.hasPendingTransactions, false);
   });
 
   test('PuppetStorage can update an existing document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
-
-    final puppetStorage = PuppetStorage(internalStorage: inMemoryStorage);
+    final puppetStorage =
+        PuppetStorage(internalStorage: InMemoryStorage(generateSampleData()));
 
     final todosCollection =
         puppetStorage.collection<String, Map<String, dynamic>>('todos');
@@ -164,7 +317,7 @@ void main() {
 
     expect(isUpdated, true);
 
-    expect(puppetStorage.hasPendingTransactions(), false);
+    expect(puppetStorage.hasPendingTransactions, false);
 
     /// verify document has been updated
 

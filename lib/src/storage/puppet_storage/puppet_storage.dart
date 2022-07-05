@@ -31,7 +31,9 @@ class PuppetStorage extends Storage with CascadableStorage {
     return completer.future;
   }
 
-  bool hasPendingTransactions() => _completerQueue.isNotEmpty;
+  int get pendingTransactionsCount => _completerQueue.length;
+
+  bool get hasPendingTransactions => _completerQueue.isNotEmpty;
 
   void performNextTransaction() {
     if (_completerQueue.isEmpty) {

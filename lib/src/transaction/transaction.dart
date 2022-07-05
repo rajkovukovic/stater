@@ -58,4 +58,38 @@ class Transaction with HasNullableCompleter {
 
   factory Transaction.fromJson(String source) =>
       Transaction.fromMap(json.decode(source));
+
+  Transaction copyWith({
+    List<Operation>? operations,
+    String? id,
+  }) {
+    return Transaction(
+      operations: operations ?? this.operations,
+      id: id ?? this.id,
+    );
+  }
+
+  /// calls completer method on each operation if exists,<br>
+  /// then calls this.completer?.complete(results);
+  complete(List results) {
+    for (var i = 0; i < operations.length; i++) {
+      operations[i].completer?.complete(results[i]);
+    }
+    completer?.complete(results);
+  }
+
+  Transaction withoutReadOperations() {
+    return copyWith(
+        operations: operations
+            .where((operation) => operation is! ReadOperation)
+            .toList());
+  }
+
+  bool isEmpty() {
+    return operations.isEmpty;
+  }
+
+  bool isNotEmpty() {
+    return operations.isNotEmpty;
+  }
 }

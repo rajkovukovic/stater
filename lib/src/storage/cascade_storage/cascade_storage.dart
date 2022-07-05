@@ -209,6 +209,7 @@ class CascadeStorage extends Storage {
       ),
     );
 
+    final result = await completer.future;
     return await completer.future;
   }
 

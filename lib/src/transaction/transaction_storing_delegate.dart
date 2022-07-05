@@ -19,7 +19,7 @@ class TransactionStorer {
     required List<Map<String, dynamic>> transactions,
     required Map<String, dynamic> processedState,
   }) {
-    print({'transactions': transactions, 'processedState': processedState});
+    // print({'transactions': transactions, 'processedState': processedState});
     return Future.wait([
       writeTransactions(transactions),
       writeProcessedState(processedState),

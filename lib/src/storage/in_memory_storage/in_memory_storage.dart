@@ -69,7 +69,7 @@ class InMemoryStorage extends Storage
   }
 
   @override
-  Future<DocumentSnapshot<ID, T>>
+  Future<DocumentSnapshot<ID, T>?>
       internalAddDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required T documentData,
@@ -133,7 +133,7 @@ class InMemoryStorage extends Storage
   Future<QuerySnapshot<ID, T>>
       internalGetQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, {
-    Converters<ID, T>? converters,
+    // Converters<ID, T>? converters,
     StorageOptions options = const StorageOptions(),
   }) async {
     final collection = _cache[query.collectionName];
@@ -146,7 +146,7 @@ class InMemoryStorage extends Storage
           collectionName: query.collectionName,
           documentId: entry.key as ID,
           delegate: this,
-          converters: converters,
+          // converters: converters,
         ),
       );
     });
@@ -236,6 +236,18 @@ class InMemoryStorage extends Storage
       String collectionName, Map<String, dynamic> documents) {
     // TODO: implement replaceCollection
     throw UnimplementedError();
+  }
+}
+
+class DelayedInMemoryStorage extends InMemoryStorage with DelayedStorageMixin {
+  DelayedInMemoryStorage(
+    super.cache, {
+    Duration? readDelay,
+    Duration? writeDelay,
+    super.id,
+  }) {
+    this.readDelay = readDelay ?? this.readDelay;
+    this.writeDelay = writeDelay ?? this.writeDelay;
   }
 }
 

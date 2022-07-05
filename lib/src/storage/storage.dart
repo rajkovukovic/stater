@@ -57,7 +57,7 @@ abstract class Storage {
   @protected
   Future internalServiceRequest(String serviceName, dynamic params) {
     throw Exception(
-        'classes derived from StorageDelegate should implement serviceRequest '
+        'classes derived from Storage should implement serviceRequest '
         'method. Did you forget to implement it?\n'
         'Exception detected in class of type "$runtimeType"');
   }
@@ -210,88 +210,127 @@ abstract class Storage {
   /// rules for locking strategy
   /// i.e. we may want to lock storage while there is
   /// a write operation in progress
-  final LockingStrategy lockingStrategy = LockingStrategy.onlyWritingLocks;
+  final LockingStrategy lockingStrategy = WritesOneByOneReadsInParallel();
 
-  @protected
-  final List<QueueOperation> transactionQueue = [];
+  /// defines this storage availability
+  AvailabilityStrategy? availabilityStrategy;
 
+  /// defines this storage retry strategy,
+  /// used when a transaction fails on a first try
+  RetryStrategy? retryStrategy;
+
+  StreamSubscription? _availabilityStrategySubscription;
+
+  /// has storage been initialized
+  bool _isInit = false;
+
+  bool _isAvailable = true;
+
+  /// is this storage currently available for processing transactions
+  bool get isAvailable => _isAvailable;
+
+  /// initializes this storage by subscribing to the availabilityStrategy,
+  /// if this storage has one.
+  ///
+  /// call destroy() method to remove subscription
+  _init() {
+    if (availabilityStrategy != null) {
+      _isAvailable = availabilityStrategy!.isAvailable;
+      _availabilityStrategySubscription =
+          availabilityStrategy!.asStream.listen((nextValue) {
+        final justBecameAvailable = !_isAvailable && nextValue;
+        _isAvailable = nextValue;
+        if (justBecameAvailable) {
+          executeFromQueue();
+        }
+      });
+    }
+    _isInit = true;
+  }
+
+  /// queue of operations waiting to be processed
   @protected
-  final List<QueueOperation> transactionsBeingProcessed = [];
+  List<QueueOperation> operationsQueue = [];
+
+  /// list of operations currently being processed.
+  /// operations returned by LockingStrategy that are part of
+  /// "executeAndSkipQueue" will not be added to this list.
+  @protected
+  final List<QueueOperation> operationsBeingProcessed = [];
 
   destroy() {
+    _availabilityStrategySubscription?.cancel();
     // should we try to stop running transactions?
-    transactionQueue.clear();
+    operationsQueue.clear();
   }
 
   Storage get delegate => this;
 
-  /// takes one or more operation from [transactionQueue] and keeps executing
-  /// until the queue is empty
-  ///
-  /// if the first operation in the queue "canBePerformedInParallel"
-  /// it will execute it in parallel with all the following operations
-  /// which "canBePerformedInParallel". it will stop adding operations
-  /// from the [transactionQueue] to the [transactionsBeingProcessed] when
-  /// reaches a first operation which is not "canBePerformedInParallel"
-  /// ```
-  /// _operationQueue = [
-  ///   DelegateOperation(getDocument, canBePerformedInParallel: true, ...)
-  ///   DelegateOperation(getQuery, canBePerformedInParallel: true, ...)
-  ///   DelegateOperation(setDocument, canBePerformedInParallel: false, ...)
-  ///   DelegateOperation(deleteDocument, canBePerformedInParallel: false, ...)
-  /// ]
-  /// // first batch will contain getDocument and getQuery
-  /// // second batch will contain setDocument
-  /// // third batch will contain deleteDocument
-  /// ```
+  /// tries to execute next batch of operations from the queue<br>
+  /// if this._isAvailable == true and lockingStrategy allows it
   @protected
   Future executeFromQueue() async {
-    // if there are no operations in progress
-    // and there are operations in the queue
+    // init if not initialized already
+    if (!_isInit) {
+      _init();
+    }
+
+    // if storage is available and there are operations in the queue
     // perform next operation(s)
-    if (transactionsBeingProcessed.isEmpty && transactionQueue.isNotEmpty) {
-      transactionsBeingProcessed.add(transactionQueue.removeAt(0));
-      // if the first operation canBePerformedInParallel
-      // add all following "canBePerformedInParallel" operations from
-      // the _operationQueue to the _operationsBeingProcessed
-      if (transactionsBeingProcessed.last.canBePerformedInParallel) {
-        while (transactionQueue.isNotEmpty &&
-            transactionQueue.first.canBePerformedInParallel) {
-          transactionsBeingProcessed.add(transactionQueue.removeAt(0));
-        }
+    if (_isAvailable && operationsQueue.isNotEmpty) {
+      // let's find operations to process
+      final operationsToProcess = lockingStrategy.findAvailableOperations(
+        operationsBeingProcessed: operationsBeingProcessed,
+        operationsQueue: operationsQueue,
+      );
+
+      // gather all operations that are about to start processing into a Set
+      final operationsToProcessSet = {
+        ...operationsToProcess.executeAndSkipQueue,
+        ...operationsToProcess.nextBatch,
+      };
+
+      // remove all operations that are about to start processing from the queue
+      operationsQueue = operationsQueue
+          .where((operation) => !operationsToProcessSet.contains(operation))
+          .toList();
+
+      // start executing operations that are allowed to skip the queue
+      for (var operation in operationsToProcess.executeAndSkipQueue) {
+        operation.performWithRetry(retryStrategy);
       }
 
-      // let's execute all operations in _operationsBeingProcessed list
-      // and returns the result or the error to the completer
-      final executeOperationsInParallelFuture = Future.wait(
-          transactionsBeingProcessed.map((operation) => operation
-                  .performer()
-                  .then(operation.completer.complete)
-                  .catchError((error) {
-                operation.completer.completeError(error);
-                return null;
-              })));
+      // add nextBatch operations to the operationsQueue
+      operationsQueue.addAll(operationsToProcess.nextBatch);
 
-      await executeOperationsInParallelFuture;
-
-      transactionsBeingProcessed.clear();
-
-      // finally call _executeFromQueue again to execute the next operation
-      // if there are operations arrived while executing the current batch
-      return executeFromQueue();
+      // start executing nextBatch operations
+      // and remove each of them from operationsQueue when completed
+      for (var operation in operationsToProcess.nextBatch) {
+        operation.performWithRetry(retryStrategy).whenComplete(() {
+          operationsQueue.remove(operation);
+          // process more operations from the queue
+          // if LockingStrategy allows that
+          executeFromQueue();
+        });
+      }
     }
   }
 
+  /// adds a read operation to the queue.
+  /// when this operation will start executing depends on:
+  /// - storage availability
+  /// - operations already in progress
+  /// - and the lockingStrategy
   @protected
-  Future requestConcurrentOperation(
+  Future requestReadOperation(
     Future Function() operation, [
     dynamic debugData,
   ]) {
     final completer = Completer();
 
-    transactionQueue.add(QueueOperation(
+    operationsQueue.add(QueueOperation(
         completer: completer,
-        canBePerformedInParallel: true,
+        isReadOperation: true,
         performer: operation,
         debugData: debugData));
 
@@ -300,16 +339,21 @@ abstract class Storage {
     return completer.future;
   }
 
+  /// adds a write operation to the queue.
+  /// when this operation will start executing depends on:
+  /// - storage availability
+  /// - operations already in progress
+  /// - and the lockingStrategy
   @protected
-  Future requestLockingOperation(
+  Future requestWriteOperation(
     Future Function() operation, [
     dynamic debugData,
   ]) {
     final completer = Completer();
 
-    transactionQueue.add(QueueOperation(
+    operationsQueue.add(QueueOperation(
         completer: completer,
-        canBePerformedInParallel: false,
+        isReadOperation: false,
         performer: operation,
         debugData: debugData));
 
@@ -326,7 +370,7 @@ abstract class Storage {
     ID? documentId,
     options = const StorageOptions(),
   }) {
-    return requestLockingOperation(
+    return requestWriteOperation(
         () => delegate.internalAddDocument<ID, T>(
               collectionName: collectionName,
               documentData: documentData,
@@ -342,7 +386,7 @@ abstract class Storage {
     required ID documentId,
     options = const StorageOptions(),
   }) {
-    return requestLockingOperation(() => delegate.internalDeleteDocument<ID>(
+    return requestWriteOperation(() => delegate.internalDeleteDocument<ID>(
         collectionName: collectionName,
         documentId: documentId,
         options: options));
@@ -355,7 +399,7 @@ abstract class Storage {
     required ID documentId,
     options = const StorageOptions(),
   }) {
-    return requestConcurrentOperation(
+    return requestReadOperation(
       () => delegate.internalGetDocument<ID, T>(
           collectionName: collectionName, documentId: documentId),
       {'caller': 'getDocument'},
@@ -367,7 +411,7 @@ abstract class Storage {
     Query<ID, T> query, {
     options = const StorageOptions(),
   }) {
-    return requestConcurrentOperation(
+    return requestReadOperation(
       () => delegate.internalGetQuery<ID, T>(query),
       {'caller': 'getQuery'},
     ).then((r) => r);
@@ -378,7 +422,7 @@ abstract class Storage {
     Operation operation, {
     options = const StorageOptions(),
   }) async {
-    return requestLockingOperation(
+    return requestWriteOperation(
         () => delegate.internalPerformOperation(operation, options: options));
   }
 
@@ -388,7 +432,7 @@ abstract class Storage {
     doOperationsInParallel = false,
     options = const StorageOptions(),
   }) {
-    return requestLockingOperation(
+    return requestWriteOperation(
       () => delegate.internalPerformTransaction(transaction,
           doOperationsInParallel: doOperationsInParallel, options: options),
       {'caller': 'performTransaction', 'transaction': transaction},
@@ -397,7 +441,7 @@ abstract class Storage {
 
   @nonVirtual
   Future serviceRequest(String serviceName, params) {
-    return requestLockingOperation(
+    return requestWriteOperation(
         () => delegate.internalServiceRequest(serviceName, params));
   }
 
@@ -408,7 +452,7 @@ abstract class Storage {
     required T documentData,
     options = const StorageOptions(),
   }) {
-    return requestLockingOperation(() => delegate.internalSetDocument<ID, T>(
+    return requestWriteOperation(() => delegate.internalSetDocument<ID, T>(
         collectionName: collectionName,
         documentId: documentId,
         documentData: documentData,
@@ -422,30 +466,10 @@ abstract class Storage {
     required Map<String, dynamic> documentData,
     options = const StorageOptions(),
   }) {
-    return requestLockingOperation(() => delegate.internalUpdateDocument(
+    return requestWriteOperation(() => delegate.internalUpdateDocument(
         collectionName: collectionName,
         documentId: documentId,
         documentData: documentData,
         options: options));
   }
-}
-
-class QueueOperation {
-  final Future Function() performer;
-  final bool canBePerformedInParallel;
-  final Completer completer;
-  final dynamic debugData;
-
-  QueueOperation({
-    required this.performer,
-    required this.canBePerformedInParallel,
-    required this.completer,
-    this.debugData,
-  });
-}
-
-enum LockingStrategy {
-  neverLocks,
-  onlyWritingLocks,
-  everyOperationLocks,
 }
