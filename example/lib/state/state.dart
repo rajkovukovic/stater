@@ -1,20 +1,19 @@
 import 'package:stater/stater.dart';
-import 'package:stater_example/state/does_todo_match_query.dart';
 import 'package:stater_example/state/services/create_many_todos.dart';
 
-final restStorage = RestStorage(
-  id: 'rest-server',
-  endpoint: 'http://192.168.0.11:54123/api',
-);
+// final restStorage = RestStorage(
+//   id: 'rest-server',
+//   endpoint: 'http://192.168.0.11:54123/api',
+// );
 
-final localStorage = LocalStorage(
-  id: 'get-storage',
-  storagePrefix: 'DB',
-);
+// final localStorage = LocalStorage(
+//   id: 'get-storage',
+//   storagePrefix: 'DB',
+// );
 
-const queryMatcher = JsonQueryMatcher({
-  'todos': doesTodoMatchQuery,
-});
+// const queryMatcher = JsonQueryMatcher({
+//   'todos': doesTodoMatchQuery,
+// });
 
 ServiceProcessor serviceProcessorFactory(Storage storage) {
   return (String serviceName, dynamic params) async {
@@ -28,15 +27,15 @@ ServiceProcessor serviceProcessorFactory(Storage storage) {
   };
 }
 
-// final state = restStorage;
+final state = Storage(InMemoryAdapter({}));
 
-final state = CascadeStorage(
-  primaryStorage: restStorage,
-  cachingStorages: [localStorage],
-  transactionStoringDelegate: TransactionStorer.fromStorage(localStorage),
-  serviceProcessorFactory: serviceProcessorFactory,
-  queryMatcher: queryMatcher,
-);
+// final state = CascadeStorage(
+//   primaryStorage: restStorage,
+//   cachingStorages: [localStorage],
+//   transactionStoringDelegate: TransactionStorer.fromStorage(localStorage),
+//   serviceProcessorFactory: serviceProcessorFactory,
+//   queryMatcher: queryMatcher,
+// );
 
 // final localData = {'photos': {}};
 

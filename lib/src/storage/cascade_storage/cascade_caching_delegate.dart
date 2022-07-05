@@ -1,6 +1,6 @@
 import 'package:stater/stater.dart';
 
-class CascadeCachingDelegate extends InMemoryStorage {
+class CascadeCachingDelegate extends InMemoryAdapter {
   final Future<dynamic> _dataFuture;
   final Future<dynamic> _uncommittedTransactionsFuture;
   Error? _initError;

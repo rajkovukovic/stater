@@ -1,27 +1,12 @@
 import 'dart:async';
 
-import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
-import 'package:uuid/uuid.dart';
 
 /// Completing of each operation is controlled from outside.
 ///
 /// Useful for testing.
-class PuppetStorage extends Storage with CascadableStorage {
-  Storage internalStorage;
-
-  PuppetStorage({
-    required this.internalStorage,
-    String? id,
-  }) {
-    final innerId = id == null
-        ? internalStorage is CascadableStorage
-            ? (internalStorage as CascadableStorage).id
-            : const Uuid().v4()
-        : null;
-
-    this.id = id ?? 'puppetStorage@($innerId)';
-  }
+class PuppetAdapter extends ProxyAdapter {
+  PuppetAdapter(StorageAdapter delegate) : super(delegate);
 
   final _completerQueue = <Completer>[];
 
@@ -45,9 +30,8 @@ class PuppetStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
-  Future<DocumentSnapshot<ID, T>?>
-      internalAddDocument<ID extends Object?, T extends Object?>({
+  Future<DocumentSnapshot<ID, T>>
+      addDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required T documentData,
     ID? documentId,
@@ -55,7 +39,7 @@ class PuppetStorage extends Storage with CascadableStorage {
   }) async {
     await _requestCompleter();
 
-    return internalStorage.addDocument(
+    return delegate.addDocument(
         collectionName: collectionName,
         documentData: documentData,
         documentId: documentId,
@@ -63,15 +47,14 @@ class PuppetStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
-  Future<void> internalDeleteDocument<ID extends Object?>({
+  Future<void> deleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
   }) async {
     await _requestCompleter();
 
-    return internalStorage.deleteDocument(
+    return delegate.deleteDocument(
       collectionName: collectionName,
       documentId: documentId,
       options: options,
@@ -79,44 +62,40 @@ class PuppetStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
   Future<DocumentSnapshot<ID, T>>
-      internalGetDocument<ID extends Object?, T extends Object?>({
+      getDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
   }) async {
     await _requestCompleter();
 
-    return internalStorage.getDocument<ID, T>(
+    return delegate.getDocument<ID, T>(
         collectionName: collectionName,
         documentId: documentId,
         options: options);
   }
 
   @override
-  @protected
-  Future<QuerySnapshot<ID, T>>
-      internalGetQuery<ID extends Object?, T extends Object?>(
+  @override
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, {
-    // Converters<ID, T>? converters,
-    StorageOptions options = const StorageOptions(),
+    options = const StorageOptions(),
   }) async {
     await _requestCompleter();
 
-    return internalStorage.getQuery(query, options: options);
+    return delegate.getQuery(query, options: options);
   }
 
   @override
-  @protected
-  Future<dynamic> internalPerformTransaction(
+  Future<dynamic> performTransaction(
     Transaction transaction, {
     doOperationsInParallel = false,
     options = const StorageOptions(),
   }) async {
     await _requestCompleter();
 
-    return internalStorage.performTransaction(
+    return delegate.performTransaction(
       transaction,
       doOperationsInParallel: doOperationsInParallel,
       options: options,
@@ -124,8 +103,7 @@ class PuppetStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
-  Future<void> internalSetDocument<ID extends Object?, T extends Object?>({
+  Future<void> setDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     required T documentData,
@@ -133,7 +111,7 @@ class PuppetStorage extends Storage with CascadableStorage {
   }) async {
     await _requestCompleter();
 
-    return internalStorage.setDocument(
+    return delegate.setDocument(
         collectionName: collectionName,
         documentId: documentId,
         documentData: documentData,
@@ -141,8 +119,7 @@ class PuppetStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
-  Future<void> internalUpdateDocument<ID extends Object?>({
+  Future<void> updateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     required Map<String, dynamic> documentData,
@@ -150,7 +127,7 @@ class PuppetStorage extends Storage with CascadableStorage {
   }) async {
     await _requestCompleter();
 
-    return internalStorage.updateDocument(
+    return delegate.updateDocument(
       collectionName: collectionName,
       documentId: documentId,
       documentData: documentData,
@@ -159,10 +136,9 @@ class PuppetStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
-  Future internalServiceRequest(String serviceName, dynamic params) async {
+  Future serviceRequest(String serviceName, dynamic params) async {
     await _requestCompleter();
 
-    return internalStorage.serviceRequest(serviceName, params);
+    return delegate.serviceRequest(serviceName, params);
   }
 }

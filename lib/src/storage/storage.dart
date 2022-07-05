@@ -1,13 +1,11 @@
 import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 
-abstract class Storage<D extends StorageAdapter> {
+class Storage<D extends StorageAdapter> {
   @protected
   late final LockingAdapter delegate;
 
-  Storage({
-    required D delegate,
-  }) : delegate = LockingAdapter(delegate: delegate);
+  Storage(D delegate) : delegate = LockingAdapter(delegate);
 
   /// defines this storage availability
   AvailabilityStrategy? get availabilityStrategy =>
@@ -39,5 +37,9 @@ abstract class Storage<D extends StorageAdapter> {
 
   destroy() {
     delegate.destroy();
+  }
+
+  Future serviceRequest(String serviceName, params) {
+    return delegate.serviceRequest(serviceName, params);
   }
 }

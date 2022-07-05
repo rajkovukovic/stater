@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stater/src/storage/delayed_storage/delayed_storage.dart';
-import 'package:stater/src/storage/in_memory_storage/in_memory_storage.dart';
+import 'package:stater/stater.dart';
 
 import '../test_helpers/generate_sample_data.dart';
 
@@ -8,19 +7,21 @@ void main() {
   test(
       'make sure Storage with locking strategy does not allow a read operation '
       'to start until a write operation is completed', () async {
-    final lockingStorage = DelayedStorage(
-      internalStorage: InMemoryStorage(generateSampleData()),
-      readDelay: const Duration(milliseconds: 50),
-      writeDelay: const Duration(milliseconds: 100),
+    final lockingAdapter = LockingAdapter(
+      DelayedAdapter(
+        InMemoryAdapter(generateSampleData()),
+        readDelay: const Duration(milliseconds: 50),
+        writeDelay: const Duration(milliseconds: 100),
+      ),
     );
 
-    final writeFuture = lockingStorage.addDocument(
+    final writeFuture = lockingAdapter.addDocument(
         collectionName: 'todos',
         documentId: '2',
         documentData: {'name': 'Todo2'});
 
     final readFuture =
-        lockingStorage.getDocument(collectionName: 'todos', documentId: '1');
+        lockingAdapter.getDocument(collectionName: 'todos', documentId: '1');
 
     final fasterResponse = await Future.any([writeFuture, readFuture]);
 

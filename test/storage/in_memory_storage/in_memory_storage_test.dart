@@ -5,7 +5,7 @@ import '../../test_helpers/generate_sample_data.dart';
 
 void main() {
   test('make sure InMemoryStorage can read an existing document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
+    final inMemoryStorage = Storage(InMemoryAdapter(generateSampleData()));
 
     final todosCollection =
         inMemoryStorage.collection<String, Map<String, dynamic>>('todos');
@@ -20,7 +20,7 @@ void main() {
   });
 
   test('make sure InMemoryStorage can create a document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
+    final inMemoryStorage = Storage(InMemoryAdapter(generateSampleData()));
 
     final todosCollection =
         inMemoryStorage.collection<String, Map<String, dynamic>>('todos');
@@ -35,7 +35,7 @@ void main() {
   });
 
   test('make sure InMemoryStorage can read just created document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
+    final inMemoryStorage = Storage(InMemoryAdapter(generateSampleData()));
 
     final todosCollection =
         inMemoryStorage.collection<String, Map<String, dynamic>>('todos');
@@ -52,7 +52,7 @@ void main() {
   });
 
   test('make sure InMemoryStorage can get a query', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
+    final inMemoryStorage = Storage(InMemoryAdapter(generateSampleData()));
 
     final todosCollection =
         inMemoryStorage.collection<String, Map<String, dynamic>>('todos');
@@ -69,7 +69,7 @@ void main() {
   });
 
   test('make sure InMemoryStorage can delete a document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
+    final inMemoryStorage = Storage(InMemoryAdapter(generateSampleData()));
 
     final todosCollection =
         inMemoryStorage.collection<String, Map<String, dynamic>>('todos');
@@ -82,26 +82,7 @@ void main() {
   });
 
   test('make sure InMemoryStorage can update a document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
-
-    final todosCollection =
-        inMemoryStorage.collection<String, Map<String, dynamic>>('todos');
-
-    await todosCollection.doc('1').update({'completed': true});
-
-    final todo = await todosCollection.doc('1').get();
-
-    expect(todo.id, '1');
-
-    expect(todo.exists, true);
-
-    expect(todo.data()?['name'], 'Todo 1');
-
-    expect(todo.data()?['completed'], true);
-  });
-
-  test('make sure InMemoryStorage can update a document', () async {
-    final inMemoryStorage = InMemoryStorage(generateSampleData());
+    final inMemoryStorage = Storage(InMemoryAdapter(generateSampleData()));
 
     final todosCollection =
         inMemoryStorage.collection<String, Map<String, dynamic>>('todos');

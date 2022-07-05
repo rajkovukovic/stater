@@ -1,16 +1,20 @@
 import 'package:stater/stater.dart';
 
-/// Base class for all adapters that should be used in adapter composition
-abstract class ProxyAdapter implements StorageAdapter {
-  StorageAdapter delegate;
+/// Delegates all calls to it's internalStorage with a delay.
+///
+/// Will delay every read operation for [readDelay]
+/// and every write operation for [writeDelay].
+///
+/// Useful for testing.
+class DelayedAdapter extends ProxyAdapter {
+  Duration readDelay;
+  Duration writeDelay;
 
-  ProxyAdapter(this.delegate);
-
-  @override
-  String get id => delegate.id;
-
-  @override
-  set id(String id) => throw Exception('StorageAdapter.id field is final');
+  DelayedAdapter(
+    StorageAdapter delegate, {
+    required this.readDelay,
+    required this.writeDelay,
+  }) : super(delegate);
 
   @override
   Future<DocumentSnapshot<ID, T>>
@@ -19,10 +23,13 @@ abstract class ProxyAdapter implements StorageAdapter {
     required T documentData,
     ID? documentId,
     options = const StorageOptions(),
-  }) {
+  }) async {
+    /// await writeDelay already exist on internalSetDocument method
+    /// which will be called eventually by internalStorage.internalAddDocument
     return delegate.addDocument(
         collectionName: collectionName,
         documentData: documentData,
+        documentId: documentId,
         options: options);
   }
 
@@ -31,11 +38,14 @@ abstract class ProxyAdapter implements StorageAdapter {
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
-  }) {
+  }) async {
+    await Future.delayed(writeDelay);
+
     return delegate.deleteDocument(
-        collectionName: collectionName,
-        documentId: documentId,
-        options: options);
+      collectionName: collectionName,
+      documentId: documentId,
+      options: options,
+    );
   }
 
   @override
@@ -44,8 +54,10 @@ abstract class ProxyAdapter implements StorageAdapter {
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
-  }) {
-    return delegate.getDocument(
+  }) async {
+    await Future.delayed(readDelay);
+
+    return delegate.getDocument<ID, T>(
         collectionName: collectionName,
         documentId: documentId,
         options: options);
@@ -55,31 +67,10 @@ abstract class ProxyAdapter implements StorageAdapter {
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, {
     options = const StorageOptions(),
-  }) {
+  }) async {
+    await Future.delayed(readDelay);
+
     return delegate.getQuery(query, options: options);
-  }
-
-  @override
-  Future performOperation(
-    Operation operation, {
-    options = const StorageOptions(),
-  }) {
-    return performOperation(operation, options: options);
-  }
-
-  @override
-  Future performTransaction(
-    Transaction transaction, {
-    doOperationsInParallel = false,
-    options = const StorageOptions(),
-  }) {
-    return performTransaction(transaction,
-        doOperationsInParallel: doOperationsInParallel, options: options);
-  }
-
-  @override
-  Future serviceRequest(String serviceName, params) {
-    return delegate.serviceRequest(serviceName, params);
   }
 
   @override
@@ -88,7 +79,9 @@ abstract class ProxyAdapter implements StorageAdapter {
     required ID documentId,
     required T documentData,
     options = const StorageOptions(),
-  }) {
+  }) async {
+    await Future.delayed(writeDelay);
+
     return delegate.setDocument(
         collectionName: collectionName,
         documentId: documentId,
@@ -102,11 +95,14 @@ abstract class ProxyAdapter implements StorageAdapter {
     required ID documentId,
     required Map<String, dynamic> documentData,
     options = const StorageOptions(),
-  }) {
-    return delegate.updateDocument(
-        collectionName: collectionName,
-        documentId: documentId,
-        documentData: documentData,
-        options: options);
+  }) async {
+    await Future.delayed(writeDelay);
+
+    return updateDocument(
+      collectionName: collectionName,
+      documentId: documentId,
+      documentData: documentData,
+      options: options,
+    );
   }
 }

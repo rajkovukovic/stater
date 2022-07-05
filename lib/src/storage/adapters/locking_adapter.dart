@@ -25,12 +25,12 @@ class LockingAdapter extends ProxyAdapter {
   /// used when a transaction fails on a first try
   RetryStrategy? retryStrategy;
 
-  LockingAdapter({
+  LockingAdapter(
+    StorageAdapter delegate, {
     this.availabilityStrategy,
-    required super.delegate,
     LockingStrategy? lockingStrategy,
     this.retryStrategy,
-  }) {
+  }) : super(delegate) {
     this.lockingStrategy = lockingStrategy ?? WritesOneByOneReadsInParallel();
   }
 
@@ -106,14 +106,14 @@ class LockingAdapter extends ProxyAdapter {
         operation.performWithRetry(retryStrategy);
       }
 
-      // add nextBatch operations to the operationsQueue
-      operationsQueue.addAll(operationsToProcess.nextBatch);
+      // add nextBatch operations to the operationsBeingProcessed
+      operationsBeingProcessed.addAll(operationsToProcess.nextBatch);
 
       // start executing nextBatch operations
       // and remove each of them from operationsQueue when completed
       for (var operation in operationsToProcess.nextBatch) {
         operation.performWithRetry(retryStrategy).whenComplete(() {
-          operationsQueue.remove(operation);
+          operationsBeingProcessed.remove(operation);
           // process more operations from the queue
           // if LockingStrategy allows that
           executeFromQueue();
@@ -177,13 +177,19 @@ class LockingAdapter extends ProxyAdapter {
     options = const StorageOptions(),
   }) {
     return requestWriteOperation(
-        () => delegate.addDocument<ID, T>(
-              collectionName: collectionName,
-              documentData: documentData,
-              documentId: documentId,
-              options: options,
-            ),
-        {'caller': 'addDocument'}).then((r) => r);
+      () => delegate.addDocument<ID, T>(
+        collectionName: collectionName,
+        documentData: documentData,
+        documentId: documentId,
+        options: options,
+      ),
+      {
+        'caller': 'addDocument',
+        'collectionName': collectionName,
+        'documentId': documentId,
+        'documentData': documentData,
+      },
+    ).then((r) => r);
   }
 
   @override
@@ -192,10 +198,17 @@ class LockingAdapter extends ProxyAdapter {
     required ID documentId,
     options = const StorageOptions(),
   }) {
-    return requestWriteOperation(() => delegate.deleteDocument<ID>(
-        collectionName: collectionName,
-        documentId: documentId,
-        options: options));
+    return requestWriteOperation(
+      () => delegate.deleteDocument<ID>(
+          collectionName: collectionName,
+          documentId: documentId,
+          options: options),
+      {
+        'caller': 'deleteDocument',
+        'collectionName': collectionName,
+        'documentId': documentId,
+      },
+    );
   }
 
   @override
@@ -208,7 +221,11 @@ class LockingAdapter extends ProxyAdapter {
     return requestReadOperation(
       () => delegate.getDocument<ID, T>(
           collectionName: collectionName, documentId: documentId),
-      {'caller': 'getDocument'},
+      {
+        'caller': 'getDocument',
+        'collectionName': collectionName,
+        'documentId': documentId,
+      },
     ).then((r) => r);
   }
 
@@ -219,7 +236,10 @@ class LockingAdapter extends ProxyAdapter {
   }) {
     return requestReadOperation(
       () => delegate.getQuery<ID, T>(query),
-      {'caller': 'getQuery'},
+      {
+        'caller': 'getQuery',
+        'query': query,
+      },
     ).then((r) => r);
   }
 
@@ -229,7 +249,10 @@ class LockingAdapter extends ProxyAdapter {
     options = const StorageOptions(),
   }) async {
     return requestWriteOperation(
-        () => delegate.performOperation(operation, options: options));
+        () => delegate.performOperation(operation, options: options), {
+      'caller': 'performOperation',
+      'operation': operation,
+    });
   }
 
   @override
@@ -248,7 +271,11 @@ class LockingAdapter extends ProxyAdapter {
   @override
   Future serviceRequest(String serviceName, params) {
     return requestWriteOperation(
-        () => delegate.serviceRequest(serviceName, params));
+        () => delegate.serviceRequest(serviceName, params), {
+      'caller': 'serviceRequest',
+      'serviceName': serviceName,
+      'params': params,
+    });
   }
 
   @override
@@ -258,11 +285,18 @@ class LockingAdapter extends ProxyAdapter {
     required T documentData,
     options = const StorageOptions(),
   }) {
-    return requestWriteOperation(() => delegate.setDocument<ID, T>(
-        collectionName: collectionName,
-        documentId: documentId,
-        documentData: documentData,
-        options: options));
+    return requestWriteOperation(
+        () => delegate.setDocument<ID, T>(
+            collectionName: collectionName,
+            documentId: documentId,
+            documentData: documentData,
+            options: options),
+        {
+          'caller': 'setDocument',
+          'collectionName': collectionName,
+          'documentId': documentId,
+          'documentData': documentData,
+        });
   }
 
   @override
@@ -272,10 +306,17 @@ class LockingAdapter extends ProxyAdapter {
     required Map<String, dynamic> documentData,
     options = const StorageOptions(),
   }) {
-    return requestWriteOperation(() => delegate.updateDocument(
-        collectionName: collectionName,
-        documentId: documentId,
-        documentData: documentData,
-        options: options));
+    return requestWriteOperation(
+        () => delegate.updateDocument(
+            collectionName: collectionName,
+            documentId: documentId,
+            documentData: documentData,
+            options: options),
+        {
+          'caller': 'updateDocument',
+          'collectionName': collectionName,
+          'documentId': documentId,
+          'documentData': documentData,
+        });
   }
 }

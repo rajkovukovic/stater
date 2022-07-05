@@ -38,6 +38,9 @@ class QueueOperation {
           throw transactionError;
         }
       });
-    }).then((_) => response);
+    }).then((_) {
+      completer.complete(response);
+      return response;
+    });
   }
 }

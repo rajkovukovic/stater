@@ -6,23 +6,20 @@ import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
 /// in-RAM Storage, usually used for data caching
-class InMemoryStorage extends StorageAdapter
-    with CascadableAdapter
+class InMemoryAdapter extends StorageAdapter
     implements StorageHasCache, StorageHasRootAccess {
   IMap<String, IMap<String, dynamic>> _cache;
 
-  InMemoryStorage(Map<String, Map<String, dynamic>> cache, {String? id})
-      : _cache = _dataFromMutableData(cache) {
-    this.id = id ?? 'inMemoryStorage@(${const Uuid().v4()})';
+  InMemoryAdapter(Map<String, Map<String, dynamic>> cache)
+      : _cache = _dataFromMutableData(cache);
+
+  InMemoryAdapter.fromImmutableData(this._cache);
+
+  static FutureOr<InMemoryAdapter> fromClonedData(
+    StorageHasRootAccess delegate,
+  ) async {
+    return InMemoryAdapter(await delegate.getAllData());
   }
-
-  InMemoryStorage.fromImmutableData(this._cache);
-
-  // static FutureOr<InMemoryDelegate> fromClonedData(
-  //   RootAccessStorage delegate,
-  // ) async {
-  //   return InMemoryDelegate(await delegate.getAllData());
-  // }
 
   static IMap<String, IMap<String, dynamic>> _dataFromMutableData(
           Map<String, Map<String, dynamic>> mutableData) =>
@@ -177,7 +174,7 @@ class InMemoryStorage extends StorageAdapter
     final existing = collection?[documentId.toString()];
 
     if (existing == null) {
-      throw 'InMemoryStorage.update: '
+      throw 'InMemoryAdapter.updateDocument: '
           'there is no doc to update (id=$documentId)';
     } else {
       _cache = _cache.add(
@@ -190,6 +187,12 @@ class InMemoryStorage extends StorageAdapter
   @override
   Future<Map<String, Map<String, dynamic>>> getAllData() {
     return Future.value(data);
+  }
+
+  @override
+  Future serviceRequest(String serviceName, params) {
+    // TODO: implement serviceRequest
+    throw UnimplementedError();
   }
 
   @override
@@ -235,30 +238,10 @@ class InMemoryStorage extends StorageAdapter
     // TODO: implement replaceCollection
     throw UnimplementedError();
   }
-
-  @override
-  Future performOperation(Operation operation,
-      {options = const StorageOptions()}) {
-    // TODO: implement performOperation
-    throw UnimplementedError();
-  }
-
-  @override
-  Future performTransaction(Transaction transaction,
-      {doOperationsInParallel = false, options = const StorageOptions()}) {
-    // TODO: implement performTransaction
-    throw UnimplementedError();
-  }
-
-  @override
-  Future serviceRequest(String serviceName, params) {
-    // TODO: implement serviceRequest
-    throw UnimplementedError();
-  }
 }
 
-// class DelayedInMemoryStorage extends InMemoryStorage with DelayedStorageMixin {
-//   DelayedInMemoryStorage(
+// class DelayedInMemoryAdapter extends InMemoryAdapter with DelayedStorageMixin {
+//   DelayedInMemoryAdapter(
 //     super.cache, {
 //     Duration? readDelay,
 //     Duration? writeDelay,

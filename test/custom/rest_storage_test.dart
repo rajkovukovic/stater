@@ -3,7 +3,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stater/stater.dart';
+import 'package:stater/custom/rest_storage.dart';
 
 void main() {
   Process? process;
@@ -34,20 +34,20 @@ void main() {
     /// without this line, there is a socket exception that I can not explain :(
     await Future.delayed(const Duration(milliseconds: 1000));
 
-    final restStorage = RestStorage(endpoint: 'http://0.0.0.0:54123/api');
+    final restAdapter = RestAdapter(endpoint: 'http://0.0.0.0:54123/api');
 
-    await restStorage.addDocument<String, dynamic>(
+    await restAdapter.addDocument<String, dynamic>(
         collectionName: 'todos',
         documentId: '1',
         documentData: {'name': 'Todo 1'});
 
-    final writeFuture = restStorage.addDocument<String, dynamic>(
+    final writeFuture = restAdapter.addDocument<String, dynamic>(
         collectionName: 'todos',
         documentId: '2',
         documentData: {'name': 'Todo 2'});
 
     final readFuture =
-        restStorage.getDocument(collectionName: 'todos', documentId: '1');
+        restAdapter.getDocument(collectionName: 'todos', documentId: '1');
 
     await writeFuture;
 

@@ -2,26 +2,20 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
-import 'package:uuid/uuid.dart';
 
-class RestStorage extends Storage with CascadableStorage {
-  RestStorage({
+class RestAdapter extends StorageAdapter {
+  RestAdapter({
     required this.endpoint,
-    String? id,
-  }) {
-    this.id = id ?? 'restStorage@(${const Uuid().v4()})';
-  }
+  });
 
   static const String idKey = 'id';
 
   final String endpoint;
 
   @override
-  @protected
-  Future<DocumentSnapshot<ID, T>?>
-      internalAddDocument<ID extends Object?, T extends Object?>({
+  Future<DocumentSnapshot<ID, T>>
+      addDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required T documentData,
     ID? documentId,
@@ -41,7 +35,7 @@ class RestStorage extends Storage with CascadableStorage {
     ).then((response) {
       final data = jsonDecode(response.body);
       if (data is! Map) {
-        throw 'RestStorage.internalAddDocument expects response of type '
+        throw 'RestStorage.addDocument expects response of type '
             'Map<String, dynamic>.\nGot "${data.runtimeType}" instead.';
       }
       final id = data[idKey] ?? '';
@@ -55,8 +49,7 @@ class RestStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
-  Future<void> internalDeleteDocument<ID extends Object?>({
+  Future<void> deleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -74,9 +67,8 @@ class RestStorage extends Storage with CascadableStorage {
   // }
 
   @override
-  @protected
   Future<DocumentSnapshot<ID, T>>
-      internalGetDocument<ID extends Object?, T extends Object?>({
+      getDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -96,9 +88,7 @@ class RestStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
-  Future<QuerySnapshot<ID, T>>
-      internalGetQuery<ID extends Object?, T extends Object?>(
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, {
     Converters<ID, T>? converters,
     StorageOptions options = const StorageOptions(),
@@ -155,7 +145,6 @@ class RestStorage extends Storage with CascadableStorage {
   }
 
   // @override
-  @protected
   // Stream<QuerySnapshot<ID, T>>
   //     querySnapshots<ID extends Object?, T extends Object?>(
   //         Query<ID, T> query) {
@@ -163,8 +152,7 @@ class RestStorage extends Storage with CascadableStorage {
   // }
 
   @override
-  @protected
-  Future<void> internalSetDocument<ID extends Object?, T extends Object?>({
+  Future<void> setDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     required T documentData,
@@ -179,8 +167,7 @@ class RestStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
-  Future<void> internalUpdateDocument<ID extends Object?>({
+  Future<void> updateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     required Map<String, dynamic> documentData,
@@ -194,8 +181,7 @@ class RestStorage extends Storage with CascadableStorage {
   }
 
   @override
-  @protected
-  Future internalServiceRequest(String serviceName, dynamic params) async {
+  Future serviceRequest(String serviceName, dynamic params) async {
     switch (serviceName) {
       case 'removeAllTodos':
         return http.post(

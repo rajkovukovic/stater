@@ -7,18 +7,12 @@ import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-class LocalStorage extends Storage
-    with CascadableStorage
-    implements StorageHasRootAccess {
-  LocalStorage({
-    // required super.doesMatchQuery,
-    // super.generateCompareFromQuery,
-    String? id,
+class LocalAdapter extends StorageAdapter implements StorageHasRootAccess {
+  LocalAdapter({
     required this.storagePrefix,
-  }) {
-    this.id = id ?? 'localStorage@(${const Uuid().v4()})';
-  }
+  });
 
+  /// used to prefix all collections in this Storage
   final String storagePrefix;
 
   Future<GetStorage> _getExistingCollectionsBox() async {
@@ -59,7 +53,7 @@ class LocalStorage extends Storage
   @override
   @protected
   Future<DocumentSnapshot<ID, T>>
-      internalAddDocument<ID extends Object?, T extends Object?>({
+      addDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required T documentData,
     ID? documentId,
@@ -84,7 +78,7 @@ class LocalStorage extends Storage
 
   @override
   @protected
-  Future<void> internalDeleteDocument<ID extends Object?>({
+  Future<void> deleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -129,7 +123,7 @@ class LocalStorage extends Storage
   @override
   @protected
   Future<DocumentSnapshot<ID, T>>
-      internalGetDocument<ID extends Object?, T extends Object?>({
+      getDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
@@ -151,11 +145,10 @@ class LocalStorage extends Storage
 
   @override
   @protected
-  Future<QuerySnapshot<ID, T>>
-      internalGetQuery<ID extends Object?, T extends Object?>(
+  Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
     Query<ID, T> query, {
     Converters<ID, T>? converters,
-    StorageOptions options = const StorageOptions(),
+    options = const StorageOptions(),
   }) async {
     final collection = query.collectionName;
 
@@ -190,7 +183,7 @@ class LocalStorage extends Storage
   }
 
   // @override
-  @protected
+  // @protected
   // Stream<QuerySnapshot<ID, T>>
   //     querySnapshots<ID extends Object?, T extends Object?>(
   //         Query<ID, T> query) {
@@ -200,7 +193,7 @@ class LocalStorage extends Storage
 
   @override
   @protected
-  Future<void> internalSetDocument<ID extends Object?, T extends Object?>({
+  Future<void> setDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     required T documentData,
@@ -213,7 +206,7 @@ class LocalStorage extends Storage
 
   @override
   @protected
-  Future<void> internalUpdateDocument<ID extends Object?>({
+  Future<void> updateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     required Map<String, dynamic> documentData,
@@ -233,7 +226,7 @@ class LocalStorage extends Storage
 
   @override
   @protected
-  Future internalServiceRequest(String serviceName, dynamic params) async {
+  Future serviceRequest(String serviceName, dynamic params) async {
     switch (serviceName) {
       case 'createManyTodos':
         final int createCount = params;

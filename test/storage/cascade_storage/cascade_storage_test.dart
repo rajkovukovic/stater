@@ -91,6 +91,6 @@ CascadableStorage createFakeLocalStorage() => DelayedInMemoryStorage(
     );
 
 PuppetStorage createFakeRestStorage() => PuppetStorage(
-      internalStorage: InMemoryStorage(generateSampleData()),
+      internalStorage: InMemoryAdapter(generateSampleData()),
       id: 'restStorage',
     );

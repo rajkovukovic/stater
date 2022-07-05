@@ -1,4 +1,4 @@
-import 'package:stater/src/storage/storage_adapter.dart';
+import 'package:stater/src/storage/adapters/storage_adapter.dart';
 
 /// has methods for adding and removing collections of data
 /// and methods for adding or removing multiple collections
