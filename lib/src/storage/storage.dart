@@ -3,25 +3,25 @@ import 'package:stater/stater.dart';
 
 class Storage<D extends StorageAdapter> {
   @protected
-  late final LockingAdapter delegate;
+  late final D delegate;
 
-  Storage(D delegate) : delegate = LockingAdapter(delegate);
+  Storage(this.delegate);
 
-  /// defines this storage availability
-  AvailabilityStrategy? get availabilityStrategy =>
-      delegate.availabilityStrategy;
+  // /// defines this storage availability
+  // AvailabilityStrategy? get availabilityStrategy =>
+  //     delegate.availabilityStrategy;
 
-  /// is this storage currently available for processing transactions
-  bool get isAvailable => delegate.isAvailable;
+  // /// is this storage currently available for processing transactions
+  // bool get isAvailable => delegate.isAvailable;
 
-  /// rules for locking strategy
-  /// i.e. we may want to lock storage while there is
-  /// a write operation in progress
-  LockingStrategy get lockingStrategy => delegate.lockingStrategy;
+  // /// rules for locking strategy
+  // /// i.e. we may want to lock storage while there is
+  // /// a write operation in progress
+  // LockingStrategy get lockingStrategy => delegate.lockingStrategy;
 
-  /// defines this storage retry strategy,
-  /// used when a transaction fails on a first try
-  RetryStrategy? get retryStrategy => delegate.retryStrategy;
+  // /// defines this storage retry strategy,
+  // /// used when a transaction fails on a first try
+  // RetryStrategy? get retryStrategy => delegate.retryStrategy;
 
   /// returns a reference to a collection where name = [collectionName]
   CollectionReference<ID, T> collection<ID extends Object?, T extends Object?>(

@@ -41,6 +41,8 @@ abstract class StorageAdapter {
     options = const StorageOptions(),
   });
 
+  void destroy() {}
+
   Future<DocumentSnapshot<ID, T>>
       getDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
