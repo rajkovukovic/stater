@@ -12,7 +12,7 @@ import 'cascade_caching_delegate.dart';
 class CascadeTransactionManager<T extends ExclusiveTransaction>
     extends TransactionManager<T> {
   @protected
-  final List<CascadableStorage> delegates;
+  final List<StorageAdapter> delegates;
 
   @protected
   final TransactionStorer transactionStoringDelegate;
@@ -21,7 +21,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   /// Every storage (primary + caching ones) has
   /// exactly one TransactionProcessor
   @protected
-  late Map<CascadableStorage, TransactionProcessor> processorMap;
+  late Map<StorageAdapter, TransactionProcessor> processorMap;
 
   /// in-memory Storage that performs all transactions on
   /// cached DB data that is going to be used when user reads data
@@ -370,7 +370,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     listeners.clear();
   }
 
-  Set<String>? completedTransactionsIds(CascadableStorage delegate) {
+  Set<String>? completedTransactionsIds(StorageAdapter delegate) {
     return processorMap[delegate]?.completedTransactionIds;
   }
 }
@@ -382,7 +382,7 @@ Map<String, Set<String>> fromStoredTransactionsState(
 }
 
 Map<String, dynamic> toStoredTransactionsState(
-    Map<CascadableStorage, TransactionProcessor> processorMap) {
+    Map<StorageAdapter, TransactionProcessor> processorMap) {
   return processorMap.map(
       (key, value) => MapEntry(key.id, value.completedTransactionIds.toList()));
 }

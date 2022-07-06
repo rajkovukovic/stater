@@ -7,7 +7,7 @@ import 'package:stater/stater.dart';
 final _idGeneratorMap = <Type, int>{};
 
 abstract class StorageAdapter {
-  late final String id;
+  late final String _id;
 
   StorageAdapter({
     String? id,
@@ -19,11 +19,13 @@ abstract class StorageAdapter {
         ifAbsent: () => 1,
       );
 
-      this.id = '$runtimeType-${_idGeneratorMap[runtimeType]}';
+      _id = '$runtimeType-${_idGeneratorMap[runtimeType]}';
     } else {
-      this.id = id;
+      _id = id;
     }
   }
+
+  String get id => _id;
 
   Future<DocumentSnapshot<ID, T>>
       addDocument<ID extends Object?, T extends Object?>({

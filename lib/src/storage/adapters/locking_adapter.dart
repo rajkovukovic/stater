@@ -17,7 +17,7 @@ class LockingAdapter extends ProxyAdapter {
   AvailabilityStrategy? availabilityStrategy;
 
   /// rules for locking strategy
-  /// i.e. we may want to lock storage while there is
+  /// i.e. we may want to lock access to storage while there is
   /// a write operation in progress
   late final LockingStrategy lockingStrategy;
 
@@ -28,6 +28,7 @@ class LockingAdapter extends ProxyAdapter {
   LockingAdapter(
     StorageAdapter delegate, {
     this.availabilityStrategy,
+    super.id,
     LockingStrategy? lockingStrategy,
     this.retryStrategy,
   }) : super(delegate) {

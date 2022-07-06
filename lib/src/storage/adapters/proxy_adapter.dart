@@ -1,16 +1,30 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:stater/stater.dart';
 
 /// Base class for all adapters that should be used in adapter composition
-abstract class ProxyAdapter implements StorageAdapter {
+abstract class ProxyAdapter extends StorageAdapter
+    implements StorageHasCache, StorageHasRootAccess {
   StorageAdapter delegate;
 
-  ProxyAdapter(this.delegate);
+  ProxyAdapter(
+    this.delegate, {
+    super.id,
+  });
 
-  @override
-  String get id => delegate.id;
+  // @override
+  // String get id => delegate.id;
 
-  @override
-  set id(String id) => throw Exception('StorageAdapter.id field is final');
+  bool isComposedOf<T>() {
+    StorageAdapter? nextDelegate = delegate;
+    while (nextDelegate != null) {
+      if (nextDelegate is T) {
+        return true;
+      }
+      nextDelegate =
+          nextDelegate is ProxyAdapter ? nextDelegate.delegate : null;
+    }
+    return false;
+  }
 
   @override
   Future<DocumentSnapshot<ID, T>>
@@ -64,7 +78,7 @@ abstract class ProxyAdapter implements StorageAdapter {
     Operation operation, {
     options = const StorageOptions(),
   }) {
-    return performOperation(operation, options: options);
+    return delegate.performOperation(operation, options: options);
   }
 
   @override
@@ -73,7 +87,7 @@ abstract class ProxyAdapter implements StorageAdapter {
     doOperationsInParallel = false,
     options = const StorageOptions(),
   }) {
-    return performTransaction(transaction,
+    return delegate.performTransaction(transaction,
         doOperationsInParallel: doOperationsInParallel, options: options);
   }
 
@@ -109,4 +123,72 @@ abstract class ProxyAdapter implements StorageAdapter {
         documentData: documentData,
         options: options);
   }
+
+  /// removes all documents and all collections
+  @override
+  Future<void> removeAllCollections() =>
+      (delegate as StorageHasRootAccess).removeAllCollections();
+
+  /// removes a collection and all its documents
+  @override
+  Future<void> removeCollection(String collectionName) =>
+      (delegate as StorageHasRootAccess).removeCollection(collectionName);
+
+  /// removes all documents from a collection,
+  /// but leaves empty collection behind
+  @override
+  Future<void> removeAllDocumentsInCollection(String collectionName) =>
+      (delegate as StorageHasRootAccess)
+          .removeAllDocumentsInCollection(collectionName);
+
+  /// inserts all [documents] to a collection and overwrites existing ones
+  @override
+  Future<void> insertToCollection(
+    String collectionName,
+    Map<String, dynamic> documents,
+  ) =>
+      (delegate as StorageHasRootAccess)
+          .insertToCollection(collectionName, documents);
+
+  /// removes all collection documents and inserts all from [documents] param
+  @override
+  Future<void> replaceCollection(
+    String collectionName,
+    Map<String, dynamic> documents,
+  ) =>
+      (delegate as StorageHasRootAccess)
+          .replaceCollection(collectionName, documents);
+
+  /// merges [collections] map into existing data
+  ///
+  /// existing documents will be overwritten
+  @override
+  Future<void> insertData(Map<String, dynamic> collections) =>
+      (delegate as StorageHasRootAccess).insertData(collections);
+
+  /// returns whole collection
+  @override
+  Future<Map<String, dynamic>> getCollectionData(String collectionName) =>
+      (delegate as StorageHasRootAccess).getCollectionData(collectionName);
+
+  /// returns whole database
+  @override
+  Future<Map<String, Map<String, dynamic>>> getAllData() =>
+      (delegate as StorageHasRootAccess).getAllData();
+
+  @override
+  Map<String, Map<String, dynamic>> get data =>
+      (delegate as StorageHasCache).data;
+
+  @override
+  set data(Map<String, Map<String, dynamic>> nextData) =>
+      (delegate as StorageHasCache).data = nextData;
+
+  @override
+  IMap<String, IMap<String, dynamic>> get immutableData =>
+      (delegate as StorageHasCache).immutableData;
+
+  @override
+  set immutableData(IMap<String, IMap<String, dynamic>> nextImmutableData) =>
+      (delegate as StorageHasCache).immutableData = nextImmutableData;
 }

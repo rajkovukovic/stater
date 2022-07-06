@@ -1,6 +1,6 @@
 import 'package:stater/stater.dart';
 
-class CascadeCachingDelegate extends InMemoryAdapter {
+class CascadeCachingDelegate extends LockingAdapter {
   final Future<dynamic> _dataFuture;
   final Future<dynamic> _uncommittedTransactionsFuture;
   Error? _initError;
@@ -12,7 +12,7 @@ class CascadeCachingDelegate extends InMemoryAdapter {
     ServiceProcessorFactory? serviceProcessorFactory,
   })  : _dataFuture = dataFuture,
         _uncommittedTransactionsFuture = uncommittedTransactionsFuture,
-        super({}) {
+        super(InMemoryAdapter({})) {
     /// start by adding CascadeCachingDelegate initialization
     /// as a blocking transaction to the transactionQueue
     /// so any incoming transactions, arrived during the init process,
@@ -26,7 +26,7 @@ class CascadeCachingDelegate extends InMemoryAdapter {
           final transactions = dataAndTransactions.last;
 
           // now we have initial data, let's use it in innerDelegate
-          this.data = data;
+          (delegate as InMemoryAdapter).data = data;
 
           // save any transactions arrived during init process
           final transactionsArrivedDuringInit = [...operationsQueue];

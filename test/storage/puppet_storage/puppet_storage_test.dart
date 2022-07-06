@@ -23,7 +23,7 @@ void main() {
 
     expect(todo, null);
 
-    expect(puppetAdapter.hasPendingTransactions, true);
+    expect(puppetAdapter.hasPendingOperations, true);
   });
 
   test(
@@ -60,7 +60,7 @@ void main() {
 
     expect(isDeleted, false);
 
-    expect(puppetAdapter.hasPendingTransactions, true);
+    expect(puppetAdapter.hasPendingOperations, true);
   });
 
   test(
@@ -89,7 +89,7 @@ void main() {
 
     todosCollection.doc('1').delete().then((_) => isDeleted = true);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
     await Future.delayed(const Duration(milliseconds: 100));
 
     expect(todo != null, true);
@@ -98,7 +98,7 @@ void main() {
 
     expect(isDeleted, false);
 
-    expect(puppetAdapter.hasPendingTransactions, true);
+    expect(puppetAdapter.hasPendingOperations, true);
   });
 
   test(
@@ -127,9 +127,9 @@ void main() {
 
     todosCollection.doc('1').delete().then((_) => isDeleted = true);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
     await Future.delayed(const Duration(milliseconds: 100));
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
     await Future.delayed(const Duration(milliseconds: 100));
 
     expect(todo != null, true);
@@ -138,9 +138,9 @@ void main() {
 
     expect(isDeleted, false);
 
-    expect(puppetAdapter.hasPendingTransactions, true);
+    expect(puppetAdapter.hasPendingOperations, true);
 
-    expect(puppetAdapter.pendingTransactionsCount, 1);
+    expect(puppetAdapter.pendingOperationsCount, 1);
   });
 
   test(
@@ -169,11 +169,11 @@ void main() {
 
     todosCollection.doc('1').delete().then((_) => isDeleted = true);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
     await Future.delayed(const Duration(milliseconds: 100));
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
     await Future.delayed(const Duration(milliseconds: 100));
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
     await Future.delayed(const Duration(milliseconds: 100));
 
     expect(todo != null, true);
@@ -182,7 +182,7 @@ void main() {
 
     expect(isDeleted, true);
 
-    expect(puppetAdapter.hasPendingTransactions, false);
+    expect(puppetAdapter.hasPendingOperations, false);
   });
 
   test('PuppetStorage can read an existing document', () async {
@@ -196,7 +196,7 @@ void main() {
 
     todosCollection.doc('1').get().then((response) => todo = response);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
 
     await Future.delayed(const Duration(milliseconds: 100));
 
@@ -206,7 +206,7 @@ void main() {
 
     expect(todo?.data()?['name'], 'Todo 1');
 
-    expect(puppetAdapter.hasPendingTransactions, false);
+    expect(puppetAdapter.hasPendingOperations, false);
   });
 
   test('PuppetStorage can delete an existing document', () async {
@@ -220,13 +220,13 @@ void main() {
 
     todosCollection.doc('1').delete().then((_) => isDeleted = true);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
 
     await Future.delayed(const Duration(milliseconds: 100));
 
     expect(isDeleted, true);
 
-    expect(puppetAdapter.hasPendingTransactions, false);
+    expect(puppetAdapter.hasPendingOperations, false);
 
     /// verify document does not exist
 
@@ -234,7 +234,7 @@ void main() {
 
     todosCollection.doc('1').get().then((response) => todo = response);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
 
     expect(todo, null);
   });
@@ -252,13 +252,13 @@ void main() {
         .doc('1')
         .update({'name': 'updated'}).then((_) => isUpdated = true);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
 
     await Future.delayed(const Duration(milliseconds: 100));
 
     expect(isUpdated, true);
 
-    expect(puppetAdapter.hasPendingTransactions, false);
+    expect(puppetAdapter.hasPendingOperations, false);
 
     /// verify document has been updated
 
@@ -266,7 +266,7 @@ void main() {
 
     todosCollection.doc('1').get().then((response) => todo = response);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
 
     await Future.delayed(const Duration(milliseconds: 100));
 
@@ -290,13 +290,13 @@ void main() {
       todos = response;
     });
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
 
     await Future.delayed(const Duration(milliseconds: 100));
 
     expect(todos?.size, 1);
 
-    expect(puppetAdapter.hasPendingTransactions, false);
+    expect(puppetAdapter.hasPendingOperations, false);
   });
 
   test('PuppetStorage can update an existing document', () async {
@@ -311,13 +311,13 @@ void main() {
     todosCollection.doc('1').update({'name': 'set', 'completed': true}).then(
         (_) => isUpdated = true);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
 
     await Future.delayed(const Duration(milliseconds: 100));
 
     expect(isUpdated, true);
 
-    expect(puppetAdapter.hasPendingTransactions, false);
+    expect(puppetAdapter.hasPendingOperations, false);
 
     /// verify document has been updated
 
@@ -325,7 +325,7 @@ void main() {
 
     todosCollection.doc('1').get().then((response) => todo = response);
 
-    puppetAdapter.performNextTransaction();
+    puppetAdapter.performNextOperation();
 
     await Future.delayed(const Duration(milliseconds: 100));
 

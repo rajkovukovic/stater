@@ -10,8 +10,10 @@ class InMemoryAdapter extends StorageAdapter
     implements StorageHasCache, StorageHasRootAccess {
   IMap<String, IMap<String, dynamic>> _cache;
 
-  InMemoryAdapter(Map<String, Map<String, dynamic>> cache)
-      : _cache = _dataFromMutableData(cache);
+  InMemoryAdapter(
+    Map<String, Map<String, dynamic>> cache, {
+    super.id,
+  }) : _cache = _dataFromMutableData(cache);
 
   InMemoryAdapter.fromImmutableData(this._cache);
 

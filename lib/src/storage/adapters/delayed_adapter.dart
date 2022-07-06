@@ -12,6 +12,7 @@ class DelayedAdapter extends ProxyAdapter {
 
   DelayedAdapter(
     StorageAdapter delegate, {
+    super.id,
     required this.readDelay,
     required this.writeDelay,
   }) : super(delegate);
@@ -71,6 +72,18 @@ class DelayedAdapter extends ProxyAdapter {
     await Future.delayed(readDelay);
 
     return delegate.getQuery(query, options: options);
+  }
+
+  // TODO: Don't override a method to do a super method invocation with the same parameters.
+  @override
+  Future performTransaction(
+    Transaction transaction, {
+    doOperationsInParallel = false,
+    options = const StorageOptions(),
+  }) {
+    print(null);
+    return super.performTransaction(transaction,
+        doOperationsInParallel: doOperationsInParallel, options: options);
   }
 
   @override

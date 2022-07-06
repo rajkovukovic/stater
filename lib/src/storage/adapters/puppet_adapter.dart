@@ -2,31 +2,83 @@ import 'dart:async';
 
 import 'package:stater/stater.dart';
 
-/// Completing of each operation is controlled from outside.
+/// Every operation (read and write) is added to queue.
+/// Completing of each operation is controlled from outside, by calling one of
+/// methods [performNextWriteOperation], [performNextReadOperation],
+/// [performNextOperation].
 ///
 /// Useful for testing.
 class PuppetAdapter extends ProxyAdapter {
-  PuppetAdapter(StorageAdapter delegate) : super(delegate);
+  final _operationQueue = <QueueOperation>[];
+  final bool readOperationsSkipQueue;
 
-  final _completerQueue = <Completer>[];
+  PuppetAdapter(
+    StorageAdapter delegate, {
+    String? id,
+    this.readOperationsSkipQueue = false,
+  }) : super(delegate, id: id);
 
-  Future<void> _requestCompleter() {
-    final completer = Completer();
-    _completerQueue.add(completer);
-    return completer.future;
+  Future<void> _requestWriteCompleter() {
+    final operation = QueueOperation(
+        performer: () async {}, isReadOperation: false, completer: Completer());
+
+    _operationQueue.add(operation);
+
+    return operation.completer.future;
   }
 
-  int get pendingTransactionsCount => _completerQueue.length;
+  Future<void> _requestReadCompleter() {
+    final operation = QueueOperation(
+        performer: () async {}, isReadOperation: true, completer: Completer());
 
-  bool get hasPendingTransactions => _completerQueue.isNotEmpty;
+    _operationQueue.add(operation);
 
-  void performNextTransaction() {
-    if (_completerQueue.isEmpty) {
-      throw 'Transaction Queue is empty';
+    return operation.completer.future;
+  }
+
+  int get pendingOperationsCount => _operationQueue.length;
+
+  bool get hasPendingOperations => _operationQueue.isNotEmpty;
+
+  void performOperationByIndex(int index) {
+    if (index > _operationQueue.length - 1) {
+      throw '_operationQueue is empty';
     }
 
-    final completer = _completerQueue.removeAt(0);
-    completer.complete();
+    final operation = _operationQueue.removeAt(index);
+    operation.completer.complete();
+  }
+
+  void performNextWriteOperation() {
+    final index =
+        _operationQueue.indexWhere((operation) => !operation.isReadOperation);
+    if (index < 0) {
+      throw _operationQueue.isEmpty
+          ? '_operationQueue is empty'
+          : '_operationQueue does not have any write operation';
+    } else {
+      performOperationByIndex(index);
+    }
+  }
+
+  void performNextReadOperation() {
+    final index =
+        _operationQueue.indexWhere((operation) => operation.isReadOperation);
+    if (index < 0) {
+      throw _operationQueue.isEmpty
+          ? '_operationQueue is empty'
+          : '_operationQueue does not have any write operation';
+    } else {
+      performOperationByIndex(index);
+    }
+  }
+
+  void performNextOperation() {
+    if (_operationQueue.isNotEmpty) {
+      performOperationByIndex(0);
+    } else {
+      throw '_operationQueue is empty';
+    }
   }
 
   @override
@@ -37,7 +89,7 @@ class PuppetAdapter extends ProxyAdapter {
     ID? documentId,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await _requestWriteCompleter();
 
     return delegate.addDocument(
         collectionName: collectionName,
@@ -52,7 +104,7 @@ class PuppetAdapter extends ProxyAdapter {
     required ID documentId,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await _requestWriteCompleter();
 
     return delegate.deleteDocument(
       collectionName: collectionName,
@@ -68,7 +120,7 @@ class PuppetAdapter extends ProxyAdapter {
     required ID documentId,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await _requestReadCompleter();
 
     return delegate.getDocument<ID, T>(
         collectionName: collectionName,
@@ -82,7 +134,7 @@ class PuppetAdapter extends ProxyAdapter {
     Query<ID, T> query, {
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await _requestReadCompleter();
 
     return delegate.getQuery(query, options: options);
   }
@@ -93,7 +145,7 @@ class PuppetAdapter extends ProxyAdapter {
     doOperationsInParallel = false,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await _requestWriteCompleter();
 
     return delegate.performTransaction(
       transaction,
@@ -109,7 +161,7 @@ class PuppetAdapter extends ProxyAdapter {
     required T documentData,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await _requestWriteCompleter();
 
     return delegate.setDocument(
         collectionName: collectionName,
@@ -125,7 +177,7 @@ class PuppetAdapter extends ProxyAdapter {
     required Map<String, dynamic> documentData,
     options = const StorageOptions(),
   }) async {
-    await _requestCompleter();
+    await _requestWriteCompleter();
 
     return delegate.updateDocument(
       collectionName: collectionName,
@@ -137,7 +189,7 @@ class PuppetAdapter extends ProxyAdapter {
 
   @override
   Future serviceRequest(String serviceName, dynamic params) async {
-    await _requestCompleter();
+    await _requestWriteCompleter();
 
     return delegate.serviceRequest(serviceName, params);
   }

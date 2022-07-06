@@ -8,10 +8,11 @@ import '../../test_helpers/generate_sample_data.dart';
 void main() {
   test(
       'can create CascadeStorage using '
-      'InMemoryStorage(DelayedStorage + InMemoryStorage) and '
-      'RestStorage(PuppetStorage + InMemoryStorage)', () async {
-    final fakeLocalStorage = createFakeLocalStorage();
-    final fakeRestStorage = createFakeRestStorage();
+      'fake RestStorage(implemented as PuppetStorage + InMemoryStorage) and '
+      'InMemoryStorage(implemented as DelayedStorage + InMemoryStorage)',
+      () async {
+    final fakeLocalAdapter = createFakeLocalAdapter();
+    final fakeRestAdapter = createFakeRestAdapter();
     final transactionStorer = TransactionStorer(
       readTransactions: () {
         return Future.value(generateSampleTransactionsAsJson());
@@ -21,9 +22,9 @@ void main() {
       writeProcessedState: (_) => Future.value(null),
     );
 
-    final cascadeStorage = CascadeStorage(
-      primaryStorage: fakeRestStorage,
-      cachingStorages: [fakeLocalStorage],
+    final cascadeStorage = CascadeAdapter(
+      primaryStorage: fakeRestAdapter,
+      cachingStorages: [fakeLocalAdapter],
       transactionStoringDelegate: transactionStorer,
     );
 
@@ -33,8 +34,8 @@ void main() {
   });
 
   test('can perform 4 operations on cascadeStorage in proper order', () async {
-    final fakeLocalStorage = createFakeLocalStorage();
-    final fakeRestStorage = createFakeRestStorage();
+    final fakeLocalAdapter = createFakeLocalAdapter();
+    final fakeRestAdapter = createFakeRestAdapter();
 
     final List<List<Map<String, dynamic>>> storedTransactions = [];
     final List<Map<String, dynamic>> storedTransactionsState = [];
@@ -48,49 +49,71 @@ void main() {
       writeProcessedState: (data) async => storedTransactionsState.add(data),
     );
 
-    final cascadeStorage = CascadeStorage(
-      primaryStorage: fakeRestStorage,
-      cachingStorages: [fakeLocalStorage],
+    final cascadeAdapter = CascadeAdapter(
+      primaryStorage: fakeRestAdapter,
+      cachingStorages: [fakeLocalAdapter],
       transactionStoringDelegate: transactionStorer,
     );
 
+    final localTodosRef = CollectionReference(
+      delegate: fakeLocalAdapter,
+      collectionName: 'todos',
+    );
+
+    final restTodosRef = CollectionReference(
+      delegate: fakeRestAdapter,
+      collectionName: 'todos',
+    );
+
+    final transactions = generateSampleTransactionsAsJson();
+    final totalTransactions = transactions.length;
+
     await Future.delayed(const Duration(milliseconds: 100));
 
-    final totalTransactions = generateSampleTransactionsAsJson().length;
-
     expect(
-      cascadeStorage.transactionManager.transactionQueue.length,
+      cascadeAdapter.transactionManager.transactionQueue.length,
       totalTransactions,
     );
 
-    for (var counter = totalTransactions; counter > 0; counter--) {
-      print('\ncalling restStorage.performNextTransaction()');
-      fakeRestStorage.performNextTransaction();
+    for (var counter = 0; counter <= totalTransactions; counter++) {
+      if (counter >= 1) {
+        fakeRestAdapter.performNextWriteOperation();
 
-      await Future.delayed(const Duration(milliseconds: 100));
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+
+      expect(docsDataMapFromQuerySnapshot(await localTodosRef.get()),
+          expectedSampleSnapshots[counter]['todos'],
+          reason: 'local todos do not match expectation after '
+              '$counter transactions\n'
+              '${counter > 0 ? 'last performed transaction '
+                  'id="${transactions[counter - 1]}"\n' : ''}');
+
+      expect(docsDataMapFromQuerySnapshot(await restTodosRef.get()),
+          expectedSampleSnapshots[counter]['todos'],
+          reason: 'REST todos do not match expectation after '
+              '$counter transactions\n'
+              '${counter > 0 ? 'last performed transaction '
+                  'id="${transactions[counter - 1]}"\n' : ''}');
 
       expect(
-        cascadeStorage.transactionManager.transactionQueue.length,
-        counter - 1,
-        reason: 'cascadeStorage transactionQueue.length does not match',
+        cascadeAdapter.transactionManager.transactionQueue.length,
+        totalTransactions - counter,
+        reason: 'cascadeStorage.transactionManager.transactionQueue.length '
+            'does not match',
       );
     }
-
-    expect(
-      cascadeStorage.transactionManager.transactionQueue.length,
-      0,
-    );
   });
 }
 
-CascadableStorage createFakeLocalStorage() => DelayedInMemoryStorage(
-      generateSampleData(),
+StorageAdapter createFakeLocalAdapter() => DelayedAdapter(
+      InMemoryAdapter(generateSampleData(), id: 'inMemoryInsideLocal'),
       readDelay: const Duration(milliseconds: 25),
       writeDelay: const Duration(milliseconds: 50),
-      id: 'localStorage',
+      id: 'local',
     );
 
-PuppetStorage createFakeRestStorage() => PuppetStorage(
-      internalStorage: InMemoryAdapter(generateSampleData()),
-      id: 'restStorage',
+PuppetAdapter createFakeRestAdapter() => PuppetAdapter(
+      InMemoryAdapter(generateSampleData(), id: 'inMemoryInsideRest'),
+      id: 'rest',
     );

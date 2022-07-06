@@ -5,7 +5,7 @@ import '../test_helpers/generate_sample_data.dart';
 
 void main() {
   test(
-      'make sure Storage with locking strategy does not allow a read operation '
+      'make sure LockingAdapter does not allow a read operation '
       'to start until a write operation is completed', () async {
     final lockingAdapter = LockingAdapter(
       DelayedAdapter(
