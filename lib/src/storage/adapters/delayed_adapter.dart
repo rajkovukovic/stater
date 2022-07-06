@@ -74,18 +74,6 @@ class DelayedAdapter extends ProxyAdapter {
     return delegate.getQuery(query, options: options);
   }
 
-  // TODO: Don't override a method to do a super method invocation with the same parameters.
-  @override
-  Future performTransaction(
-    Transaction transaction, {
-    doOperationsInParallel = false,
-    options = const StorageOptions(),
-  }) {
-    print(null);
-    return super.performTransaction(transaction,
-        doOperationsInParallel: doOperationsInParallel, options: options);
-  }
-
   @override
   Future<void> setDocument<ID extends Object?, T extends Object?>({
     required String collectionName,

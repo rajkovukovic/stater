@@ -79,6 +79,7 @@ void main() {
     );
 
     for (var counter = 0; counter <= totalTransactions; counter++) {
+      // counter of zero is used to verify initial state of adapters' state
       if (counter >= 1) {
         fakeRestAdapter.performNextWriteOperation();
 
@@ -88,19 +89,19 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
-      expect(docsDataMapFromQuerySnapshot(await localTodosRef.get()),
-          expectedSampleSnapshots[counter]['todos'],
-          reason: 'local todos do not match expectation after '
-              '$counter transactions\n'
-              '${counter > 0 ? 'last performed transaction '
-                  'id="${transactions[counter - 1]}"\n' : ''}');
-
       expect(docsDataMapFromQuerySnapshot(await restTodosRef.get()),
           expectedSampleSnapshots[counter]['todos'],
           reason: 'REST todos do not match expectation after '
               '$counter transactions\n'
               '${counter > 0 ? 'last performed transaction '
-                  'id="${transactions[counter - 1]}"\n' : ''}');
+                  '${transactions[counter - 1]}\n' : ''}');
+
+      expect(docsDataMapFromQuerySnapshot(await localTodosRef.get()),
+          expectedSampleSnapshots[counter]['todos'],
+          reason: 'local todos do not match expectation after '
+              '$counter transactions\n'
+              '${counter > 0 ? 'last performed transaction '
+                  '${transactions[counter - 1]}\n' : ''}');
 
       expect(
         cascadeAdapter.transactionManager.transactionQueue.length,
