@@ -1,6 +1,6 @@
 import 'package:stater/stater.dart';
 
-/// Delegates all calls to it's internalStorage with a delay.
+/// Delegates all calls to it's delegate with a delay.
 ///
 /// Will delay every read operation for [readDelay]
 /// and every write operation for [writeDelay].
