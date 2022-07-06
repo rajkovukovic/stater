@@ -33,7 +33,9 @@ void main() {
     expect(cascadeStorage.transactionManager.transactionQueue.length, 4);
   });
 
-  test('can perform 4 operations on cascadeStorage in proper order', () async {
+  test(
+      'can perform multiple operations '
+      'on cascadeStorage in proper order', () async {
     final fakeLocalAdapter = createFakeLocalAdapter();
     final fakeRestAdapter = createFakeRestAdapter();
 
@@ -68,6 +70,7 @@ void main() {
     final transactions = generateSampleTransactionsAsJson();
     final totalTransactions = transactions.length;
 
+    // wait for storage init
     await Future.delayed(const Duration(milliseconds: 100));
 
     expect(
@@ -79,6 +82,9 @@ void main() {
       if (counter >= 1) {
         fakeRestAdapter.performNextWriteOperation();
 
+        // wait for fakeRestAdapter to complete the operation,
+        // for the operation to be delegated to the fakeLocalAdapter
+        // and for fakeLocalAdapter to complete the operation
         await Future.delayed(const Duration(milliseconds: 100));
       }
 
@@ -116,4 +122,5 @@ StorageAdapter createFakeLocalAdapter() => DelayedAdapter(
 PuppetAdapter createFakeRestAdapter() => PuppetAdapter(
       InMemoryAdapter(generateSampleData(), id: 'inMemoryInsideRest'),
       id: 'rest',
+      readOperationsSkipQueue: true,
     );
