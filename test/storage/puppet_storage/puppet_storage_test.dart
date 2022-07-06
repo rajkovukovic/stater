@@ -337,4 +337,64 @@ void main() {
 
     expect(todo?.data()?['completed'], true);
   });
+
+  test(
+      'PuppetStorage with readOperationsSkipQueue performs '
+      'read operations immediately', () async {
+    final puppetAdapter = PuppetAdapter(
+      InMemoryAdapter(generateSampleData()),
+      readOperationsSkipQueue: true,
+    );
+
+    final puppetStorage = Storage(puppetAdapter);
+
+    final todosCollection =
+        puppetStorage.collection<String, Map<String, dynamic>>('todos');
+
+    bool readCompleted = false;
+
+    todosCollection.get().then((value) => readCompleted = true);
+
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(readCompleted, true);
+
+    expect(puppetAdapter.hasPendingOperations, false);
+  });
+
+  test(
+      'PuppetStorage with readOperationsSkipQueue performs '
+      'read operations immediately, even if there are '
+      'pending write operations in the queue', () async {
+    final puppetAdapter = PuppetAdapter(
+      InMemoryAdapter(generateSampleData()),
+      readOperationsSkipQueue: true,
+    );
+
+    final puppetStorage = Storage(puppetAdapter);
+
+    final todosCollection =
+        puppetStorage.collection<String, Map<String, dynamic>>('todos');
+
+    bool isUpdated = false;
+
+    todosCollection.doc('1').update({'name': 'set', 'completed': true}).then(
+        (_) => isUpdated = true);
+
+    bool readCompleted = false;
+
+    todosCollection.get().then((value) => readCompleted = true);
+
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(isUpdated, false, reason: 'updated should be false');
+
+    expect(readCompleted, true, reason: 'readCompleted should be true');
+
+    expect(
+      puppetAdapter.hasPendingOperations,
+      true,
+      reason: 'puppetAdapter.hasPendingOperations should be true',
+    );
+  });
 }

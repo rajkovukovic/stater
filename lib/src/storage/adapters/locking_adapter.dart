@@ -8,7 +8,7 @@ import 'package:stater/stater.dart';
 class LockingAdapter extends ProxyAdapter {
   StreamSubscription? _availabilityStrategySubscription;
 
-  bool _isAvailable = true;
+  bool _isAvailable;
 
   /// has storage been initialized
   bool _isInit = false;
@@ -21,42 +21,6 @@ class LockingAdapter extends ProxyAdapter {
   /// a write operation in progress
   late final LockingStrategy lockingStrategy;
 
-  /// defines this storage retry strategy,
-  /// used when a transaction fails on a first try
-  RetryStrategy? retryStrategy;
-
-  LockingAdapter(
-    StorageAdapter delegate, {
-    this.availabilityStrategy,
-    super.id,
-    LockingStrategy? lockingStrategy,
-    this.retryStrategy,
-  }) : super(delegate) {
-    this.lockingStrategy = lockingStrategy ?? WritesOneByOneReadsInParallel();
-  }
-
-  /// is this storage currently available for processing transactions
-  bool get isAvailable => _isAvailable;
-
-  /// initializes this storage by subscribing to the availabilityStrategy,
-  /// if this storage has one.
-  ///
-  /// call destroy() method to remove subscription
-  _init() {
-    if (availabilityStrategy != null) {
-      _isAvailable = availabilityStrategy!.isAvailable;
-      _availabilityStrategySubscription =
-          availabilityStrategy!.asStream.listen((nextValue) {
-        final justBecameAvailable = !_isAvailable && nextValue;
-        _isAvailable = nextValue;
-        if (justBecameAvailable) {
-          executeFromQueue();
-        }
-      });
-    }
-    _isInit = true;
-  }
-
   /// queue of operations waiting to be processed
   @protected
   List<QueueOperation> operationsQueue = [];
@@ -66,6 +30,46 @@ class LockingAdapter extends ProxyAdapter {
   /// "executeAndSkipQueue" will not be added to this list.
   @protected
   final List<QueueOperation> operationsBeingProcessed = [];
+
+  /// defines this storage retry strategy,
+  /// used when a transaction fails on a first try
+  RetryStrategy? retryStrategy;
+
+  LockingAdapter(
+    StorageAdapter delegate, {
+    bool isAvailable = true,
+    this.availabilityStrategy,
+    super.id,
+    this.lockingStrategy = const WritesOneByOneReadsInParallel(),
+    this.retryStrategy,
+  })  : _isAvailable = isAvailable,
+        super(delegate);
+
+  /// is this storage currently available for processing transactions
+  bool get isAvailable => _isAvailable;
+
+  /// sets availability status
+  @protected
+  set isAvailable(bool nextValue) {
+    final justBecameAvailable = !_isAvailable && nextValue;
+    _isAvailable = nextValue;
+    if (justBecameAvailable) {
+      executeFromQueue();
+    }
+  }
+
+  /// initializes this storage by subscribing to the availabilityStrategy,
+  /// if this storage has one.
+  ///
+  /// call destroy() method to remove subscription
+  _init() {
+    if (availabilityStrategy != null) {
+      _isAvailable = availabilityStrategy!.isAvailable;
+      _availabilityStrategySubscription = availabilityStrategy!.asStream
+          .listen((nextValue) => isAvailable = nextValue);
+    }
+    _isInit = true;
+  }
 
   destroy() {
     _availabilityStrategySubscription?.cancel();
@@ -96,6 +100,11 @@ class LockingAdapter extends ProxyAdapter {
         ...operationsToProcess.executeAndSkipQueue,
         ...operationsToProcess.nextBatch,
       };
+
+      // if there are no operations returned by the lockingStrategy, just return
+      if (operationsToProcessSet.isEmpty) {
+        return;
+      }
 
       // remove all operations that are about to start processing from the queue
       operationsQueue = operationsQueue

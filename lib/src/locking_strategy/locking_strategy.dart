@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 
 /// Defines an availability strategy for a Storage.<br>
@@ -5,14 +6,22 @@ import 'package:stater/stater.dart';
 /// When [isAvailable] is false Storage will pause processing of transactions.<br>
 /// [asStream] getter should return a stream that emits a new value
 /// representing new availability state.
-abstract class LockingStrategy {
+class LockingStrategy {
+  @protected
+  const LockingStrategy();
+
   LockingStrategyResult findAvailableOperations({
     required List<QueueOperation> operationsBeingProcessed,
     required List<QueueOperation> operationsQueue,
-  });
+  }) {
+    throw 'LockingStrategy.findAvailableOperations must be overridden by a '
+        'derived class';
+  }
 }
 
 class NeverLocks extends LockingStrategy {
+  const NeverLocks();
+
   @override
   LockingStrategyResult findAvailableOperations({
     required List<QueueOperation> operationsBeingProcessed,
@@ -39,6 +48,8 @@ class NeverLocks extends LockingStrategy {
 /// // third batch will contain deleteDocument only
 /// ```
 class WritesOneByOneReadsInParallel extends LockingStrategy {
+  const WritesOneByOneReadsInParallel();
+
   @override
   LockingStrategyResult findAvailableOperations({
     required List<QueueOperation> operationsBeingProcessed,
@@ -83,6 +94,8 @@ class WritesOneByOneReadsInParallel extends LockingStrategy {
 /// // if read operations are completed or not
 /// ```
 class WritesOneByOneReadsSkipsTheQueue extends LockingStrategy {
+  const WritesOneByOneReadsSkipsTheQueue();
+
   @override
   LockingStrategyResult findAvailableOperations({
     required List<QueueOperation> operationsBeingProcessed,
@@ -109,6 +122,8 @@ class WritesOneByOneReadsSkipsTheQueue extends LockingStrategy {
 /// Only one operation can be executed at the time,
 /// no matter is it a read or a write operation
 class EveryOperationLocks extends LockingStrategy {
+  const EveryOperationLocks();
+
   @override
   LockingStrategyResult findAvailableOperations({
     required List<QueueOperation> operationsBeingProcessed,
@@ -118,6 +133,32 @@ class EveryOperationLocks extends LockingStrategy {
       return LockingStrategyResult([operationsQueue.first]);
     } else {
       return LockingStrategyResult.empty();
+    }
+  }
+}
+
+/// Controls what operations are going to be performed next from outside.<br>
+/// Next operations are provided by calling [performNext] method.
+class PuppetLocking extends LockingStrategy {
+  late final List<List<QueueOperation>> nextOperationsList;
+
+  PuppetLocking({
+    List<List<QueueOperation>>? nextOperationsList,
+  }) : nextOperationsList = nextOperationsList ?? [];
+
+  performNext(List<QueueOperation> operations) {
+    nextOperationsList.add(operations);
+  }
+
+  @override
+  LockingStrategyResult findAvailableOperations({
+    required List<QueueOperation> operationsBeingProcessed,
+    required List<QueueOperation> operationsQueue,
+  }) {
+    if (nextOperationsList.isEmpty) {
+      return const LockingStrategyResult([]);
+    } else {
+      return LockingStrategyResult(nextOperationsList.removeAt(0));
     }
   }
 }
