@@ -1,15 +1,25 @@
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
+import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 
-/// InMemory storage, used by CascadeStorage, performs all transactions
-/// from the queue without waiting for other CascadeDelegates.<br>
-/// Used to perform all transactions
-class CascadeInMemoryCache extends LockingAdapter {
+/// InMemory storage, used by CascadeStorage as a cache,
+/// performs all transactions from the queue without waiting
+/// for other CascadeDelegates.<br>
+/// Used to perform all transactions as soon as they are created,
+/// so it always has the latest state which is used to perform all read
+/// transactions against
+class CascadeCache extends LockingAdapter {
   final Future<dynamic> _dataFuture;
   final Future<dynamic> _uncommittedTransactionsFuture;
   Error? _initError;
   dynamic _initErrorStackTrace;
 
-  CascadeInMemoryCache({
+  /// makes a data snapshot of whole inMemoryStorage after every
+  /// successful transaction processing
+  @protected
+  final List<InMemoryHistoryState> history = [];
+
+  CascadeCache({
     required Future<dynamic> dataFuture,
     required Future<dynamic> uncommittedTransactionsFuture,
     ServiceProcessorFactory? serviceProcessorFactory,
@@ -62,6 +72,19 @@ class CascadeInMemoryCache extends LockingAdapter {
   }
 
   @override
+  Future performTransaction(Transaction transaction,
+      {doOperationsInParallel = false, options = const StorageOptions()}) {
+    final request = super.performTransaction(transaction,
+        doOperationsInParallel: doOperationsInParallel, options: options);
+
+    request.then((_) => history.addBetween(InMemoryHistoryState(
+        dataSnapshot: (delegate as InMemoryAdapter).immutableData,
+        transactionId: transaction.id)));
+
+    return request;
+  }
+
+  @override
   Future executeFromQueue() async {
     if (_initError != null) {
       // make all pending transactions throw _initError
@@ -79,4 +102,43 @@ class CascadeInMemoryCache extends LockingAdapter {
       return super.executeFromQueue();
     }
   }
+
+  /// removes a history snapshot,
+  /// but does not change the current data state of this storage
+  bool removeHistoryState(String transactionId) {
+    final index = history.indexWhere(
+        (historyState) => historyState.transactionId == transactionId);
+
+    if (index >= 0) {
+      history.removeAt(index);
+      return true;
+    }
+
+    return false;
+  }
+
+  /// restores this storage to an earlier snapshot right after the transaction
+  /// with id=transactionId has been performed
+  bool goToHistoryState(String transactionId) {
+    final index = history.indexWhere(
+        (historyState) => historyState.transactionId == transactionId);
+
+    if (index >= 0) {
+      history.removeRange(index + 1, history.length);
+      (delegate as InMemoryAdapter).immutableData = history.last.dataSnapshot;
+      return true;
+    }
+
+    return false;
+  }
+}
+
+class InMemoryHistoryState {
+  final IMap<String, IMap<String, dynamic>> dataSnapshot;
+  final String transactionId;
+
+  InMemoryHistoryState({
+    required this.dataSnapshot,
+    required this.transactionId,
+  });
 }

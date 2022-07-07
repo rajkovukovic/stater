@@ -49,8 +49,8 @@ class PuppetAdapter extends LockingAdapter {
 
     if (index < 0) {
       throw operationsQueue.isEmpty
-          ? 'operationsQueue is empty'
-          : 'operationsQueue does not have any write operation';
+          ? 'PuppetAdapter.operationsQueue is empty'
+          : 'PuppetAdapter.operationsQueue does not have any write operation';
     } else {
       performOperationByIndex(index, withError: withError);
     }
@@ -62,8 +62,8 @@ class PuppetAdapter extends LockingAdapter {
 
     if (index < 0) {
       throw operationsQueue.isEmpty
-          ? 'operationsQueue is empty'
-          : 'operationsQueue does not have any read operation';
+          ? 'PuppetAdapter.operationsQueue is empty'
+          : 'PuppetAdapter.operationsQueue does not have any read operation';
     } else {
       performOperationByIndex(index, withError: withError);
     }
@@ -73,7 +73,7 @@ class PuppetAdapter extends LockingAdapter {
     if (operationsQueue.isNotEmpty) {
       performOperationByIndex(0, withError: withError);
     } else {
-      throw 'operationsQueue is empty';
+      throw 'PuppetAdapter.operationsQueue is empty';
     }
   }
 

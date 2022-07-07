@@ -3,13 +3,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stater/stater.dart';
 
+import '../../test_helpers/fake_storage.dart';
 import '../../test_helpers/generate_sample_data.dart';
 
 void main() {
   test(
       'can create CascadeStorage using '
-      'fake RestStorage(implemented as PuppetStorage + InMemoryStorage) and '
-      'InMemoryStorage(implemented as DelayedStorage + InMemoryStorage)',
+      'fake RestStorage (implemented as PuppetStorage + InMemoryStorage) and '
+      'InMemoryStorage (implemented as DelayedStorage + InMemoryStorage)',
       () async {
     final cascadeStorage = generateCascadeAdapter(
         dataGenerator: generateSampleData,
@@ -123,7 +124,7 @@ void main() {
   });
 
   test(
-      'CascadeAdapter can getDocument from secondary storage '
+      'CascadeAdapter can getDocument from inMemoryCache storage '
       'when primaryStorage returns an error', () async {
     final cascadeAdapter = generateCascadeAdapter(
       dataGenerator: generateSampleData,
@@ -134,7 +135,7 @@ void main() {
     final fakeRestAdapter = cascadeAdapter.delegates.first as PuppetAdapter;
 
     // wait for storage init
-    await Future.delayed(const Duration(milliseconds: 1000));
+    await Future.delayed(const Duration(milliseconds: 100));
 
     dynamic doc;
     dynamic docReadError;
@@ -149,57 +150,50 @@ void main() {
 
     fakeRestAdapter.performNextOperation(withError: 'Fake network error');
 
-    await Future.delayed(const Duration(milliseconds: 50));
+    await Future.delayed(const Duration(milliseconds: 100));
 
     expect(docReadError, null);
 
-    expect(doc?.data(), {'name': 'Todo 1', 'completed': true});
+    expect(doc?.data(), generateSampleData()['todos']?['1']);
+  });
+
+  test(
+      'When primaryStorage returns an error, '
+      'CascadeAdapter can getDocument from inMemoryCache storage, '
+      'with all the transactions from the '
+      'transactionQueue applied to the data.', () async {
+    final cascadeAdapter = generateCascadeAdapter(
+        dataGenerator: generateSampleData,
+        transactionGenerator: generateSampleTransactionsAsJson,
+        readOperationsSkipQueue: false);
+
+    final fakeRestAdapter = cascadeAdapter.delegates.first as PuppetAdapter;
+
+    // wait for storage init
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    dynamic doc;
+    dynamic docReadError;
+
+    Future getDocumentRequest =
+        cascadeAdapter.getDocument(collectionName: 'todos', documentId: '2');
+
+    getDocumentRequest.then((value) => doc = value).catchError((error) {
+      docReadError = error;
+      return null;
+    });
+
+    // final transactions = generateSampleTransactionsAsJson();
+    // final totalTransactions = transactions.length;
+
+    // for (var counter = 0; counter <= totalTransactions; counter++) {
+    //   fakeRestAdapter.performNextOperation(withError: 'Fake network error');
+    // }
+
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    expect(docReadError, null);
+
+    expect(doc?.data(), expectedSampleSnapshots.last['todos']?['2']);
   });
 }
-
-CascadeAdapter generateCascadeAdapter({
-  required Map<String, Map<String, dynamic>> Function() dataGenerator,
-  required List<Map<String, dynamic>> Function() transactionGenerator,
-  bool readOperationsSkipQueue = true,
-}) {
-  final fakeLocalAdapter = createFakeLocalAdapter(dataGenerator);
-
-  final fakeRestAdapter = createFakeRestAdapter(
-    dataGenerator,
-    readOperationsSkipQueue: readOperationsSkipQueue,
-  );
-
-  final transactionStorer = TransactionStorer(
-    readTransactions: () {
-      return Future.value(transactionGenerator());
-    },
-    readProcessedState: () => Future.value({}),
-    writeTransactions: (_) => Future.value(null),
-    writeProcessedState: (_) => Future.value(null),
-  );
-
-  return CascadeAdapter(
-    primaryStorage: fakeRestAdapter,
-    cachingStorages: [fakeLocalAdapter],
-    transactionStoringDelegate: transactionStorer,
-  );
-}
-
-StorageAdapter createFakeLocalAdapter(
-        Map<String, Map<String, dynamic>> Function() dataGenerator) =>
-    DelayedAdapter(
-      InMemoryAdapter(dataGenerator(), id: 'inMemoryInsideLocal'),
-      readDelay: const Duration(milliseconds: 25),
-      writeDelay: const Duration(milliseconds: 50),
-      id: 'local',
-    );
-
-PuppetAdapter createFakeRestAdapter(
-  Map<String, Map<String, dynamic>> Function() dataGenerator, {
-  bool readOperationsSkipQueue = true,
-}) =>
-    PuppetAdapter(
-      InMemoryAdapter(dataGenerator(), id: 'inMemoryInsideRest'),
-      id: 'rest',
-      readOperationsSkipQueue: readOperationsSkipQueue,
-    );

@@ -5,9 +5,10 @@ import 'dart:async';
 import 'package:async/async.dart';
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
+import 'package:stater/src/utils/read_transaction_data_to_write_transaction.dart';
 import 'package:stater/stater.dart';
 
-import 'cascade_in_memory_cache.dart';
+import 'cascade_cache.dart';
 
 class CascadeTransactionManager<T extends ExclusiveTransaction>
     extends TransactionManager<T> {
@@ -27,7 +28,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   /// cached DB data that is going to be used when user reads data
   /// from collections
   @protected
-  late CascadeInMemoryCache inMemoryCache;
+  late CascadeCache inMemoryCache;
 
   @protected
   late CancelableOperation<List<dynamic>> initFuture;
@@ -82,7 +83,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
     final cascadeInMemoryDataCompleter = Completer();
 
-    inMemoryCache = CascadeInMemoryCache(
+    inMemoryCache = CascadeCache(
       dataFuture: cascadeInMemoryDataCompleter.future,
       uncommittedTransactionsFuture: Future.value([]),
       serviceProcessorFactory: serviceProcessorFactory,
@@ -105,7 +106,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       }
 
       /// forward all transactions (stored + arrived during the initialization)
-      /// to the cascadeInMemory
+      /// to the cascadeCache
       // TODO: fix this
       // for (var transaction in transactionQueue) {
       //   cascadeInMemory.performTransaction(transaction);
@@ -132,7 +133,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
       // TODO: sourceDataDelegate should not be used by a processor
       // TODO: until sourceDataDelegate.getAllData is completed
-      // TODO: to prevent writing new data before the reading is completed
+      // TODO: to prevent writing of new data before the reading is completed
 
       /// create processors
       processorMap = Map.fromEntries(
@@ -148,7 +149,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       );
 
       if (transactionQueue.isNotEmpty) {
-        notifyListeners(TransactionManagerUpdateAdd(transactionQueue));
+        notifyListeners(TransactionManagerAddEvent(transactionQueue));
 
         // there may be some transactions coming from the transaction storage or
         // some transactions may have arrived during the initialization,
@@ -173,20 +174,44 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   }
 
   @override
-  void notifyListeners(TransactionManagerUpdate<T> update) {
-    if (update is TransactionManagerUpdateAdd) {
-      for (var transaction in (update as TransactionManagerUpdateAdd).added) {
+  void notifyListeners(TransactionManagerEvent<T> update) {
+    if (update is TransactionManagerAddEvent<T>) {
+      for (var transaction in (update).added) {
         inMemoryCache.performTransaction(transaction);
       }
     } else {
-      throw 'CascadeTransactionManager.notifyListeners can only forward added '
-          'transactions to the "cascadeInMemory". '
-          'Not sure how to handle update of type "${update.runtimeType}"';
+      // inMemoryCache needs to go back in time and redo some transactions
+      late int indexOfFirstTransactionToProcess;
+
+      if (update is TransactionManagerInsertEvent<T>) {
+        indexOfFirstTransactionToProcess = (update).startIndex;
+      } else if (update is TransactionManagerReplaceRangeEvent<T>) {
+        indexOfFirstTransactionToProcess = (update).startIndex;
+      } else {
+        throw 'CascadeTransactionManager.notifyListeners can only forward added '
+            'transactions to the "cascadeInMemory". '
+            'Not sure how to handle update of type "${update.runtimeType}"';
+      }
+
+      final indexOfLastTransactionToKeep = indexOfFirstTransactionToProcess == 0
+          ? 0
+          : indexOfFirstTransactionToProcess - 1;
+
+      final transactionsToProcess =
+          transactionQueue.sublist(indexOfFirstTransactionToProcess);
+
+      inMemoryCache
+          .goToHistoryState(transactionQueue[indexOfLastTransactionToKeep].id);
+
+      for (var transaction in transactionsToProcess) {
+        inMemoryCache.performTransaction(transaction);
+      }
     }
 
     if (initFuture.isCompleted) {
       _handleTransactionListChange(update);
     }
+
     super.notifyListeners(update);
   }
 
@@ -241,6 +266,22 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     }
   }
 
+  _removeFirstTransactionFromQueue() {
+    final firstTransaction = transactionQueue.first;
+
+    completedTransactions = [...completedTransactions, firstTransaction];
+
+    print('\nremoving transaction "${firstTransaction.id}" from queue');
+
+    processorMap.forEach((key, value) {
+      value.completedTransactionIds.remove(firstTransaction.id);
+    });
+
+    inMemoryCache.removeHistoryState(firstTransaction.id);
+
+    transactionQueue = transactionQueue.sublist(1);
+  }
+
   /// removes transactions processed by every processor from transactionQueue
   /// and removes ids of removedTransactions from every
   /// processor.completedTransactionIds set
@@ -269,29 +310,19 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     while (firstTransactionIsCommittedByEveryProcessor()) {
       thereWasCleaning = true;
 
-      final firstTransaction = transactionQueue.first;
-
-      completedTransactions = [...completedTransactions, firstTransaction];
-
-      print('\nremoving transaction "${firstTransaction.id}" from queue');
-
-      processorMap.forEach((key, value) {
-        value.completedTransactionIds.remove(firstTransaction.id);
-      });
-
-      transactionQueue = transactionQueue.sublist(1);
+      _removeFirstTransactionFromQueue();
     }
 
     if (thereWasCleaning) saveTransactionState();
   }
 
-  void _employProcessor(
+  void _employOneProcessor(
     TransactionProcessor processor, {
-    required Transaction transaction,
+    required T transaction,
     required int processorIndex,
   }) {
     // final isPrimaryProcessor = processorIndex == 0;
-    final isLastProcessor = processorIndex == delegates.length - 1;
+    // final isLastProcessor = processorIndex == delegates.length - 1;
 
     print('\nemploying: "${processor.storage.id}" with '
         '"${transaction.toJson()}"');
@@ -302,10 +333,55 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
         print('\n"${processor.storage.id}" completed '
             '"${transaction.toJson()}"');
         processor.completedTransactionIds.add(transaction.id);
+
+        // notify all listeners that transaction has been completed
         if (transaction.isNotCompleted) {
+          // TODO: apply all transactions from the queue to the data
+          // to make sure returned data has all changes from all transactions
+          // in the queue applied
           transaction.complete(results: data);
         }
+
+        // on successful read, write read data to all subsequent Storages
+        // we are using replaceRange, because subsequent Storages do not need
+        // to perform this operation any more
+        if (transaction.hasOnlyReadOperations) {
+          final transactionIndex = transactionQueue.indexOf(transaction);
+
+          if (transactionIndex < 0) {
+            throw 'can not find the READ only transaction in '
+                'order to replace it';
+          }
+
+          // start by storage that we got data from and it's
+          // all subsequent storages
+          final excludeStorages = delegates
+              .sublist(0, processorIndex + 1)
+              .map((storage) => storage.id)
+              .toSet();
+
+          // then add existing excluded storages, which were defined
+          // in the read transaction
+          excludeStorages.addAll(transaction.excludeDelegateWithIds);
+
+          // create a write transaction containing a write operation for
+          // every document we read by the read transaction
+          final replacementTransaction = readTransactionDataToWriteTransaction(
+            excludeDelegateWithIds: excludeStorages,
+            readData: data,
+            readTransaction: transaction,
+          ) as T;
+
+          // replace the read transaction with replacementTransaction
+          replaceTransactions(
+            transactionIndex,
+            transactionIndex + 1,
+            [replacementTransaction],
+          );
+        }
+
         _cleanUpCompletedTransaction();
+
         _employAllProcessors();
       },
       onError: (error) {
@@ -316,7 +392,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
         /// fallback to inMemoryCache for reading data.
         /// in case first Storage in list is a REST one and read request fails,
         /// we can not risk to fallback to next Storage because it may not
-        /// have all transactions form the transactionQueue processed
+        /// have all transactions from the transactionQueue applied
         if (transaction.hasOnlyReadOperations) {
           inMemoryCache
               .performTransaction(transaction)
@@ -350,7 +426,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
           );
 
           if (transaction != null) {
-            _employProcessor(
+            _employOneProcessor(
               processor,
               transaction: transaction,
               processorIndex: index,
@@ -388,10 +464,12 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     }
   }
 
-  void _handleTransactionListChange(TransactionManagerUpdate<T> update) {
-    if (update is TransactionManagerUpdateRemove<T>) {
+  void _handleTransactionListChange(TransactionManagerEvent<T> update) {
+    if (update is TransactionManagerRemoveEvent<T>) {
       _handleTransactionRemove(update.removed);
-    } else if (update is TransactionManagerUpdateAdd<T>) {
+    } else if (update is TransactionManagerReplaceRangeEvent<T>) {
+      _handleTransactionRemove(update.removed);
+    } else if (update is TransactionManagerAddEvent<T>) {
       _handleTransactionAdd(update.added);
     } else {
       throw 'Unsupported type of TransactionManagerUpdate '
