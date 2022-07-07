@@ -126,7 +126,20 @@ class _TodosScreenWithConvertersState extends State<TodosScreenWithConverters> {
       );
     }
 
-    documents = query.get().then((snapshot) => snapshot.docs);
+    final req = query.get();
+
+    documents = req.then((snapshot) {
+      return snapshot.docs;
+    });
+
+    // print('::: loading data');
+    // req.then((res) {
+    //   print('::: data');
+    //   print(res);
+    // }).catchError((error) {
+    //   print('::: error');
+    //   print(error);
+    // });
   }
 
   void _handleQueryChanged({

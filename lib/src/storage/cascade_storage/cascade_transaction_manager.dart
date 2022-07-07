@@ -319,6 +319,14 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
                 _cleanUpCompletedTransaction();
                 _employProcessors();
               },
+              onError: (data) {
+                print('\n"${processor.storage.id}" FAILED to complete '
+                    '"${transaction.toJson()}"');
+                if (transaction.isNotCompleted) {
+                  transaction.complete(data);
+                }
+                _employProcessors();
+              },
             );
           }
         }

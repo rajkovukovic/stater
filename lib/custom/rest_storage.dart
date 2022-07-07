@@ -94,55 +94,44 @@ class RestAdapter extends StorageAdapter {
     Converters<ID, T>? converters,
     StorageOptions options = const StorageOptions(),
   }) async {
-    // var fakeId = 'fake-rest' as ID;
-    // return Future.value(QuerySnapshot([
-    //   DocumentSnapshot(
-    //     fakeId,
-    //     {
-    //       "_id": fakeId,
-    //       "name": fakeId,
-    //     } as T,
-    //     DocumentReference(
-    //       collectionName: query.collectionName,
-    //       documentId: fakeId,
-    //       delegate: this,
-    //     ),
-    //   )
-    // ]));
+    try {
+      final queryParameters = <String, dynamic>{};
 
-    final queryParameters = <String, dynamic>{};
+      for (var operation in query.compareOperations) {
+        if (operation.compareOperator != CompareOperator.isEqualTo) {
+          throw 'RestDelegate can work only with CompareOperator.isEqualTo';
+        }
 
-    for (var operation in query.compareOperations) {
-      if (operation.compareOperator != CompareOperator.isEqualTo) {
-        throw 'RestDelegate can work only with CompareOperator.isEqualTo';
+        queryParameters[operation.field.toString()] =
+            operation.valueToCompareTo;
       }
 
-      queryParameters[operation.field.toString()] = operation.valueToCompareTo;
-    }
+      final response = await http.get(
+        Uri.parse('$endpoint/${query.collectionName}'
+            '?q=${jsonEncode(queryParameters)}'),
+        headers: {'content-type': 'application/json'},
+      );
 
-    final response = await http.get(
-      Uri.parse('$endpoint/${query.collectionName}'
-          '?q=${jsonEncode(queryParameters)}'),
-      headers: {'content-type': 'application/json'},
-    );
+      final data = jsonDecode(response.body);
 
-    final data = jsonDecode(response.body);
-
-    return QuerySnapshot(
-      (data as Iterable)
-          .map(
-            (element) => DocumentSnapshot<ID, T>(
-              element?[idKey] as ID ?? '' as ID,
-              element,
-              DocumentReference(
-                collectionName: query.collectionName,
-                documentId: element?[idKey] as ID ?? '' as ID,
-                delegate: this,
+      return QuerySnapshot<ID, T>(
+        (data as Iterable)
+            .map(
+              (element) => DocumentSnapshot<ID, T>(
+                element?[idKey] as ID ?? '' as ID,
+                element,
+                DocumentReference<ID, T>(
+                  collectionName: query.collectionName,
+                  documentId: element?[idKey] as ID ?? '' as ID,
+                  delegate: this,
+                ),
               ),
-            ),
-          )
-          .toList(),
-    );
+            )
+            .toList(),
+      );
+    } catch (error) {
+      return Future.error(error);
+    }
   }
 
   // @override

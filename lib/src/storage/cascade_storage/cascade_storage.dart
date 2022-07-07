@@ -42,6 +42,7 @@ class CascadeAdapter extends StorageAdapter {
     this.queryMatcher = queryMatcher ?? JsonQueryMatcher.empty();
   }
 
+  @override
   void destroy() {
     transactionManager.destroy();
   }
@@ -204,7 +205,24 @@ class CascadeAdapter extends StorageAdapter {
       ),
     );
 
-    return await completer.future;
+    return completer.future.then((data) {
+      final convertedDocs = data.docs
+          .map(
+            (DocumentSnapshot doc) => DocumentSnapshot<ID, T>(
+              doc.id as ID,
+              converters?.fromHashMap(doc.data() as dynamic) ??
+                  doc.data() as dynamic,
+              DocumentReference<ID, T>(
+                  collectionName: doc.reference.collectionName,
+                  delegate: doc.reference.delegate,
+                  documentId: doc.id as ID),
+            ),
+          )
+          .cast<DocumentSnapshot<ID, T>>()
+          .toList();
+
+      return QuerySnapshot<ID, T>(convertedDocs);
+    });
   }
 
   /// Notifies of document updates at path defined by
