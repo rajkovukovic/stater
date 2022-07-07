@@ -59,83 +59,61 @@ abstract class StorageAdapter {
     Operation operation, {
     options = const StorageOptions(),
   }) async {
-    final completer = Completer();
-    dynamic operationResult;
-
-    try {
-      if (operation is CreateOperation) {
-        operationResult = await addDocument(
-          collectionName: operation.collectionName,
-          documentData: operation.data,
-          documentId: operation.documentId,
-          options: options,
-        );
-
-        return completer.complete(operationResult);
-      }
-
-      if (operation is DeleteOperation) {
-        await deleteDocument(
-          collectionName: operation.collectionName,
-          documentId: operation.documentId,
-          options: options,
-        );
-
-        return completer.complete(operationResult);
-      }
-
-      if (operation is GetDocumentOperation) {
-        operationResult = await getDocument(
-          collectionName: operation.collectionName,
-          documentId: operation.documentId,
-        );
-
-        return completer.complete(operationResult);
-      }
-
-      if (operation is GetQueryOperation) {
-        operationResult = await getQuery(operation.query);
-
-        return completer.complete(operationResult);
-      }
-
-      if (operation is ServiceRequestOperation) {
-        operationResult = await serviceRequest(
-          operation.serviceName,
-          operation.params,
-        );
-
-        return completer.complete(operationResult);
-      }
-
-      if (operation is SetOperation) {
-        await setDocument(
-          collectionName: operation.collectionName,
-          documentId: operation.documentId,
-          documentData: operation.data,
-          options: options,
-        );
-
-        return completer.complete(operationResult);
-      }
-
-      if (operation is UpdateOperation) {
-        await updateDocument(
-          collectionName: operation.collectionName,
-          documentId: operation.documentId,
-          documentData: operation.data,
-          options: options,
-        );
-
-        return completer.complete(operationResult);
-      }
-
-      throw 'performOperation does not implement an action when '
-          'operation type is ${operation.runtimeType}';
-    } catch (error, stackTrace) {
-      completer.completeError(error, stackTrace);
-      return Future.error(error);
+    if (operation is CreateOperation) {
+      return addDocument(
+        collectionName: operation.collectionName,
+        documentData: operation.data,
+        documentId: operation.documentId,
+        options: options,
+      );
     }
+
+    if (operation is DeleteOperation) {
+      return deleteDocument(
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        options: options,
+      );
+    }
+
+    if (operation is GetDocumentOperation) {
+      return getDocument(
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+      );
+    }
+
+    if (operation is GetQueryOperation) {
+      return getQuery(operation.query);
+    }
+
+    if (operation is ServiceRequestOperation) {
+      return await serviceRequest(
+        operation.serviceName,
+        operation.params,
+      );
+    }
+
+    if (operation is SetOperation) {
+      return setDocument(
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        documentData: operation.data,
+        options: options,
+      );
+    }
+
+    if (operation is UpdateOperation) {
+      return updateDocument(
+        collectionName: operation.collectionName,
+        documentId: operation.documentId,
+        documentData: operation.data,
+        options: options,
+      );
+    }
+
+    throw 'performOperation does not implement an action when '
+        'operation type is ${operation.runtimeType}';
   }
 
   Future performTransaction(

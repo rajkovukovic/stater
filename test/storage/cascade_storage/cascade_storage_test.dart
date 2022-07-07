@@ -84,19 +84,15 @@ void main() {
     }
   });
 
-  test('CascadeAdapter can perform a read operation', () async {
+  test(
+      'CascadeAdapter can perform getDocument and getQuery '
+      'operations when read operations are after all '
+      'the write operations', () async {
     final cascadeAdapter = generateCascadeAdapter(
         dataGenerator: generateSampleData,
         transactionGenerator: generateSampleTransactionsAsJson);
 
     final fakeRestAdapter = cascadeAdapter.delegates.first as PuppetAdapter;
-    final fakeLocalAdapter = cascadeAdapter.delegates.last;
-
-    final restTodosRef =
-        CollectionReference(delegate: fakeRestAdapter, collectionName: 'todos');
-
-    final localTodosRef = CollectionReference(
-        delegate: fakeLocalAdapter, collectionName: 'todos');
 
     final transactions = generateSampleTransactionsAsJson();
     final totalTransactions = transactions.length;
@@ -115,9 +111,15 @@ void main() {
     }
 
     final doc = await cascadeAdapter.getDocument(
-        collectionName: 'todos', documentId: '1');
+        collectionName: 'todos', documentId: '3');
 
-    expect(doc.data(), generateSampleData()['todos']?['1']);
+    expect(doc.data(), {'name': 'Todo 3', 'completed': false});
+
+    final allDocs = await cascadeAdapter
+        .getQuery(Query(collectionName: 'todos', delegate: cascadeAdapter));
+
+    expect(docsDataMapFromQuerySnapshot(allDocs),
+        expectedSampleSnapshots.last['todos']);
   });
 }
 
@@ -157,8 +159,7 @@ StorageAdapter createFakeLocalAdapter(
 PuppetAdapter createFakeRestAdapter(
         Map<String, Map<String, dynamic>> Function() dataGenerator) =>
     PuppetAdapter(
-      LockingAdapter(
-          InMemoryAdapter(dataGenerator(), id: 'inMemoryInsideRest')),
+      InMemoryAdapter(dataGenerator(), id: 'inMemoryInsideRest'),
       id: 'rest',
       readOperationsSkipQueue: true,
     );

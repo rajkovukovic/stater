@@ -1,18 +1,26 @@
 import 'package:stater/stater.dart';
 
-class CascadeCachingDelegate extends LockingAdapter {
+/// InMemory storage, used by CascadeStorage, performs all transactions
+/// from the queue without waiting for other CascadeDelegates.<br>
+/// Used to perform all transactions
+class CascadeInMemoryCache extends LockingAdapter {
   final Future<dynamic> _dataFuture;
   final Future<dynamic> _uncommittedTransactionsFuture;
   Error? _initError;
   dynamic _initErrorStackTrace;
 
-  CascadeCachingDelegate({
+  CascadeInMemoryCache({
     required Future<dynamic> dataFuture,
     required Future<dynamic> uncommittedTransactionsFuture,
     ServiceProcessorFactory? serviceProcessorFactory,
   })  : _dataFuture = dataFuture,
         _uncommittedTransactionsFuture = uncommittedTransactionsFuture,
-        super(InMemoryAdapter({})) {
+        super(
+          InMemoryAdapter({}, id: 'CascadeInMemoryCache -> InMemoryAdapter'),
+          // we want even read operations to wait all prior write operations
+          // so read data is up-to-date
+          lockingStrategy: const EveryOperationLocks(),
+        ) {
     /// start by adding CascadeCachingDelegate initialization
     /// as a blocking transaction to the transactionQueue
     /// so any incoming transactions, arrived during the init process,

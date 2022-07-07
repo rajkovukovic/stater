@@ -4,8 +4,9 @@ import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
 class Transaction with HasNullableCompleter {
-  final List<Operation> operations;
   final String id;
+  bool _isCompleted = false;
+  final List<Operation> operations;
 
   Transaction({String? id, required this.operations})
       : id = id ?? const Uuid().v4();
@@ -69,13 +70,26 @@ class Transaction with HasNullableCompleter {
     );
   }
 
+  bool get isCompleted => _isCompleted;
+
+  bool get isNotCompleted => !isCompleted;
+
   /// calls completer method on each operation if exists,<br>
   /// then calls this.completer?.complete(results);
   complete(List results) {
+    _isCompleted = true;
     for (var i = 0; i < operations.length; i++) {
       operations[i].completer?.complete(results[i]);
     }
     completer?.complete(results);
+  }
+
+  bool get hasOnlyReadOperations {
+    return operations.every((operation) => operation is ReadOperation);
+  }
+
+  bool get hasOnlyWriteOperations {
+    return operations.every((operation) => operation is! ReadOperation);
   }
 
   Transaction withoutReadOperations() {

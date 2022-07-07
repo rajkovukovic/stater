@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:rxdart/rxdart.dart';
 import 'package:stater/stater.dart';
 
 const _retrySequencesInMilliseconds = [1000, 2000, 4000];
@@ -63,15 +62,17 @@ class TransactionProcessor {
               .then((_) => Future.error('')));
     }
 
-    final stream = RetryStream(
-      () => Stream.fromFuture(storage.performTransaction(transaction)
-              // transaction.operations.length == 1
-              //   ? storage.performOperation(transaction.operations.first)
-              //   : storage.performTransaction(transaction)
-              )
-          .onErrorResume((_, __) => getRetryDelay()),
-      retryCount,
-    );
+    final stream = Stream.fromFuture(storage.performTransaction(transaction));
+
+    // final stream = RetryStream(
+    //   () => Stream.fromFuture(storage.performTransaction(transaction)
+    //           // transaction.operations.length == 1
+    //           //   ? storage.performOperation(transaction.operations.first)
+    //           //   : storage.performTransaction(transaction)
+    //           )
+    //       .onErrorResume((_, __) => getRetryDelay()),
+    //   retryCount,
+    // );
 
     _currentTransactionSubscription = stream.listen(
       (response) => _handleTransactionComplete(response, onSuccess),

@@ -71,6 +71,7 @@ class LockingAdapter extends ProxyAdapter {
     _isInit = true;
   }
 
+  @override
   destroy() {
     _availabilityStrategySubscription?.cancel();
     // should we try to stop running transactions?
@@ -271,11 +272,19 @@ class LockingAdapter extends ProxyAdapter {
     doOperationsInParallel = false,
     options = const StorageOptions(),
   }) {
-    return requestWriteOperation(
-      () => delegate.performTransaction(transaction,
-          doOperationsInParallel: doOperationsInParallel, options: options),
-      {'caller': 'performTransaction', 'transaction': transaction},
-    );
+    if (transaction.hasOnlyReadOperations) {
+      return requestReadOperation(
+        () => delegate.performTransaction(transaction,
+            doOperationsInParallel: doOperationsInParallel, options: options),
+        {'caller': 'performTransaction', 'transaction': transaction},
+      );
+    } else {
+      return requestWriteOperation(
+        () => delegate.performTransaction(transaction,
+            doOperationsInParallel: doOperationsInParallel, options: options),
+        {'caller': 'performTransaction', 'transaction': transaction},
+      );
+    }
   }
 
   @override

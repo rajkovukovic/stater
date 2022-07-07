@@ -7,7 +7,7 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 import 'package:stater/stater.dart';
 
-import 'cascade_caching_delegate.dart';
+import 'cascade_in_memory_cache.dart';
 
 class CascadeTransactionManager<T extends ExclusiveTransaction>
     extends TransactionManager<T> {
@@ -27,7 +27,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   /// cached DB data that is going to be used when user reads data
   /// from collections
   @protected
-  late CascadeCachingDelegate cachingDelegate;
+  late CascadeInMemoryCache cascadeInMemory;
 
   @protected
   late CancelableOperation<List<dynamic>> initFuture;
@@ -80,10 +80,10 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       ]),
     );
 
-    final cachingDelegateData = Completer();
+    final cascadeInMemoryDataCompleter = Completer();
 
-    cachingDelegate = CascadeCachingDelegate(
-      dataFuture: cachingDelegateData.future,
+    cascadeInMemory = CascadeInMemoryCache(
+      dataFuture: cascadeInMemoryDataCompleter.future,
       uncommittedTransactionsFuture: Future.value([]),
       serviceProcessorFactory: serviceProcessorFactory,
     );
@@ -105,13 +105,13 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       }
 
       /// forward all transactions (stored + arrived during the initialization)
-      /// to the cachingDelegate
+      /// to the cascadeInMemory
       // TODO: fix this
       // for (var transaction in transactionQueue) {
-      //   cachingDelegate.performTransaction(transaction);
+      //   cascadeInMemory.performTransaction(transaction);
       // }
 
-      /// fill cachingDelegate initialState from one of [delegates]
+      /// fill cascadeInMemory initialState from one of [delegates]
       final sourceDataDelegateIndex = delegates
           .lastIndexWhere((delegate) => delegate is StorageHasRootAccess);
 
@@ -126,8 +126,8 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
       sourceDataDelegate
           .getAllData()
-          .then(cachingDelegateData.complete)
-          .catchError(cachingDelegateData.completeError);
+          .then(cascadeInMemoryDataCompleter.complete)
+          .catchError(cascadeInMemoryDataCompleter.completeError);
 
       // TODO: sourceDataDelegate should not be used by a processor
       // TODO: until sourceDataDelegate.getAllData is completed
@@ -175,11 +175,11 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   void notifyListeners(TransactionManagerUpdate<T> update) {
     if (update is TransactionManagerUpdateAdd) {
       for (var transaction in (update as TransactionManagerUpdateAdd).added) {
-        cachingDelegate.performTransaction(transaction);
+        cascadeInMemory.performTransaction(transaction);
       }
     } else {
       throw 'CascadeTransactionManager.notifyListeners can only forward added '
-          'transactions to the "cachingDelegate". '
+          'transactions to the "cascadeInMemory". '
           'Not sure how to handle update of type "${update.runtimeType}"';
     }
 
@@ -293,7 +293,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       T? previousProcessorTransaction;
 
       delegates.forEachIndexed((index, delegate) {
-        final isPrimaryProcessor = index == 0;
+        // final isPrimaryProcessor = index == 0;
 
         final processor = processorMap[delegate]!;
 
@@ -310,10 +310,12 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
             processor.performTransaction(
               transaction,
               onSuccess: (data) {
+                print('\n"${processor.storage.id}" completed '
+                    '"${transaction.toJson()}"');
                 processor.completedTransactionIds.add(transaction.id);
-                // transaction.complete(data);
-                print(
-                    '\n"${processor.storage.id}" completed "${transaction.toJson()}"');
+                if (transaction.isNotCompleted) {
+                  transaction.complete(data);
+                }
                 _cleanUpCompletedTransaction();
                 _employProcessors();
               },
