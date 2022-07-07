@@ -121,15 +121,53 @@ void main() {
     expect(docsDataMapFromQuerySnapshot(allDocs),
         expectedSampleSnapshots.last['todos']);
   });
+
+  test(
+      'CascadeAdapter can getDocument from secondary storage '
+      'when primaryStorage returns an error', () async {
+    final cascadeAdapter = generateCascadeAdapter(
+      dataGenerator: generateSampleData,
+      transactionGenerator: () => [],
+      readOperationsSkipQueue: false,
+    );
+
+    final fakeRestAdapter = cascadeAdapter.delegates.first as PuppetAdapter;
+
+    // wait for storage init
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    dynamic doc;
+    dynamic docReadError;
+
+    Future getDocumentRequest =
+        cascadeAdapter.getDocument(collectionName: 'todos', documentId: '1');
+
+    getDocumentRequest.then((value) => doc = value).catchError((error) {
+      docReadError = error;
+      return null;
+    });
+
+    fakeRestAdapter.performNextOperation(withError: 'Fake network error');
+
+    await Future.delayed(const Duration(milliseconds: 50));
+
+    expect(docReadError, null);
+
+    expect(doc?.data(), {'name': 'Todo 1', 'completed': true});
+  });
 }
 
 CascadeAdapter generateCascadeAdapter({
   required Map<String, Map<String, dynamic>> Function() dataGenerator,
   required List<Map<String, dynamic>> Function() transactionGenerator,
+  bool readOperationsSkipQueue = true,
 }) {
   final fakeLocalAdapter = createFakeLocalAdapter(dataGenerator);
 
-  final fakeRestAdapter = createFakeRestAdapter(dataGenerator);
+  final fakeRestAdapter = createFakeRestAdapter(
+    dataGenerator,
+    readOperationsSkipQueue: readOperationsSkipQueue,
+  );
 
   final transactionStorer = TransactionStorer(
     readTransactions: () {
@@ -157,9 +195,11 @@ StorageAdapter createFakeLocalAdapter(
     );
 
 PuppetAdapter createFakeRestAdapter(
-        Map<String, Map<String, dynamic>> Function() dataGenerator) =>
+  Map<String, Map<String, dynamic>> Function() dataGenerator, {
+  bool readOperationsSkipQueue = true,
+}) =>
     PuppetAdapter(
       InMemoryAdapter(dataGenerator(), id: 'inMemoryInsideRest'),
       id: 'rest',
-      readOperationsSkipQueue: true,
+      readOperationsSkipQueue: readOperationsSkipQueue,
     );

@@ -129,7 +129,7 @@ class EveryOperationLocks extends LockingStrategy {
     required List<QueueOperation> operationsBeingProcessed,
     required List<QueueOperation> operationsQueue,
   }) {
-    if (operationsBeingProcessed.isEmpty && operationsQueue.isEmpty) {
+    if (operationsBeingProcessed.isEmpty && operationsQueue.isNotEmpty) {
       return LockingStrategyResult([operationsQueue.first]);
     } else {
       return LockingStrategyResult.empty();

@@ -18,7 +18,7 @@ class CascadeInMemoryCache extends LockingAdapter {
         super(
           InMemoryAdapter({}, id: 'CascadeInMemoryCache -> InMemoryAdapter'),
           // we want even read operations to wait all prior write operations
-          // so read data is up-to-date
+          // to complete, so read data is up-to-date
           lockingStrategy: const EveryOperationLocks(),
         ) {
     /// start by adding CascadeCachingDelegate initialization

@@ -276,13 +276,21 @@ class LockingAdapter extends ProxyAdapter {
       return requestReadOperation(
         () => delegate.performTransaction(transaction,
             doOperationsInParallel: doOperationsInParallel, options: options),
-        {'caller': 'performTransaction', 'transaction': transaction},
+        {
+          'caller': 'performTransaction',
+          'transaction': transaction,
+          'doOperationsInParallel': doOperationsInParallel,
+        },
       );
     } else {
       return requestWriteOperation(
         () => delegate.performTransaction(transaction,
             doOperationsInParallel: doOperationsInParallel, options: options),
-        {'caller': 'performTransaction', 'transaction': transaction},
+        {
+          'caller': 'performTransaction',
+          'transaction': transaction,
+          'doOperationsInParallel': doOperationsInParallel,
+        },
       );
     }
   }

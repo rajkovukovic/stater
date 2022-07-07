@@ -26,16 +26,24 @@ class PuppetAdapter extends LockingAdapter {
 
   bool get hasPendingOperations => operationsQueue.isNotEmpty;
 
-  void performOperationByIndex(int index) {
+  void performOperationByIndex(
+    int index, {
+    Object? withError,
+  }) {
     if (index < 0 || index > operationsQueue.length - 1) {
       throw 'index=($index) is out of range. '
           'There are ${operationsQueue.length} operations in the queue';
     }
-    puppetLocking.performNext(operationsQueue.sublist(index, index + 1));
-    executeFromQueue();
+    if (withError != null) {
+      operationsQueue[index].completer.completeError(withError);
+      operationsQueue.removeAt(index);
+    } else {
+      puppetLocking.performNext(operationsQueue.sublist(index, index + 1));
+      executeFromQueue();
+    }
   }
 
-  void performNextWriteOperation() {
+  void performNextWriteOperation({Object? withError}) {
     final index =
         operationsQueue.indexWhere((operation) => !operation.isReadOperation);
 
@@ -44,11 +52,11 @@ class PuppetAdapter extends LockingAdapter {
           ? 'operationsQueue is empty'
           : 'operationsQueue does not have any write operation';
     } else {
-      performOperationByIndex(index);
+      performOperationByIndex(index, withError: withError);
     }
   }
 
-  void performNextReadOperation() {
+  void performNextReadOperation({Object? withError}) {
     final index =
         operationsQueue.indexWhere((operation) => operation.isReadOperation);
 
@@ -57,13 +65,13 @@ class PuppetAdapter extends LockingAdapter {
           ? 'operationsQueue is empty'
           : 'operationsQueue does not have any read operation';
     } else {
-      performOperationByIndex(index);
+      performOperationByIndex(index, withError: withError);
     }
   }
 
-  void performNextOperation() {
+  void performNextOperation({Object? withError}) {
     if (operationsQueue.isNotEmpty) {
-      performOperationByIndex(0);
+      performOperationByIndex(0, withError: withError);
     } else {
       throw 'operationsQueue is empty';
     }

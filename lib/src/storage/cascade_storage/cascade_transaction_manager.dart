@@ -27,7 +27,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   /// cached DB data that is going to be used when user reads data
   /// from collections
   @protected
-  late CascadeInMemoryCache cascadeInMemory;
+  late CascadeInMemoryCache inMemoryCache;
 
   @protected
   late CancelableOperation<List<dynamic>> initFuture;
@@ -39,7 +39,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   /// are there any changes in the transaction state that need to be saved
   bool _transactionStateHasUnsavedChanges = false;
 
-  /// is there a write operation of transaction state in progress
+  /// is there a write operation of transactions state in progress
   bool _isWritingTransactionState = false;
 
   @protected
@@ -82,7 +82,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
     final cascadeInMemoryDataCompleter = Completer();
 
-    cascadeInMemory = CascadeInMemoryCache(
+    inMemoryCache = CascadeInMemoryCache(
       dataFuture: cascadeInMemoryDataCompleter.future,
       uncommittedTransactionsFuture: Future.value([]),
       serviceProcessorFactory: serviceProcessorFactory,
@@ -111,23 +111,24 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
       //   cascadeInMemory.performTransaction(transaction);
       // }
 
-      /// fill cascadeInMemory initialState from one of [delegates]
+      /// fill cascadeInMemory initialState from one of [delegates].
       final sourceDataDelegateIndex = delegates
           .lastIndexWhere((delegate) => delegate is StorageHasRootAccess);
 
       if (sourceDataDelegateIndex < 0) {
-        throw 'CascadeTransactionManager.init: at least one child delegate must '
-            'implement StorageHasRootAccess interface.\n'
+        throw 'CascadeTransactionManager.init: at least one child delegate '
+            'must implement StorageHasRootAccess interface.\n'
             'This delegate will be used to spawn in-memory cache storage';
       }
 
       final sourceDataDelegate =
           delegates[sourceDataDelegateIndex] as StorageHasRootAccess;
 
-      sourceDataDelegate
-          .getAllData()
-          .then(cascadeInMemoryDataCompleter.complete)
-          .catchError(cascadeInMemoryDataCompleter.completeError);
+      sourceDataDelegate.getAllData().then((value) {
+        cascadeInMemoryDataCompleter.complete(value);
+      }).catchError((error) {
+        cascadeInMemoryDataCompleter.completeError(error);
+      });
 
       // TODO: sourceDataDelegate should not be used by a processor
       // TODO: until sourceDataDelegate.getAllData is completed
@@ -152,7 +153,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
         // there may be some transactions coming from the transaction storage or
         // some transactions may have arrived during the initialization,
         // so let's start processing the transactionQueue
-        _employProcessors();
+        _employAllProcessors();
       }
     });
   }
@@ -175,7 +176,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   void notifyListeners(TransactionManagerUpdate<T> update) {
     if (update is TransactionManagerUpdateAdd) {
       for (var transaction in (update as TransactionManagerUpdateAdd).added) {
-        cascadeInMemory.performTransaction(transaction);
+        inMemoryCache.performTransaction(transaction);
       }
     } else {
       throw 'CascadeTransactionManager.notifyListeners can only forward added '
@@ -284,17 +285,62 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     if (thereWasCleaning) saveTransactionState();
   }
 
+  void _employProcessor(
+    TransactionProcessor processor, {
+    required Transaction transaction,
+    required int processorIndex,
+  }) {
+    // final isPrimaryProcessor = processorIndex == 0;
+    final isLastProcessor = processorIndex == delegates.length - 1;
+
+    print('\nemploying: "${processor.storage.id}" with '
+        '"${transaction.toJson()}"');
+
+    processor.performTransaction(
+      transaction,
+      onSuccess: (data) {
+        print('\n"${processor.storage.id}" completed '
+            '"${transaction.toJson()}"');
+        processor.completedTransactionIds.add(transaction.id);
+        if (transaction.isNotCompleted) {
+          transaction.complete(results: data);
+        }
+        _cleanUpCompletedTransaction();
+        _employAllProcessors();
+      },
+      onError: (error) {
+        print('\n"${processor.storage.id}" FAILED to complete '
+            '"${transaction.toJson()}"');
+
+        /// if a Read transaction fails,
+        /// fallback to inMemoryCache for reading data.
+        /// in case first Storage in list is a REST one and read request fails,
+        /// we can not risk to fallback to next Storage because it may not
+        /// have all transactions form the transactionQueue processed
+        if (transaction.hasOnlyReadOperations) {
+          inMemoryCache
+              .performTransaction(transaction)
+              .then((value) => transaction.complete(results: value))
+              .catchError((error) => transaction.complete(withError: error));
+        }
+
+        // if (transaction.isNotCompleted && isLastProcessor) {
+        //   transaction.complete([], withError: error);
+        // }
+        // _employAllProcessors();
+      },
+    );
+  }
+
   /// iterates over list of processors and feeds a transaction to a free one
   ///
   /// with limitation that non-primary processors can not process a transaction
   /// if it has not been completed successfully by the primary processor
-  void _employProcessors() {
+  void _employAllProcessors() {
     if (transactionQueue.isNotEmpty) {
       T? previousProcessorTransaction;
 
       delegates.forEachIndexed((index, delegate) {
-        // final isPrimaryProcessor = index == 0;
-
         final processor = processorMap[delegate]!;
 
         if (!processor.isPerformingTransaction) {
@@ -304,29 +350,10 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
           );
 
           if (transaction != null) {
-            print(
-                '\nemploying: "${processor.storage.id}" with "${transaction.toJson()}"');
-
-            processor.performTransaction(
-              transaction,
-              onSuccess: (data) {
-                print('\n"${processor.storage.id}" completed '
-                    '"${transaction.toJson()}"');
-                processor.completedTransactionIds.add(transaction.id);
-                if (transaction.isNotCompleted) {
-                  transaction.complete(data);
-                }
-                _cleanUpCompletedTransaction();
-                _employProcessors();
-              },
-              onError: (data) {
-                print('\n"${processor.storage.id}" FAILED to complete '
-                    '"${transaction.toJson()}"');
-                if (transaction.isNotCompleted) {
-                  transaction.complete(data);
-                }
-                _employProcessors();
-              },
+            _employProcessor(
+              processor,
+              transaction: transaction,
+              processorIndex: index,
             );
           }
         }
@@ -338,7 +365,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
   }
 
   void _handleTransactionAdd(Iterable<T> added) {
-    _employProcessors();
+    _employAllProcessors();
   }
 
   void _handleTransactionRemove(Iterable<T> removed) {
@@ -357,7 +384,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
     // call _handleTransactionAdd to feed every available TransactionProcessor
     // with next available transaction
     if (transactionCancelingHappened) {
-      _employProcessors();
+      _employAllProcessors();
     }
   }
 

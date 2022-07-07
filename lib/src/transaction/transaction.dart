@@ -76,12 +76,28 @@ class Transaction with HasNullableCompleter {
 
   /// calls completer method on each operation if exists,<br>
   /// then calls this.completer?.complete(results);
-  complete(List results) {
+  complete({List? results, Object? withError}) {
+    assert(
+      (results == null) != (withError == null),
+      'Transaction.complete must be called with only of one params '
+      '[result, withError] being not null',
+    );
+
     _isCompleted = true;
-    for (var i = 0; i < operations.length; i++) {
-      operations[i].completer?.complete(results[i]);
+
+    if (results == null) {
+      for (var i = 0; i < operations.length; i++) {
+        operations[i].completer?.completeError(withError!);
+      }
+
+      completer?.completeError(withError!);
+    } else {
+      for (var i = 0; i < operations.length; i++) {
+        operations[i].completer?.complete(results[i]);
+      }
+
+      completer?.complete(results);
     }
-    completer?.complete(results);
   }
 
   bool get hasOnlyReadOperations {
