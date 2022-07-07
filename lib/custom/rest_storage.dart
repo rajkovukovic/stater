@@ -7,6 +7,7 @@ import 'package:stater/stater.dart';
 class RestAdapter extends StorageAdapter {
   RestAdapter({
     required this.endpoint,
+    super.id,
   });
 
   static const String idKey = 'id';

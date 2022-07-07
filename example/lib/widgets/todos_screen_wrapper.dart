@@ -144,16 +144,24 @@ class _TodosScreenWrapper extends State<TodosScreenWrapper> {
                         ),
                         ElevatedButton(
                             onPressed: _clearQuery,
-                            child: const Text('Clear filters'))
+                            child: const Text('Clear Filters'))
                       ],
                     ),
                   )
                 : widget.newTodoCard == null
                     ? Padding(
                         padding: const EdgeInsets.all(32),
-                        child: ElevatedButton(
-                            onPressed: widget.onCreateOnePressed,
-                            child: const Text('Create First Todo')),
+                        child: Column(
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text('no items...'),
+                            ),
+                            ElevatedButton(
+                                onPressed: widget.onCreateOnePressed,
+                                child: const Text('Create First Todo')),
+                          ],
+                        ),
                       )
                     : null;
           }

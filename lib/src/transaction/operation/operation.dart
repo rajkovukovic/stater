@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:stater/src/transaction/operation/get_document_operation.dart';
-import 'package:stater/src/transaction/operation/get_query_operation.dart';
 import 'package:stater/stater.dart';
 
 export 'collection_operation.dart';
@@ -51,7 +50,8 @@ abstract class Operation with HasNullableCompleter {
         return GetDocumentOperation.fromMap(map, completer: completer);
 
       case OperationType.getQuery:
-        return GetQueryOperation.fromMap(map, completer: completer);
+        throw 'GetQueryOperation can not be created from a Map';
+      // return GetQueryOperation.fromMap(map, completer: completer);
 
       case OperationType.set:
         return SetOperation.fromMap(map, completer: completer);

@@ -25,7 +25,8 @@ Future main() async {
       // .add(_staticHandler)
       // If a corresponding file is not found, send requests to a `Router`
       .add(_router)
-      .add((request) => Response.notFound('404', headers: headersWithCors()));
+      .add((request) =>
+          Response.notFound('404-post-router', headers: headersWithCors()));
 
   // See https://pub.dev/documentation/shelf/latest/shelf_io/serve.html
   final server = await shelf_io.serve(
@@ -46,6 +47,10 @@ Future main() async {
 
 // Router instance to handler requests.
 final _router = shelf_router.Router()
+  ..options(
+      '/api/<param1>', (_) => Response.ok('OK', headers: headersWithCors()))
+  ..options('/api/<param1>/<param2>',
+      (_) => Response.ok('OK', headers: headersWithCors()))
   ..post('/api/replaceCollection/<collectionName>', _replaceCollectionHandler)
   ..post('/api/services/<serviceName>', _serviceHandler)
   ..put('/api/<collectionName>/<documentId>', _setDocumentHandler)
@@ -54,7 +59,7 @@ final _router = shelf_router.Router()
   ..delete('/api/<collectionName>/<documentId>', _deleteDocumentHandler)
   ..get('/api/<collectionName>/<documentId>', _getDocumentHandler)
   ..get('/api/<collectionNameWithQuery>', _getQueryHandler)
-  ..get('/*', (_) => Response.notFound('404', headers: headersWithCors()));
+  ..get('/*', (_) => Response.notFound('404-1', headers: headersWithCors()));
 
 final jsonFileStorage = JsonFileStorage();
 

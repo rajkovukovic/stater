@@ -193,8 +193,7 @@ class InMemoryAdapter extends StorageAdapter
 
   @override
   Future serviceRequest(String serviceName, params) {
-    // TODO: implement serviceRequest
-    throw UnimplementedError();
+    throw 'InMemoryAdapter can not perform serviceRequest "$serviceName"';
   }
 
   @override

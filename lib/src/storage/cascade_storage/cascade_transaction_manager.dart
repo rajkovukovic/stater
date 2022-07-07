@@ -305,7 +305,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
 
           if (transaction != null) {
             print(
-                '\nemploying: "${processor.storage.id}" with "${transaction.id}"');
+                '\nemploying: "${processor.storage.id}" with "${transaction.toJson()}"');
 
             processor.performTransaction(
               transaction,
@@ -313,7 +313,7 @@ class CascadeTransactionManager<T extends ExclusiveTransaction>
                 processor.completedTransactionIds.add(transaction.id);
                 // transaction.complete(data);
                 print(
-                    '\n"${processor.storage.id}" completed "${transaction.id}"');
+                    '\n"${processor.storage.id}" completed "${transaction.toJson()}"');
                 _cleanUpCompletedTransaction();
                 _employProcessors();
               },

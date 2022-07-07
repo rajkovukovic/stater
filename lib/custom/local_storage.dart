@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 
 class LocalAdapter extends StorageAdapter implements StorageHasRootAccess {
   LocalAdapter({
+    super.id,
     required this.storagePrefix,
   });
 
