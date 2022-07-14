@@ -48,8 +48,8 @@ ExclusiveTransaction readTransactionDataToWriteTransaction({
   }
 
   return ExclusiveTransaction(
+    excludeDelegateWithIds: excludeDelegateWithIds,
     id: readTransaction.id,
     operations: operations,
-    excludeDelegateWithIds: excludeDelegateWithIds,
   );
 }

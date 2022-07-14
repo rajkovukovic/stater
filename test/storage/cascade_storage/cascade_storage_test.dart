@@ -158,10 +158,11 @@ void main() {
   });
 
   test(
-      'When primaryStorage returns an error, '
-      'CascadeAdapter can getDocument from inMemoryCache storage, '
-      'with all the transactions from the '
-      'transactionQueue applied to the data.', () async {
+      'When primaryStorage returns an error on first of '
+      'many write transactions in the transaction queue, '
+      'CascadeAdapter can getDocument from it\'s inMemoryCache cache, '
+      'with all the transactions from the transactionQueue '
+      'applied to the returned data.', () async {
     final cascadeAdapter = generateCascadeAdapter(
         dataGenerator: generateSampleData,
         transactionGenerator: generateSampleTransactionsAsJson,

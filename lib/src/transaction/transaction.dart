@@ -9,7 +9,8 @@ class Transaction with HasNullableCompleter {
   final List<Operation> operations;
 
   Transaction({String? id, required this.operations})
-      : id = id ?? const Uuid().v4();
+      : id = id ?? const Uuid().v4(),
+        assert(operations.isNotEmpty);
 
   Map<String, dynamic> toMap() {
     return {
