@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 enum OperationType {
   create,
   delete,
+  getDocument,
+  getQuery,
   set,
   update,
   serviceRequest,

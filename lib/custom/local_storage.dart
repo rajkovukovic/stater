@@ -3,35 +3,56 @@ import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:stater/src/converters.dart';
-import 'package:stater/src/document_reference.dart';
-import 'package:stater/src/document_snapshot.dart';
-import 'package:stater/src/query.dart';
-import 'package:stater/src/query_snapshot.dart';
-import 'package:stater/src/storage.dart';
-import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/storage_options.dart';
+import 'package:meta/meta.dart';
+import 'package:stater/stater.dart';
 import 'package:uuid/uuid.dart';
 
-class GetStorageDelegate extends CascadableStorageDelegate {
-  GetStorageDelegate({
-    // required super.doesMatchQuery,
-    // super.generateCompareFromQuery,
-    required super.id,
+class LocalAdapter extends StorageAdapter implements StorageHasRootAccess {
+  LocalAdapter({
+    super.id,
     required this.storagePrefix,
   });
 
+  /// used to prefix all collections in this Storage
   final String storagePrefix;
 
-  Future<GetStorage> getStorage(String collection) async {
+  Future<GetStorage> _getExistingCollectionsBox() async {
     final storageName =
-        storagePrefix.isEmpty ? collection : '$storagePrefix:$collection';
+        '$storagePrefix:${internalCollectionPrefix}existingCollections';
+
+    await GetStorage.init(storageName);
+
+    return GetStorage(storageName);
+  }
+
+  Future<Iterable<String>> _getExistingCollections() {
+    return _getExistingCollectionsBox().then((box) => box.getKeys());
+  }
+
+  Future<void> _makeSureCollectionExists(String collectionName) async {
+    if (!isInternalCollection(collectionName)) {
+      final box = await _getExistingCollectionsBox();
+
+      final existingCollections = Set.from(box.getKeys());
+      if (!existingCollections.contains(collectionName)) {
+        box.write(collectionName, true);
+      }
+    }
+  }
+
+  Future<GetStorage> getCollectionBox(String collectionName) async {
+    _makeSureCollectionExists(collectionName);
+
+    final storageName = storagePrefix.isEmpty
+        ? collectionName
+        : '$storagePrefix:$collectionName';
 
     await GetStorage.init(storageName);
     return GetStorage(storageName);
   }
 
   @override
+  @protected
   Future<DocumentSnapshot<ID, T>>
       addDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
@@ -57,17 +78,19 @@ class GetStorageDelegate extends CascadableStorageDelegate {
   }
 
   @override
+  @protected
   Future<void> deleteDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
   }) async {
-    final storage = await getStorage(collectionName);
+    final storage = await getCollectionBox(collectionName);
 
     return storage.remove(documentId.toString());
   }
 
   // @override
+  @protected
   // Stream<DocumentSnapshot<ID, T>>
   //     documentSnapshots<ID extends Object?, T extends Object?>(
   //         String collection, ID documentId) {
@@ -99,13 +122,14 @@ class GetStorageDelegate extends CascadableStorageDelegate {
   // }
 
   @override
+  @protected
   Future<DocumentSnapshot<ID, T>>
       getDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     options = const StorageOptions(),
   }) async {
-    final storage = await getStorage(collectionName);
+    final storage = await getCollectionBox(collectionName);
 
     dynamic data = storage.read(documentId.toString());
 
@@ -121,13 +145,15 @@ class GetStorageDelegate extends CascadableStorageDelegate {
   }
 
   @override
+  @protected
   Future<QuerySnapshot<ID, T>> getQuery<ID extends Object?, T extends Object?>(
-    Query<ID, T> query, [
+    Query<ID, T> query, {
     Converters<ID, T>? converters,
-  ]) async {
+    options = const StorageOptions(),
+  }) async {
     final collection = query.collectionName;
 
-    final storage = await getStorage(collection);
+    final storage = await getCollectionBox(collection);
 
     final keys = List<String>.from(storage.getKeys());
 
@@ -158,6 +184,7 @@ class GetStorageDelegate extends CascadableStorageDelegate {
   }
 
   // @override
+  // @protected
   // Stream<QuerySnapshot<ID, T>>
   //     querySnapshots<ID extends Object?, T extends Object?>(
   //         Query<ID, T> query) {
@@ -166,25 +193,27 @@ class GetStorageDelegate extends CascadableStorageDelegate {
   // }
 
   @override
+  @protected
   Future<void> setDocument<ID extends Object?, T extends Object?>({
     required String collectionName,
     required ID documentId,
     required T documentData,
     options = const StorageOptions(),
   }) async {
-    final storage = await getStorage(collectionName);
+    final storage = await getCollectionBox(collectionName);
 
     storage.write(documentId.toString(), documentData);
   }
 
   @override
+  @protected
   Future<void> updateDocument<ID extends Object?>({
     required String collectionName,
     required ID documentId,
     required Map<String, dynamic> documentData,
     options = const StorageOptions(),
   }) async {
-    final storage = await getStorage(collectionName);
+    final storage = await getCollectionBox(collectionName);
     final existing =
         storage.read(documentId.toString()) as Map<String, dynamic>?;
 
@@ -195,8 +224,128 @@ class GetStorageDelegate extends CascadableStorageDelegate {
           <String, Object?>{...existing, ...documentData});
     }
   }
-}
 
-class GetStorageStorage extends Storage {
-  GetStorageStorage(GetStorageDelegate delegate) : super(delegate);
+  @override
+  @protected
+  Future serviceRequest(String serviceName, dynamic params) async {
+    switch (serviceName) {
+      case 'createManyTodos':
+        final int createCount = params;
+
+        final Iterable<dynamic> existingTodos =
+            (await getCollectionBox('todos')).getValues();
+
+        final existingNames = existingTodos.fold<Set<String>>(
+            {},
+            (acc, todo) =>
+                acc..add(todo['name'].replaceAll(RegExp(r"\s+"), "")));
+
+        int nextTodoNumber = 1;
+
+        for (var i = 0; i < createCount; i++) {
+          while (existingNames.contains('todo$nextTodoNumber')) {
+            nextTodoNumber++;
+          }
+
+          final todo = {'name': 'Todo $nextTodoNumber', 'completed': false};
+          await addDocument(
+            collectionName: 'todos',
+            documentData: todo,
+            documentId: const Uuid().v4(),
+          );
+
+          nextTodoNumber++;
+        }
+        break;
+      default:
+        throw 'RestDelegate does not support serviceRequest "$serviceName"';
+    }
+  }
+
+  @override
+  @protected
+  Future<Map<String, Map<String, dynamic>>> getAllData() async {
+    final existingCollections = List.from(await _getExistingCollections());
+
+    final allData = await Future.wait(existingCollections
+        .map((collectionName) => getCollectionData(collectionName)));
+
+    return allData.foldIndexed<Map<String, Map<String, dynamic>>>({},
+        (index, acc, cur) {
+      acc[existingCollections[index]] = cur;
+      return acc;
+    });
+  }
+
+  @override
+  @protected
+  Future<Map<String, dynamic>> getCollectionData(String collectionName) async {
+    final storage = await getCollectionBox(collectionName);
+
+    final keys = List<String>.from(storage.getKeys());
+
+    var stored = (storage.getValues() as Iterable<dynamic>)
+        .map((doc) => doc is String ? jsonDecode(doc) : doc);
+
+    return stored.foldIndexed<Map<String, dynamic>>({}, (index, acc, cur) {
+      acc[keys[index]] = cur;
+      return acc;
+    });
+  }
+
+  @override
+  @protected
+  Future<void> insertData(Map<String, dynamic> collections) {
+    return Future.wait(collections.entries
+        .map((entry) => insertToCollection(entry.key, entry.value)));
+  }
+
+  @override
+  @protected
+  Future<void> insertToCollection(
+      String collectionName, Map<String, dynamic> documents) async {
+    final storage = await getCollectionBox(collectionName);
+
+    await storage.erase();
+
+    return Future.wait(documents.entries
+        .map((entry) => storage.write(entry.key, entry.value))).then((_) {});
+  }
+
+  @override
+  @protected
+  Future<void> removeAllCollections() async {
+    final existingCollections = await _getExistingCollections();
+
+    return Future.wait(existingCollections.map(
+        (collectionName) => removeCollection(collectionName))).then((_) {});
+  }
+
+  @override
+  @protected
+  Future<void> removeAllDocumentsInCollection(String collectionName) async {
+    final storage = await getCollectionBox(collectionName);
+
+    await storage.erase();
+  }
+
+  @override
+  @protected
+  Future<void> removeCollection(String collectionName) async {
+    final clearCollection = removeAllDocumentsInCollection(collectionName);
+
+    final removeCollectionName = _getExistingCollectionsBox().then((box) =>
+        box.read(collectionName) == true ? box.remove(collectionName) : null);
+
+    return Future.wait([clearCollection, removeCollectionName]).then((_) {});
+  }
+
+  @override
+  @protected
+  Future<void> replaceCollection(
+      String collectionName, Map<String, dynamic> documents) async {
+    await removeAllDocumentsInCollection(collectionName);
+
+    await insertToCollection(collectionName, documents);
+  }
 }

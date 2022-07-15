@@ -43,9 +43,11 @@ class _TodosScreenWithConvertersState extends State<TodosScreenWithConverters> {
     return TodosScreenWrapper(
       completedFilter: completedFilter,
       newTodoCard: _buildNewTodoCard(),
-      onCreateNewPressed: () => setState(() {
+      onCreateOnePressed: () => setState(() {
         newTodo = Todo(id: const Uuid().v4(), name: '');
       }),
+      onCreateManyPressed: _handleCreateMany,
+      onRemoveAllPressed: _handleRemoveAll,
       onQueryChanged: _handleQueryChanged,
       onReload: _reloadData,
       searchTerm: searchTerm,
@@ -53,16 +55,16 @@ class _TodosScreenWithConvertersState extends State<TodosScreenWithConverters> {
         key: ValueKey(todo.id),
         completed: todo.completed,
         name: todo.name,
-        onCompletedChanged: (value) {
-          collectionReference.doc(todo.id).update({'completed': value});
+        onCompletedChanged: (value) async {
+          await collectionReference.doc(todo.id).update({'completed': value});
           _reloadData();
         },
-        onDelete: () {
-          collectionReference.doc(todo.id).delete();
+        onDelete: () async {
+          await collectionReference.doc(todo.id).delete();
           _reloadData();
         },
-        onNameChanged: (value) {
-          collectionReference.doc(todo.id).update({'name': value});
+        onNameChanged: (value) async {
+          await collectionReference.doc(todo.id).update({'name': value});
           _reloadData();
         },
       ),
@@ -87,15 +89,15 @@ class _TodosScreenWithConvertersState extends State<TodosScreenWithConverters> {
         newTodo =
             Todo(id: newTodo!.id, name: value, completed: newTodo!.completed);
 
-        Future.delayed(const Duration(milliseconds: 10)).then((_) {
+        Future.delayed(const Duration(milliseconds: 10)).then((_) async {
           if (newTodo!.name.isNotEmpty || newTodo!.completed) {
-            collectionReference.add(newTodo!, documentId: newTodo!.id);
+            await collectionReference.add(newTodo!, documentId: newTodo!.id);
             newTodo = null;
             _reloadData();
           } else {
             newTodo = null;
-            setState(() {});
           }
+          setState(() {});
         });
       },
     );
@@ -124,15 +126,50 @@ class _TodosScreenWithConvertersState extends State<TodosScreenWithConverters> {
       );
     }
 
-    documents = query.get().then((snapshot) => snapshot.docs);
+    final req = query.get();
+
+    documents = req.then((snapshot) {
+      return snapshot.docs;
+    });
+
+    // print('::: loading data');
+    // req.then((res) {
+    //   print('::: data');
+    //   print(res);
+    // }).catchError((error) {
+    //   print('::: error');
+    //   print(error);
+    // });
   }
 
-  void _handleQueryChanged(
-      {bool? completedFilter, required String searchTerm}) {
+  void _handleQueryChanged({
+    bool? completedFilter,
+    required String searchTerm,
+  }) {
     this.completedFilter = completedFilter;
     this.searchTerm = searchTerm;
     setState(() => _setUpStreams());
   }
 
   void _reloadData() => setState(() => _setUpStreams());
+
+  void _handleCreateMany() {
+    documents = widget.storage
+        .serviceRequest('createManyTodos', [
+          const Uuid().v4(),
+          const Uuid().v4(),
+          const Uuid().v4(),
+        ])
+        .then((_) => Future.delayed(const Duration(milliseconds: 1000)))
+        .then((_) => []);
+
+    documents.then((_) => setState(() => _setUpStreams()));
+
+    setState(() {});
+  }
+
+  void _handleRemoveAll() async {
+    await widget.storage.serviceRequest('removeAllTodos', null);
+    _reloadData();
+  }
 }

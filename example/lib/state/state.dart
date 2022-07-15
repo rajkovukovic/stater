@@ -1,12 +1,15 @@
+import 'package:stater/custom/local_storage.dart';
+import 'package:stater/custom/rest_storage.dart';
 import 'package:stater/stater.dart';
 import 'package:stater_example/state/does_todo_match_query.dart';
+import 'package:stater_example/state/services/create_many_todos.dart';
 
-final restDelegate = RestDelegate(
-  id: 'rest-server-mongodb',
-  endpoint: 'http://localhost:3030',
+final restAdapter = RestAdapter(
+  id: 'rest-server',
+  endpoint: 'http://192.168.0.11:54123/api',
 );
 
-final localStorageDelegate = GetStorageDelegate(
+final localAdapter = LocalAdapter(
   id: 'get-storage',
   storagePrefix: 'DB',
 );
@@ -15,19 +18,28 @@ const queryMatcher = JsonQueryMatcher({
   'todos': doesTodoMatchQuery,
 });
 
-final state = CascadeStorage(
-  primaryDelegate: restDelegate,
-  cachingDelegates: [
-    localStorageDelegate,
-  ],
-  transactionStoringDelegate: TransactionStoringDelegate.fromDelegate(
-    delegate: localStorageDelegate,
-    collectionName: 'uncommitted',
-    transactionsKey: 'transactions',
-    transactionsStateKey: 'processedTransactions',
-  ),
+ServiceProcessor serviceProcessorFactory(Storage storage) {
+  return (String serviceName, dynamic params) async {
+    switch (serviceName) {
+      case 'createManyTodos':
+        return createManyTodos(storage, params);
+      default:
+        throw 'Service "$serviceName" is not supported in offline mode.\n'
+            'You can implement it in Storage.serviceProcessorFactory.';
+    }
+  };
+}
+
+final cascadeAdapter = CascadeAdapter(
+  primaryStorage: restAdapter,
+  cachingStorages: [localAdapter],
+  transactionStoringDelegate:
+      TransactionStorer.fromStorage(Storage(localAdapter)),
+  serviceProcessorFactory: serviceProcessorFactory,
   queryMatcher: queryMatcher,
 );
+
+final state = Storage(cascadeAdapter);
 
 // final localData = {'photos': {}};
 
@@ -42,7 +54,7 @@ final state = CascadeStorage(
 //   )
 // ];
 
-// final filePath = {};
+// final filePath = '/Users/me/photo.jpg';
 
 // final a =
 //     state.request('uploadPhotos', {'filePath': filePath, 'documentId': 'uuid'});

@@ -1,9 +1,5 @@
-import 'package:stater/src/converters.dart';
-import 'package:stater/src/document_snapshot.dart';
-import 'package:stater/src/query_snapshot.dart';
-import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/storage_options.dart';
 import 'package:stater/src/utils/convert_query_snapshot.dart';
+import 'package:stater/stater.dart';
 
 class Query<ID extends Object?, T extends Object?> {
   const Query(
@@ -13,7 +9,7 @@ class Query<ID extends Object?, T extends Object?> {
       this.options = const StorageOptions(),
       this.converters});
 
-  final StorageDelegate delegate;
+  final StorageAdapter delegate;
   final String collectionName;
   final List<CompareOperation> compareOperations;
   final StorageOptions options;

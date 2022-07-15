@@ -1,21 +1,19 @@
 import 'dart:async';
 
-import 'package:rxdart/rxdart.dart';
-import 'package:stater/src/storage_delegate.dart';
-import 'package:stater/src/transaction/transaction.dart';
+import 'package:stater/stater.dart';
 
-const _retrySequencesInMilliseconds = [1000, 2000, 5000];
+const _retrySequencesInMilliseconds = [1000, 2000, 4000];
 
-/// Processes a transaction and retires forever
+/// Processes a transaction and retries forever
 class TransactionProcessor {
-  final CascadableStorageDelegate delegate;
+  final StorageAdapter storage;
   final Set<String> completedTransactionIds;
 
   Transaction? currentTransaction;
   StreamSubscription? _currentTransactionSubscription;
 
   TransactionProcessor({
-    required this.delegate,
+    required this.storage,
     required this.completedTransactionIds,
   });
 
@@ -43,7 +41,7 @@ class TransactionProcessor {
     int? retryCount,
   }) {
     if (isPerformingTransaction) {
-      throw 'processor "${delegate.id}" is already performing a transaction';
+      throw 'processor "${storage.id}" is already performing a transaction';
     }
 
     currentTransaction = transaction;
@@ -64,11 +62,17 @@ class TransactionProcessor {
               .then((_) => Future.error('')));
     }
 
-    final stream = RetryStream(
-      () => Stream.fromFuture(delegate.performTransaction(transaction))
-          .onErrorResume((_, __) => getRetryDelay()),
-      retryCount,
-    );
+    final stream = Stream.fromFuture(storage.performTransaction(transaction));
+
+    // final stream = RetryStream(
+    //   () => Stream.fromFuture(storage.performTransaction(transaction)
+    //           // transaction.operations.length == 1
+    //           //   ? storage.performOperation(transaction.operations.first)
+    //           //   : storage.performTransaction(transaction)
+    //           )
+    //       .onErrorResume((_, __) => getRetryDelay()),
+    //   retryCount,
+    // );
 
     _currentTransactionSubscription = stream.listen(
       (response) => _handleTransactionComplete(response, onSuccess),

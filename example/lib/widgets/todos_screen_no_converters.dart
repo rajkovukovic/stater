@@ -44,7 +44,7 @@ class _TodosScreenNoConvertersState extends State<TodosScreenNoConverters> {
       appBarColor: Colors.grey,
       completedFilter: completedFilter,
       newTodoCard: _buildNewTodoCard(),
-      onCreateNewPressed: () => setState(() {
+      onCreateOnePressed: () => setState(() {
         newTodo = Todo(id: const Uuid().v4(), name: '');
       }),
       onQueryChanged: _handleQueryChanged,
@@ -52,21 +52,21 @@ class _TodosScreenNoConvertersState extends State<TodosScreenNoConverters> {
       searchTerm: searchTerm,
       todoBuilder: (context, todo) => todo is Map
           ? TodoCard(
-              key: ValueKey(todo['id']),
+              key: ValueKey(todo['_id']),
               completed: todo['completed'],
               name: todo['name'],
         onCompletedChanged: (value) {
                 collectionReference
-                    .doc(todo['id'])
+                    .doc(todo['_id'])
                     .update({'completed': value});
           _reloadData();
         },
         onDelete: () {
-                collectionReference.doc(todo['id']).delete();
+                collectionReference.doc(todo['_id']).delete();
           _reloadData();
         },
         onNameChanged: (value) {
-                collectionReference.doc(todo['id']).update({'name': value});
+                collectionReference.doc(todo['_id']).update({'name': value});
           _reloadData();
         },
             )

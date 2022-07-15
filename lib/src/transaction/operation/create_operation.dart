@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'collection_operation.dart';
@@ -9,6 +10,7 @@ class CreateOperation extends CollectionOperation {
   Map<String, dynamic> data;
 
   CreateOperation({
+    super.completer,
     this.documentId,
     required this.data,
     required super.collectionName,
@@ -16,10 +18,14 @@ class CreateOperation extends CollectionOperation {
   });
 
   @override
-  get changeType => OperationType.create;
+  get operationType => OperationType.create;
 
-  factory CreateOperation.fromMap(Map<String, dynamic> map) {
+  factory CreateOperation.fromMap(
+    Map<String, dynamic> map, {
+    Completer? completer,
+  }) {
     return CreateOperation(
+      completer: completer,
       documentId: map['documentId'],
       collectionName: map['collectionName'],
       data: map['data'],
@@ -31,7 +37,7 @@ class CreateOperation extends CollectionOperation {
   Map<String, dynamic> toMap() {
     return {
       'documentId': documentId,
-      'changeType': changeType.name,
+      'operationType': operationType.name,
       'collectionName': collectionName,
       'data': data,
       'timestamp': timestamp.millisecondsSinceEpoch,

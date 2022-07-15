@@ -1,9 +1,6 @@
-import 'package:stater/src/converters.dart';
-import 'package:stater/src/document_reference.dart';
-import 'package:stater/src/storage_options.dart';
 import 'package:stater/src/utils/convert_document_snapshot.dart';
+import 'package:stater/stater.dart';
 
-import 'query.dart';
 
 class CollectionReference<ID extends Object?, T extends Object?>
     extends Query<ID, T> {
