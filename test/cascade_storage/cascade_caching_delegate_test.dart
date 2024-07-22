@@ -18,7 +18,7 @@ void main() {
     final delegate = CascadeCachingDelegate(
       dataFuture: dataFuture,
       uncommittedTransactionsFuture: transactionsFuture,
-      innerDelegateCreator: (data) => SlowerWriteThanReadDelegate(data),
+      // innerDelegateCreator: (data) => SlowerWriteThanReadDelegate(data),
     );
 
     final readTodo1Future =
@@ -45,7 +45,7 @@ void main() {
     final delegate = CascadeCachingDelegate(
       dataFuture: dataFuture,
       uncommittedTransactionsFuture: transactionsFuture,
-      innerDelegateCreator: (data) => SlowerWriteThanReadDelegate(data),
+      // innerDelegateCreator: (data) => SlowerWriteThanReadDelegate(data),
     );
 
     final readTodo1Future =

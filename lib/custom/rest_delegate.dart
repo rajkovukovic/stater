@@ -12,7 +12,7 @@ class RestDelegate extends CascadableStorageDelegate {
 
   static const String idKey = '_id';
   static final requestOptions =
-      Options(receiveTimeout: 5000, sendTimeout: 5000);
+      Options(receiveTimeout: const Duration(milliseconds: 5000), sendTimeout: const Duration(milliseconds: 5000));
 
   final String endpoint;
 

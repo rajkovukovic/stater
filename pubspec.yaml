@@ -1,10 +1,10 @@
 name: stater
 description: library for state management with Firebase like API with support for caching of server data locally
-version: 0.1.0-alpha.2+2
+version: 0.1.0-alpha.3+3
 homepage:
 
 environment:
-  sdk: ">=2.17.1 <3.0.0"
+  sdk: ">=2.17.1 <4.0.0"
   flutter: ">=3.0.0"
 
 dependencies:
@@ -12,22 +12,26 @@ dependencies:
     sdk: flutter
   flutter_web_plugins:
     sdk: flutter
-  plugin_platform_interface: ^2.0.2
+  plugin_platform_interface: ^2.1.8
 
   async: ^2.8.2
   collection: ^1.16.0
-  dio: ^4.0.6
-  get_storage: ^2.0.3
-  http: ^0.13.4
-  meta: ^1.7.0
-  rxdart: ^0.27.3
-  uuid: ^3.0.6
-  fast_immutable_collections: ^7.4.1
+  dio: ^5.5.0+1
+  file: ^7.0.0
+  get_storage: ^2.1.1
+  http: ^1.2.2
+  meta: ^1.12.0
+  rxdart: ^0.28.0
+  uuid: ^4.2.2
+  fast_immutable_collections: ^10.2.4
+
+dependency_overrides:
+  get: ^4.6.6
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^4.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
